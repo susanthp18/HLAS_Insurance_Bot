@@ -2,6 +2,10 @@ from crewai.tools import BaseTool
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Type, Optional, Any
 from datetime import datetime
+try:
+    from zoneinfo import ZoneInfo
+except Exception:
+    ZoneInfo = None
 
 
 class ExplanationToolInput(BaseModel):
@@ -19,13 +23,17 @@ class ExplanationTool(BaseTool):
 
     def _run(self, query: Optional[str] = None, description: Optional[str] = None, context: Optional[str] = None, **kwargs: Any) -> str:
         # Friendly greeting based on time
-        hour = datetime.now().hour
-        if hour < 12:
-            greeting = "Good morning"
-        elif hour < 18:
-            greeting = "Good afternoon"
-        else:
-            greeting = "Good evening"
+        greeting = "Hello"
+        try:
+            hour = datetime.now(ZoneInfo("Asia/Singapore")).hour
+            if hour < 12:
+                greeting = "Good morning"
+            elif hour < 18:
+                greeting = "Good afternoon"
+            else:
+                greeting = "Good evening"
+        except Exception:
+            pass
 
         message = (
             f"{greeting}! I'm HLAS Assistant. I can help you:\n"

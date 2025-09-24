@@ -1,11 +1,7 @@
 """Utility helpers for generating user-facing greetings."""
 
 from datetime import datetime
-
-try:
-    from zoneinfo import ZoneInfo  # Python 3.9+
-except Exception:  # pragma: no cover - fallback for older Python versions
-    ZoneInfo = None
+from zoneinfo import ZoneInfo
 
 
 def get_time_based_greeting() -> str:
@@ -14,7 +10,7 @@ def get_time_based_greeting() -> str:
     salutation = "Hello"
 
     try:
-        now_sg = datetime.now(ZoneInfo("Asia/Singapore")) if ZoneInfo else datetime.utcnow()
+        now_sg = datetime.now(ZoneInfo("Asia/Singapore"))
         hour = now_sg.hour
 
         if hour < 12:

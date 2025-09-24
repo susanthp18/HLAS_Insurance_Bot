@@ -8,10 +8,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 import yaml
 from .prompt_runner import run_direct_task
-try:
-    from zoneinfo import ZoneInfo  # Python 3.9+
-except Exception:
-    ZoneInfo = None
+from zoneinfo import ZoneInfo  # Python 3.9+
 from .tasks import (
     identify_product_task,
     retrieve_information_task,
@@ -213,7 +210,7 @@ class HlasFlow(Flow[HlasState]):
                 
                 logger.info("HlasFlow.decide: Compare bypass product identification - identified=%s, confidence=%s, has_question=%s",
                            prod_probe.get("product"), prod_probe.get("confidence"), bool(prod_probe.get("question")))
-                
+                           
                 identified = prod_probe.get("product")
                 if identified and identified != current_product:
                     logger.info("HlasFlow.decide: Compare bypass product switch - %s->%s", current_product, identified)
@@ -305,8 +302,8 @@ class HlasFlow(Flow[HlasState]):
         history = self.state.session.get("history", [])
         recent_conversation = []
         if history:
-            # Take last 3 turns and reverse to show most recent first
-            recent_turns = history[-3:]
+            # Take last 1 turn and reverse to show most recent first
+            recent_turns = history[-1:]
             recent_turns.reverse()
             for turn in recent_turns:
                 user_msg = turn.get("user", "")
@@ -343,7 +340,7 @@ class HlasFlow(Flow[HlasState]):
             # Time-aware greeting (Singapore)
             salutation = "Hello"
             try:
-                now_sg = datetime.now(ZoneInfo("Asia/Singapore")) if ZoneInfo else datetime.utcnow()
+                now_sg = datetime.now(ZoneInfo("Asia/Singapore"))
                 hour = now_sg.hour
                 if hour < 12:
                     salutation = "Good morning"
@@ -402,15 +399,14 @@ class HlasFlow(Flow[HlasState]):
                 self.state.session["product"] = identified
                 # Clear any pending recommendation state to prevent cross-product leakage
                 self.state.session.pop("pending_slot", None)
-                self.state.pending_slot = None
                 self.state.last_question = None
-                
+
                 # Keep only the immediately previous turn (most recent first)
-                use_history_pairs = list(reversed(history[-1:])) if history else []
-                logger.info("HlasFlow.decide: Follow-up retained %d history pairs for context", len(use_history_pairs))
+                use_history_pairs = list(reversed(history[-1:]))
+                logger.debug("HlasFlow.decide: Follow-up using %d history pairs (no product switch)", len(use_history_pairs))
             else:
                 # Prepare recent history window (most recent first)
-                use_history_pairs = list(reversed(history[-2:]))
+                use_history_pairs = list(reversed(history[-1:]))
                 logger.debug("HlasFlow.decide: Follow-up using %d history pairs (no product switch)", len(use_history_pairs))
 
             context_lines = []

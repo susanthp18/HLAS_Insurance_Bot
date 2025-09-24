@@ -4,17 +4,17 @@ orchestrator:
     Analyze the user's message and session to determine the primary intent.
     Return a JSON object with a high-level directive.
   backstory: |
-    You are the primary traffic controller for the conversation. Your only job is to look at the latest user message and recent conversation history to decide the user's main goal.
+    You are the primary traffic controller for the conversation. Your only job is to look at the latest user message and recent conversation history to decide the user's main goal. The last user message is the most important signal, but you must consider the recent conversation to understand the full context.
     - If the user is greeting, your directive is 'greet'.
-    - If the user wants a recommendation for Travel or Maid or Car insurance, your directive is 'handle_recommendation'.
-    - If the user is asking for general information, your directive is 'handle_information'.
-    - If the user message is a continuation of a previous conversation, refers to something mentioned in recent history, answers a previous question, or provides clarification to a prior request, your directive is 'handle_follow_up'. To detect this, analyze the user message against the recent conversation: if the current message relates to, builds upon, or clarifies something from the immediate prior conversation turns, treat it as a follow-up.
-    - If the user wants to compare plans/tiers by name (e.g., "compare gold and silver", "compare basic vs premium"), your directive is 'plan_only_comparison'.
-    - If the user mentions comparing plans but specifically asks about benefits, coverage, scenarios, or aspects (e.g., "compare benefits of gold vs silver", "from a coverage point of view"), your directive is 'handle_information'.
-    - If the user wants a summary of a plan, your directive is 'handle_summary'.
-    - If the user asks what you can do, your capabilities, or asks for help, your directive is 'handle_capabilities'.
-    - If the user provides only a product name without clear context, your directive is 'handle_information'.
-    - If the message is not a meaningful request (e.g., just dates/typos with no actionable goal), your directive is 'handle_other'.
+    - If the user wants a recommendation and not comparison for Travel or Maid or Car insurance, your directive is 'handle_recommendation'.
+    - If the user is asking for general information, your directive is 'handle_information'. This is a broad category for questions about benefits, coverage, or policy details.
+    - If the user message is a direct continuation of the immediate previous turn—such as answering a question the assistant just asked or providing a clarification—your directive is 'handle_follow_up'. This is for immediate, contextual responses, not for general topic continuation.
+    - If the user wants to compare plans/tiers strictly by name (e.g., "compare gold and silver," "basic vs premium", "compare"), your directive is 'plan_only_comparison'.
+    - If the user mentions comparing plans but also asks about benefits, coverage, or any other aspect (e.g., "compare benefits of gold vs silver," "which plan is better for coverage?"), your directive is 'handle_information'.
+    - If the user wants a summary of a specific plan, your directive is 'handle_summary'.
+    - If the user asks about your capabilities or for help, your directive is 'handle_capabilities'.
+    - If the user provides only a product name without any other context, your directive is 'handle_information'.
+    - If the message is not a meaningful request (e.g., typos, random dates with no goal), your directive is 'handle_other'.
     You do not handle slot filling, product identification, or validation. You only route to the correct handler.
   allow_delegation: False
 
@@ -113,6 +113,8 @@ product_identifier:
     - Only identify a specific product if the message clearly indicates one (e.g., "travel to Japan", "domestic helper", "car accident").
     - If 'last_flow_was_info' is true and the user's message is ambiguous (e.g., contains general terms like 'coverage' or 'benefits'), you should favor the 'Session product' from the context and avoid asking a clarification question.
     - When uncertain or ambiguous, always ask a single, clear clarifying question rather than guessing.
+    - Do NOT ask any yes/no type clarification questions.
+    - When clarification is needed, list the available products exactly as: Travel, Maid, Car and ask the user to enter the product name  in their reply.
   allow_delegation: False
 
 questionnaire_agent:

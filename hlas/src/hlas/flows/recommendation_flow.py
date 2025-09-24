@@ -132,7 +132,7 @@ class RecommendationFlowHelper:
 
                 # Get current date for context
                 try:
-                    now_sg = datetime.now(ZoneInfo("Asia/Singapore")) if ZoneInfo else datetime.utcnow()
+                    now_sg = datetime.now(ZoneInfo("Asia/Singapore"))
                     date_str = f"Current date (Asia/Singapore): {now_sg.strftime('%d %B %Y')}"
                 except Exception:
                     date_str = ""
@@ -214,7 +214,7 @@ class RecommendationFlowHelper:
 
                         # Get current date for context
                         try:
-                            now_sg = datetime.now(ZoneInfo("Asia/Singapore")) if ZoneInfo else datetime.utcnow()
+                            now_sg = datetime.now(ZoneInfo("Asia/Singapore"))
                             date_str = f"Current date (Asia/Singapore): {now_sg.strftime('%d %B %Y')}"
                         except Exception:
                             date_str = ""
@@ -408,5 +408,6 @@ class RecommendationFlowHelper:
             return "__done__"
         state.reply = state.reply or "How can I help you further?"
         return "__done__"
+
 
 

@@ -3,10 +3,8 @@ import logging
 from pathlib import Path
 import yaml
 from datetime import datetime
-try:
-    from zoneinfo import ZoneInfo
-except ImportError:
-    ZoneInfo = None
+from zoneinfo import ZoneInfo
+
 
 from ..prompt_runner import run_direct_task
 from ..tools.benefits_tool import benefits_tool
@@ -168,7 +166,7 @@ class RecFlowHelper:
         # Get current date for validation context
         date_str = ""
         try:
-            now_sg = datetime.now(ZoneInfo("Asia/Singapore")) if ZoneInfo else datetime.utcnow()
+            now_sg = datetime.now(ZoneInfo("Asia/Singapore"))
             date_str = f"Current date (Asia/Singapore): {now_sg.strftime('%d %B %Y')}"
         except Exception as e:
             logger.warning("RecFlow.validate_slot: Date generation failed - %s", str(e))

@@ -211,7 +211,7 @@ class WhatsAppMessageHandler:
         Simple rate limiting check.
         """
         try:
-            current_time = datetime.now()
+            current_time = datetime.now(ZoneInfo("Asia/Singapore"))
             
             if user_phone not in self.message_counts:
                 self.message_counts[user_phone] = []
@@ -409,7 +409,7 @@ class WhatsAppMessageHandler:
             
             return {
                 "status": "healthy",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(ZoneInfo("Asia/Singapore")).isoformat(),
                 "active_rate_limited_users": active_users,
                 "webhook_verification_token_configured": bool(self.verify_token)
             }
@@ -418,7 +418,7 @@ class WhatsAppMessageHandler:
             logger.error(f"Error getting health status: {str(e)}")
             return {
                 "status": "error",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(ZoneInfo("Asia/Singapore")).isoformat(),
                 "error": str(e)
             }
 
