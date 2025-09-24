@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Car_policy_23",
+  "metadata": {
+    "product_name": "Car",
+    "doc_type": "policy",
+    "source_file": "Car_policy.md",
+    "chunk_index": 23,
+    "content_length": 926,
+    "is_empty": false
+  },
+  "content": "**\"Insured Vehicle\"** means the vehicle We are insuring for You as shown in the Schedule, fitted with standard equipment by the manufacturer or distributor without any modification to any parts, Accessories, Windscreen and/or windows, unless otherwise declared with details and endorsed under this Policy.\n\n**\"Market Value\"** refers to the cost of replacing Your vehicle with one of the same make and model, of similar specification, condition and age as currently available immediately before the date of the loss or accident.\n\n**\"No Claim Discount (NCD)\"** refers to a discount from Your premium in return for not making or having made a claim and/or not having any claim made against You by any third party.\n\n**\"Period of Insurance\"** refers to the period of cover shown in the Schedule or Certificate of Insurance and for any following period, for which cover is extended by mutual agreement and endorsed under the Policy.",
+  "questions": [
+    "What does 'Insured Vehicle' mean in the context of this insurance policy?",
+    "How is 'Market Value' defined in this insurance document?",
+    "What qualifies for a 'No Claim Discount' in this insurance policy?",
+    "What is the duration of the 'Period of Insurance' according to the policy?",
+    "Are modifications to the insured vehicle covered under the policy?",
+    "How is the market value of a vehicle determined in the event of a loss or accident?",
+    "What are the requirements for a vehicle to be considered as 'Insured Vehicle'?",
+    "Can the 'Period of Insurance' be extended and if so, how?",
+    "What impact does making a claim have on the 'No Claim Discount'?",
+    "Does the policy cover non-standard equipment fitted in the insured vehicle?"
+  ]
+}

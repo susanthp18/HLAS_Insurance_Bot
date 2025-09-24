@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Maid_benefits_10",
+  "metadata": {
+    "product_name": "Maid",
+    "doc_type": "benefits",
+    "source_file": "Maid_benefits.txt",
+    "chunk_index": 10,
+    "content_length": 444,
+    "is_empty": false
+  },
+  "content": "Section 4 - Wages and Levy Reimbursement:\nWages and Levy Reimbursement compensates you for your helper's wages and levy if she is hospitalized due to an injury or illness on a reimbursement basis, providing coverage for Enhanced, Premier, and Exclusive plans with forty dollars per day up to thirty days for Enhanced plan, fifty dollars per day up to thirty days for Premier plan, and sixty dollars per day up to thirty days for Exclusive plan.",
+  "questions": [
+    "What does the Wages and Levy Reimbursement cover?",
+    "How much is the daily reimbursement for the Enhanced plan?",
+    "What is the maximum number of days for which the reimbursement is available?",
+    "Is the Wages and Levy Reimbursement applicable if my helper is hospitalized?",
+    "What are the reimbursement rates for the Premier and Exclusive plans?",
+    "Can I claim for my helper's wages if she is ill but not hospitalized?",
+    "What plans provide coverage for Wages and Levy Reimbursement?",
+    "How does the reimbursement amount differ between the Enhanced and Exclusive plans?",
+    "What should I do to claim the Wages and Levy Reimbursement?",
+    "Are there any conditions under which the reimbursement might not be provided?"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Travel_benefits_2",
+  "metadata": {
+    "product_name": "Travel",
+    "doc_type": "benefits",
+    "source_file": "Travel_benefits.txt",
+    "chunk_index": 2,
+    "content_length": 1000,
+    "is_empty": false
+  },
+  "content": "reatment was sought overseas, is $10,000 for the Basic plan, $15,000 for the Silver plan, $20,000 for the Gold plan, and $25,000 for the Platinium plan.\nUnder the Medical And Other Expenses coverage, the Medical Expenses in Singapore benefit for an Adult (age above 70 years), capped at S$100 per visit where no initial treatment was sought overseas, is $1,000 for the Basic plan, $1,500 for the Silver plan, $2,500 for the Gold plan, and $5,000 for the Platinium plan.\nUnder the Medical And Other Expenses coverage, the Medical Expenses in Singapore benefit for a Child, capped at S$100 per visit where no initial treatment was sought overseas, is $1,000 for the Basic plan, $1,500 for the Silver plan, $2,500 for the Gold plan, and $5,000 for the Platinium plan.\nUnder the Medical And Other Expenses coverage, the Compassionate Visit benefit is $3,000 for the Basic plan, $5,000 for the Silver plan, $10,000 for the Gold plan, and $15,000 for the Platinium plan.\nUnder the Medical And Other Expense",
+  "questions": [
+    "What are the overall limits for medical expenses incurred overseas for each plan, and how do these limits differ for adults over 70 years and children, especially in scenarios where initial treatment was not sought overseas?",
+    "How does the Medical Expenses in Singapore benefit vary for adults and children under different plans, particularly regarding the cap per visit and the total coverage amount, and what implications does this have for families traveling with children or elderly members?",
+    "What are the details of the Compassionate Visit benefit across all plans, including the maximum coverage amounts, eligibility criteria, and how this benefit interacts with other medical expenses incurred during travel?",
+    "In what scenarios would the medical expenses coverage differ for adults over 70 years compared to younger adults, and how does this affect the overall benefits available under each plan for both local and overseas treatments?",
+    "How do the coverage limits for medical expenses in Singapore change based on the age of the insured, and what are the specific conditions under which these benefits apply, particularly for those who have sought treatment overseas?",
+    "What are the combined benefits available under the Medical And Other Expenses coverage for a family traveling together, including the implications of age on coverage limits and the process for claiming these benefits?",
+    "How do the different plans (Basic, Silver, Gold, Platinum) compare in terms of total medical expenses coverage for both overseas treatment and local treatment in Singapore, especially for children and elderly adults?",
+    "What are the specific conditions that must be met for the Compassionate Visit benefit to be utilized, and how does this benefit integrate with other medical expenses incurred during travel under each plan?",
+    "How does the coverage for medical expenses in Singapore differ for adults and children in terms of visit caps and total coverage, and what are the implications for families with varying age groups traveling together?",
+    "What processes are involved in filing claims for medical expenses incurred both overseas and in Singapore, and how do these processes differ based on the plan selected and the age of the insured?"
+  ]
+}

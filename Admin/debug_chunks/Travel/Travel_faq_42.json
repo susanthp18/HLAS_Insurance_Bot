@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Travel_faq_42",
+  "metadata": {
+    "product_name": "Travel",
+    "doc_type": "faq",
+    "source_file": "Travel_FAQs.txt",
+    "chunk_index": 42,
+    "content_length": 161,
+    "is_empty": false
+  },
+  "content": "Q: Can I cancel my travel insurance policy if my plans change?\nA: You may cancel the Policy before the start of your trip with administrative charges applicable.",
+  "questions": [
+    "What happens if I need to cancel my travel insurance due to a change in plans?",
+    "Is it possible to cancel a travel insurance policy before the trip begins?",
+    "Are there any fees associated with canceling a travel insurance policy?",
+    "What should I do if I no longer need my travel insurance?",
+    "Can I get a refund on my travel insurance if I cancel it?",
+    "What are the administrative charges for canceling a travel insurance policy?",
+    "Under what conditions can I cancel my travel insurance?",
+    "How do I cancel my travel insurance before my trip starts?",
+    "What is the process for canceling a travel insurance policy?",
+    "Are there any penalties for canceling travel insurance before the trip?"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Car_policy_34",
+  "metadata": {
+    "product_name": "Car",
+    "doc_type": "policy",
+    "source_file": "Car_policy.md",
+    "chunk_index": 34,
+    "content_length": 830,
+    "is_empty": false
+  },
+  "content": "### EXCLUSIONS TO SECTION II\n1. death of or bodily injury to an employee arising out of and in the course of employment by a person insured under this Policy,\n2. damage to property belonging to or held in trust by or in the custody or control of:\n   (i) the Policyholder or any member of his household,\n   (ii) any Authorised Driver claiming to be indemnified under Section II-1 or any member of his household.\n\n### SECTION III - MEDICAL EXPENSES\nIf You, Your Authorised Driver or any passenger in the Insured Vehicle suffer(s) bodily injury, sustained as the direct and immediate result of an accident to the Insured Vehicle during the Period of Insurance and caused by accidental, violent, external and visible means, We will pay the reasonable medical expenses incurred, subject to a maximum of S$1,000 per person per accident.",
+  "questions": [
+    "What are the exclusions listed under Section II of the policy?",
+    "Does the policy cover death or injury of an employee if it occurs during their employment?",
+    "What types of property damage are excluded from coverage under this policy?",
+    "Who is not covered for property damage under the policy terms?",
+    "What does Section III of the policy cover?",
+    "Are medical expenses covered if the injury is due to an accident involving the insured vehicle?",
+    "What is the maximum amount payable per person per accident for medical expenses?",
+    "Does the policy cover medical expenses for both the authorized driver and passengers?",
+    "What conditions must be met for medical expenses to be covered under Section III?",
+    "Are there any limitations on the type of bodily injuries covered for medical expenses under the policy?"
+  ]
+}

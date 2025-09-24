@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Maid_benefits_4",
+  "metadata": {
+    "product_name": "Maid",
+    "doc_type": "benefits",
+    "source_file": "Maid_benefits.txt",
+    "chunk_index": 4,
+    "content_length": 428,
+    "is_empty": false
+  },
+  "content": "Clinical Visit coverage provides fifty dollars per visit for Basic plan, seventy five dollars per visit for Enhanced plan, one hundred dollars per visit for Premier plan, and two hundred dollars per visit for Exclusive plan.\n\nDental treatment coverage provides no coverage for Basic plan, no coverage for Enhanced plan, one hundred dollars per accident for Premier plan, and four hundred dollars per accident for Exclusive plan.",
+  "questions": [
+    "What is the coverage amount for a Clinical Visit under the Basic plan?",
+    "How much does the Enhanced plan cover for Clinical Visits?",
+    "What is the coverage for Dental treatment under the Basic plan?",
+    "How much can I claim for a Dental accident under the Premier plan?",
+    "What is the maximum coverage for Clinical Visits under the Exclusive plan?",
+    "Is there any coverage for Dental treatment in the Enhanced plan?",
+    "How much does the Premier plan cover for Clinical Visits?",
+    "What is the coverage amount for a Dental accident under the Exclusive plan?",
+    "Can I receive coverage for Dental treatment with the Basic plan?",
+    "What are the coverage amounts for Clinical Visits across all plans?"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Maid_benefits_27",
+  "metadata": {
+    "product_name": "Maid",
+    "doc_type": "benefits",
+    "source_file": "Maid_benefits.txt",
+    "chunk_index": 27,
+    "content_length": 353,
+    "is_empty": false
+  },
+  "content": "Enhanced Medical Benefits Free Medical Tele-Consultation provides three times for Employer and three times for your helper per year.\n\nEnhanced Medical Benefits premium rates with GST for aged fifty and below for fourteen months policy is eighty one dollars and eighty cents, and for twenty six months policy is one hundred five dollars and eighty cents.",
+  "questions": [
+    "How many tele-consultations are provided for employers and helpers each year?",
+    "What is the cost of the Enhanced Medical Benefits for someone aged fifty and below for a fourteen-month policy?",
+    "What is the premium rate for a twenty-six month policy under Enhanced Medical Benefits?",
+    "Are there any additional costs included in the Enhanced Medical Benefits premium rates?",
+    "How often can an employer utilize the free medical tele-consultation service?",
+    "Is the premium rate for Enhanced Medical Benefits the same for all age groups?",
+    "What is the total number of tele-consultations available for a helper in a year?",
+    "What is the GST included in the Enhanced Medical Benefits premium rates?",
+    "Can someone aged over fifty access the Enhanced Medical Benefits mentioned?",
+    "What is the difference in premium rates between the fourteen-month and twenty-six month policies?"
+  ]
+}

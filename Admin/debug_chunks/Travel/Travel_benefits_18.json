@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Travel_benefits_18",
+  "metadata": {
+    "product_name": "Travel",
+    "doc_type": "benefits",
+    "source_file": "Travel_benefits.txt",
+    "chunk_index": 18,
+    "content_length": 363,
+    "is_empty": false
+  },
+  "content": "Under the Travel Inconvenience coverage, the Trip Curtailment benefit is $3,000 for the Basic plan, $5,000 for the Silver plan, $8,000 for the Gold plan, and $10,000 for the Platinium plan.\nUnder the Travel Inconvenience coverage, the Travel Delay benefit provides S$100 for every 6 hours, up to a total of $1,000 for the Basic, Silver, Gold, and Platinium plans.",
+  "questions": [
+    "What is the maximum coverage amount for Trip Curtailment under the Platinium plan?",
+    "How much does the Travel Delay benefit provide for every 6 hours of delay?",
+    "What are the different coverage amounts for Trip Curtailment across the various plans?",
+    "Is the Travel Delay benefit the same for all plan types?",
+    "What is the total maximum amount one can receive from the Travel Delay benefit?",
+    "How does the Trip Curtailment benefit vary between the Basic and Gold plans?",
+    "What is the coverage amount for Trip Curtailment in the Silver plan?",
+    "Can you explain the Travel Inconvenience coverage under the different plans?",
+    "What is the maximum payout for the Travel Delay benefit under the Basic plan?",
+    "How are the benefits structured for Travel Inconvenience in the Platinium plan?"
+  ]
+}

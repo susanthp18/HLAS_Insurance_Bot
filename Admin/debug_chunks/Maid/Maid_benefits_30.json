@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Maid_benefits_30",
+  "metadata": {
+    "product_name": "Maid",
+    "doc_type": "benefits",
+    "source_file": "Maid_benefits.txt",
+    "chunk_index": 30,
+    "content_length": 420,
+    "is_empty": false
+  },
+  "content": "Policy Cancellation and Refund Information:\nPolicy cancellation occurs automatically when the Domestic Helper's Work Permit or employment contract with the Employer in Singapore is terminated from the date of the Letter of Discharge from the Ministry of Manpower.\n\nRefund for Policy Cancellation within three hundred sixty five days from the date of inception follows the scale of refund as indicated in policy wordings.",
+  "questions": [
+    "What triggers automatic policy cancellation?",
+    "How does the termination of a work permit affect my policy?",
+    "What is the timeframe for requesting a refund after policy cancellation?",
+    "Is there a specific document required for policy cancellation?",
+    "What is the refund scale for policy cancellation within the first year?",
+    "When does the policy cancellation take effect?",
+    "Can I cancel my policy if my employment contract is still active?",
+    "What happens to my policy if I receive a Letter of Discharge?",
+    "Are there any conditions under which I cannot receive a refund?",
+    "How can I find the refund scale mentioned in the policy wordings?"
+  ]
+}

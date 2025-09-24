@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Car_policy_38",
+  "metadata": {
+    "product_name": "Car",
+    "doc_type": "policy",
+    "source_file": "Car_policy.md",
+    "chunk_index": 38,
+    "content_length": 929,
+    "is_empty": false
+  },
+  "content": "**Scale of Compensation**\n* For (1) Death, the compensation is S$20,000.\n* For (2) Total and irrecoverable loss of all sight in both eyes, the compensation is S$20,000.\n* For (2) Total and irrecoverable loss of all sight in one eye, the compensation is S$10,000.\n* For (3) Total loss by physical severance at or above the wrist of both hands, the compensation is S$20,000.\n* For (3) Total loss by physical severance at or above the ankle of both feet, the compensation is S$20,000.\n* For (3) Total loss by physical severance at or above the wrist or ankle of one hand together with one foot, the compensation is S$20,000.\n* For (3) Total loss by physical severance at or above the wrist or ankle of one hand or one foot together with the total and irrecoverable loss of all sight in one eye, the compensation is S$20,000.\n* For (3) Total loss by physical severance at or above the wrist of one hand, the compensation is S$10,000.",
+  "questions": [
+    "What is the compensation amount for death under this policy?",
+    "How much compensation is provided for total and irrecoverable loss of sight in both eyes?",
+    "What is the compensation for total and irrecoverable loss of sight in one eye?",
+    "How much is the compensation for total loss by physical severance of both hands?",
+    "What compensation does one receive for the total loss of both feet?",
+    "What is the compensation amount if one loses one hand and one foot?",
+    "How much is the compensation for losing one hand or one foot along with the loss of sight in one eye?",
+    "What is the compensation for the loss of one hand?",
+    "Is the compensation for losing both eyes the same as for losing both hands?",
+    "Does the compensation vary for different types of physical severance?"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Travel_benefits_24",
+  "metadata": {
+    "product_name": "Travel",
+    "doc_type": "benefits",
+    "source_file": "Travel_benefits.txt",
+    "chunk_index": 24,
+    "content_length": 370,
+    "is_empty": false
+  },
+  "content": "Under the Lifestyle coverage, the Golfing \"Hole in One\" benefit is $150 for the Basic plan, $250 for the Silver plan, $350 for the Gold plan, and $450 for the Platinium plan.\nUnder the Lifestyle coverage, the Credit Card Protection benefit is not available for the Basic plan, but is $600 for the Silver plan, $1,000 for the Gold plan, and $1,500 for the Platinium plan.",
+  "questions": [
+    "What is the 'Hole in One' benefit amount for the Basic plan under Lifestyle coverage?",
+    "How much does the Silver plan offer for the 'Hole in One' benefit under Lifestyle coverage?",
+    "What are the benefit amounts for the 'Hole in One' under the Gold and Platinium plans?",
+    "Is the Credit Card Protection benefit available for the Basic plan under Lifestyle coverage?",
+    "What is the Credit Card Protection benefit amount for the Silver plan?",
+    "How much is the Credit Card Protection benefit for the Gold plan?",
+    "What is the maximum Credit Card Protection benefit offered under the Platinium plan?",
+    "Can you list the benefit amounts for the 'Hole in One' across all plans under Lifestyle coverage?",
+    "What are the differences in Credit Card Protection benefits between the Silver, Gold, and Platinium plans?",
+    "Which plan does not offer Credit Card Protection under Lifestyle coverage?"
+  ]
+}

@@ -408,7 +408,7 @@ class HlasFlow(Flow[HlasState]):
                 # Keep only the immediately previous turn (most recent first)
                 use_history_pairs = list(reversed(history[-1:])) if history else []
                 logger.info("HlasFlow.decide: Follow-up retained %d history pairs for context", len(use_history_pairs))
-            else:
+    else:
                 # Prepare recent history window (most recent first)
                 use_history_pairs = list(reversed(history[-2:]))
                 logger.debug("HlasFlow.decide: Follow-up using %d history pairs (no product switch)", len(use_history_pairs))

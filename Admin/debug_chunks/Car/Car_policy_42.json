@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Car_policy_42",
+  "metadata": {
+    "product_name": "Car",
+    "doc_type": "policy",
+    "source_file": "Car_policy.md",
+    "chunk_index": 42,
+    "content_length": 528,
+    "is_empty": false
+  },
+  "content": "The reference of Legislation under the heading \"Avoidance of Certain Terms and Right of Recovery\" is limited to Sections 7, 8 and 9 of the Motor Vehicles (Third Party Risks & Compensation) Act (Republic of Singapore) and Sections 94, 95, 96 of the Road Transport Act 1987 (Malaysia).\n\n#### 2. Jurisdiction\nThe indemnity under this Policy shall not apply in respect of judgments which are not in the first instance delivered by or obtained from a Court of competent jurisdiction within West Malaysia or the Republic of Singapore.",
+  "questions": [
+    "What sections of the Motor Vehicles Act are referenced under 'Avoidance of Certain Terms and Right of Recovery'?",
+    "Which act does Sections 94, 95, and 96 belong to?",
+    "In which countries does the Motor Vehicles (Third Party Risks & Compensation) Act apply?",
+    "What does the indemnity under the policy not cover in terms of jurisdiction?",
+    "Can you list the sections of the Road Transport Act 1987 mentioned in the text?",
+    "Where must the court judgments originate from for the indemnity to apply under this policy?",
+    "What are the limitations of the indemnity regarding the jurisdiction in the policy?",
+    "Does the indemnity apply to judgments delivered outside of West Malaysia or Singapore?",
+    "What specific parts of the legislation are referred to in the avoidance clause?",
+    "In which two countries does the policy specify the competent jurisdiction for indemnity?"
+  ]
+}

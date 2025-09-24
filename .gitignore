@@ -1,10 +1,8 @@
-# Environment variables (SECRETS - NEVER COMMIT!)
+# Environment variables
 .env
 .env.local
 .env.production
 .env.development
-.env.template
-.env.example
 
 # Python cache directories
 __pycache__/

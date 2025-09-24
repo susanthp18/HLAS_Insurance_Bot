@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Travel_faq_36",
+  "metadata": {
+    "product_name": "Travel",
+    "doc_type": "faq",
+    "source_file": "Travel_FAQs.txt",
+    "chunk_index": 36,
+    "content_length": 440,
+    "is_empty": false
+  },
+  "content": "Q: What happens when I submit a claim?\nA: Within 3 business days of receiving your claim, we will send you an acknowledgement. We will request for additional documents within 7 business days if claim documents are incomplete. Once we receive all necessary information and have completed a full investigation required to assess your claim, we will decide to accept or decline your claim and inform you of our decision within 7 business days.",
+  "questions": [
+    "What is the complete process for submitting a claim, including the timeline for acknowledgement, potential requests for additional documents, and the final decision notification, and how does this process vary if the claim is complex or requires extensive investigation?",
+    "How does the claims process ensure timely communication with the claimant, including the specific timeframes for acknowledgement, requests for further documentation, and the final decision, and what steps can a claimant take if they do not receive timely updates?",
+    "What are the implications of submitting incomplete claim documents, including the timeline for additional document requests, the impact on the overall claims process, and how this might affect the final decision on the claim?",
+    "In what scenarios might a claim be declined after the investigation, and what are the procedures for informing the claimant of the decision, including any options for appeal or further action that the claimant can take?",
+    "How does the insurance company handle claims that require a full investigation, including the factors that might extend the timeline beyond the standard 7 business days for decision notification, and what types of claims typically necessitate this level of scrutiny?",
+    "What are the responsibilities of the claimant during the claims process, particularly regarding the submission of documents and responding to requests for additional information, and how might failure to comply affect the outcome of the claim?",
+    "What types of claims are most commonly submitted, and how does the claims process differ for these common claims compared to less frequent claims, particularly in terms of documentation requirements and investigation timelines?",
+    "How does the insurance company ensure that all necessary information is gathered during the claims process, and what are the potential consequences for the claimant if critical information is missing or not provided in a timely manner?",
+    "What are the standard practices for notifying claimants of the outcome of their claims, including the methods of communication used and any follow-up procedures that may be necessary if a claim is accepted or declined?",
+    "How does the claims process accommodate different types of claims, such as those related to health, property, or travel, and what unique considerations might arise in the investigation and decision-making phases for each type?"
+  ]
+}

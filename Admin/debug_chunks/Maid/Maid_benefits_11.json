@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Maid_benefits_11",
+  "metadata": {
+    "product_name": "Maid",
+    "doc_type": "benefits",
+    "source_file": "Maid_benefits.txt",
+    "chunk_index": 11,
+    "content_length": 469,
+    "is_empty": false
+  },
+  "content": "Section 5 - Alternative Maid Services:\nAlternative Maid Services pays for the cost of hiring temporary help if your helper is hospitalized due to an injury or illness on a reimbursement basis, providing two hundred dollars per day up to thirty days for Basic plan, one hundred dollars per day up to thirty days for Enhanced plan, one hundred fifty dollars per day up to thirty days for Premier plan, and two hundred dollars per day up to thirty days for Exclusive plan.",
+  "questions": [
+    "What is the reimbursement amount for the Basic plan?",
+    "How long can I receive reimbursement for hiring temporary help under the Enhanced plan?",
+    "What are the daily reimbursement rates for the Premier plan?",
+    "Is there a limit on the number of days I can claim for temporary help under the Exclusive plan?",
+    "What happens if my helper is hospitalized for more than thirty days?",
+    "Are the reimbursement rates the same for all plans?",
+    "What conditions must be met to qualify for reimbursement from Alternative Maid Services?",
+    "Can I claim reimbursement if my helper is hospitalized due to an illness?",
+    "How does the reimbursement process work for Alternative Maid Services?",
+    "What is the maximum amount I can receive under the Basic plan for temporary help?"
+  ]
+}

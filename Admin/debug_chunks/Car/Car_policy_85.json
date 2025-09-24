@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Car_policy_85",
+  "metadata": {
+    "product_name": "Car",
+    "doc_type": "policy",
+    "source_file": "Car_policy.md",
+    "chunk_index": 85,
+    "content_length": 534,
+    "is_empty": false
+  },
+  "content": "contrary this Policy is issued to the Policyholder as the principal party and not as agent or trustee for the Owners and nothing herein shall be construed as constituting the Policyholder an agent or trustee for the Owners or as an assignment (whether legal or equitable) by the Policyholder to the Owners of his rights benefits and claims under this Policy. It is lastly understood and agreed that the Policyholder shall not assign his rights benefits and claims under this Policy without the prior consent in writing of the Company.",
+  "questions": [
+    "Who is the principal party in the policy?",
+    "Can the policyholder act as an agent or trustee for the owners according to the policy?",
+    "Is the policyholder allowed to assign their rights and benefits to the owners?",
+    "What is required for the policyholder to assign their rights under the policy?",
+    "Does the policy text allow the policyholder to be considered as making a legal or equitable assignment to the owners?",
+    "What does the policy specify about the policyholder's ability to assign claims under the policy?",
+    "Who must give consent for the policyholder to assign their rights and benefits?",
+    "What form must the consent take for a policyholder to assign their rights under the policy?",
+    "Is the policyholder allowed to assign claims without the company's consent?",
+    "What is the role of the company in the assignment of the policyholder's rights and benefits?"
+  ]
+}

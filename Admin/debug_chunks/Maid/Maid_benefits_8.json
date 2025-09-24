@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Maid_benefits_8",
+  "metadata": {
+    "product_name": "Maid",
+    "doc_type": "benefits",
+    "source_file": "Maid_benefits.txt",
+    "chunk_index": 8,
+    "content_length": 453,
+    "is_empty": false
+  },
+  "content": "Hospital Cash benefit provides no coverage for Basic plan, twenty dollars per day up to thirty days for Enhanced plan, thirty dollars per day up to thirty days for Premier plan, and fifty dollars per day up to thirty days for Exclusive plan.\n\nWaiver of Co-Payment for Hospital and Surgical Expenses covers the twenty five percent co-payment payable by an employer with coverage provided for Enhanced, Premier, and Exclusive plans but not for Basic plan.",
+  "questions": [
+    "What is the daily cash benefit for the Enhanced plan?",
+    "How long can I receive the Hospital Cash benefit under the Premier plan?",
+    "Is there any coverage for the Basic plan regarding Hospital Cash benefit?",
+    "What is the maximum daily benefit for the Exclusive plan?",
+    "Does the Enhanced plan include a waiver of co-payment for hospital expenses?",
+    "What percentage of co-payment is waived for the Premier plan?",
+    "How does the Hospital Cash benefit differ between the Enhanced and Exclusive plans?",
+    "Is the waiver of co-payment applicable to the Basic plan?",
+    "What is the total maximum benefit period for the Hospital Cash benefit across all plans?",
+    "Which plans provide coverage for the waiver of co-payment for surgical expenses?"
+  ]
+}

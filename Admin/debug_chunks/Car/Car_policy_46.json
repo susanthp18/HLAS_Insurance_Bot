@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Car_policy_46",
+  "metadata": {
+    "product_name": "Car",
+    "doc_type": "policy",
+    "source_file": "Car_policy.md",
+    "chunk_index": 46,
+    "content_length": 822,
+    "is_empty": false
+  },
+  "content": "The No Claim Discount (NCD) shall be affected by any late notification or any failure in notification of an accident and/or occurrence by the Policyholder or Authorised Driver in accordance to Sub-Section 1 of Claims Conditions. Your No Claim Discount (NCD) will be reduced by an extra 10% as shown in the following table:\n\n**NCD Table 3**\n* With a current NCD of 50%, upon renewal with non-reporting, the NCD becomes 40%.\n* With a current NCD of 40%, upon renewal with non-reporting, the NCD becomes 30%.\n* With a current NCD of 30%, upon renewal with non-reporting, the NCD becomes 20%.\n* With a current NCD of 20%, upon renewal with non-reporting, the NCD becomes 10%.\n* With a current NCD of 10%, upon renewal with non-reporting, the NCD becomes 0%.\n\n*The Accident NCD to be applied first before the Non-Reporting NCD.",
+  "questions": [
+    "What happens to the No Claim Discount if an accident is not reported?",
+    "How much will my NCD decrease if I fail to report an accident?",
+    "What is the penalty for not reporting an accident according to the insurance policy?",
+    "Can you explain the NCD reduction process for non-reporting of accidents?",
+    "What are the new NCD rates after non-reporting for each NCD level?",
+    "What does Sub-Section 1 of Claims Conditions say about accident reporting?",
+    "How does the NCD change from 50% to 40% upon non-reporting?",
+    "What is the lowest NCD percentage I can have if I do not report an accident?",
+    "Is there a specific order in which different NCD reductions are applied?",
+    "What is the impact on NCD for a policyholder with a 20% NCD who fails to report an accident?"
+  ]
+}

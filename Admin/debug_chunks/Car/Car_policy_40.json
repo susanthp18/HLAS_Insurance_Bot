@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Car_policy_40",
+  "metadata": {
+    "product_name": "Car",
+    "doc_type": "policy",
+    "source_file": "Car_policy.md",
+    "chunk_index": 40,
+    "content_length": 878,
+    "is_empty": false
+  },
+  "content": "We will make payment under only one of the sub-sections (1) to (3) above in respect of any one occurrence. If You suffer several injuries, We will pay for the event that gives the highest benefit.\n\n#### 3. The maximum compensation in the aggregate payable by Us under this section of the Policy during the Period of Insurance is:\na. S$20,000 in respect of death or bodily injury suffered by the Policyholder.\nb. S$10,000 per person multiplied by the legal seating capacity of the Insured Vehicle in respect of death or bodily injury suffered by the Authorised Driver or passenger of the Insured Vehicle.\n\nIf the number of persons (including the driver) in the Insured Vehicle at the time of occurrence exceeds the number stated as the legal seating capacity in the Schedule, We shall be liable only for a pro rata proportion of the compensation which otherwise would be payable.",
+  "questions": [
+    "What is the maximum compensation for the policyholder in case of death or bodily injury?",
+    "How is compensation calculated if the number of persons exceeds the legal seating capacity in the insured vehicle?",
+    "What is the total possible compensation per person for an authorized driver or passenger in the insured vehicle?",
+    "Under what conditions will payment be made under one of the sub-sections (1) to (3)?",
+    "What happens if a policyholder suffers multiple injuries in one occurrence?",
+    "What is the maximum aggregate compensation payable under this section during the insurance period?",
+    "How does the insurance policy determine which injury to compensate for if multiple injuries occur?",
+    "What is the legal seating capacity's role in determining compensation for an insured vehicle?",
+    "Is there a limit to the number of times compensation can be claimed under this section in a single period of insurance?",
+    "What does 'pro rata proportion of the compensation' mean in the context of this insurance policy?"
+  ]
+}

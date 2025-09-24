@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Travel_benefits_1",
+  "metadata": {
+    "product_name": "Travel",
+    "doc_type": "benefits",
+    "source_file": "Travel_benefits.txt",
+    "chunk_index": 1,
+    "content_length": 1000,
+    "is_empty": false
+  },
+  "content": "TABLE 1 FROM TRAVEL INSURANCE:\n\nTABLE 2 FROM TRAVEL INSURANCE:\nUnder the Medical And Other Expenses coverage for Overseas Medical Expenses, the benefit for an Adult (age 70 years and below) is $150,000 for the Basic plan, $250,000 for the Silver plan, $500,000 for the Gold plan, and $750,000 for the Platinium plan.\nUnder the Medical And Other Expenses coverage for Overseas Medical Expenses, the benefit for an Adult (age above 70 years) is $50,000 for the Basic plan, $50,000 for the Silver plan, $100,000 for the Gold plan, and $100,000 for the Platinium plan.\nUnder the Medical And Other Expenses coverage for Overseas Medical Expenses, the benefit for a Child is $100,000 for the Basic, Silver, Gold, and Platinium plans.\nUnder the Medical And Other Expenses coverage, the Medical Expenses in Singapore benefit for an Adult (age 70 years and below), capped at S$100 per visit where no initial treatment was sought overseas, is $10,000 for the Basic plan, $15,000 for the Silver plan, $20,000 fo",
+  "questions": [
+    "What are the differences in overseas medical expense coverage limits for adults under 70 years and those above 70 years across all plans, and how do these limits affect the overall benefits available for emergency medical situations while traveling?",
+    "How does the medical expenses coverage for children compare to that of adults in terms of benefit limits across different plans, and what implications does this have for families traveling with children?",
+    "What are the specific conditions under which the medical expenses in Singapore benefit is applicable for adults under 70 years, including the cap per visit and the overall limit for each plan, and how does this interact with overseas medical expenses?",
+    "In what scenarios would an adult over 70 years benefit from the overseas medical expenses coverage, and how do the limits differ between the Basic, Silver, Gold, and Platinum plans in terms of potential medical emergencies?",
+    "How do the medical expense coverage limits for adults and children vary across the different plans, and what are the implications for travelers who may require medical attention while abroad?",
+    "What are the overall benefits provided under the Medical And Other Expenses coverage for both overseas and local medical expenses, and how do these benefits differ based on age and plan selection?",
+    "What processes are in place for filing claims under the Medical And Other Expenses coverage for both overseas and Singapore medical expenses, and how do the benefit limits affect the claims process for different age groups?",
+    "How do the coverage limits for overseas medical expenses impact the choice of travel insurance plan for individuals over 70 years, and what additional considerations should be taken into account for their specific medical needs?",
+    "What are the implications of the varying benefit amounts for overseas medical expenses based on age and plan selection, particularly for adults under 70 years and children, in terms of potential out-of-pocket costs during travel?",
+    "How does the travel insurance policy ensure that travelers are adequately covered for both overseas medical expenses and local medical expenses in Singapore, and what are the key differences in coverage based on age and plan type?"
+  ]
+}

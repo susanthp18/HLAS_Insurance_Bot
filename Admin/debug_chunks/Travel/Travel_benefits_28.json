@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Travel_benefits_28",
+  "metadata": {
+    "product_name": "Travel",
+    "doc_type": "benefits",
+    "source_file": "Travel_benefits.txt",
+    "chunk_index": 28,
+    "content_length": 285,
+    "is_empty": false
+  },
+  "content": "Under the Enhanced Medical Benefits for COVID-19, the Overseas Hospital Cash Benefit due to COVID-19 provides $100 for every 24 hours, is not available for the Basic plan, but has a total limit of $1,000 for the Silver plan, $2,000 for the Gold plan, and $3,000 for the Platinium plan.",
+  "questions": [
+    "What is the daily cash benefit provided under the Overseas Hospital Cash Benefit for COVID-19?",
+    "Is the Overseas Hospital Cash Benefit for COVID-19 available under the Basic plan?",
+    "What is the maximum limit for the Overseas Hospital Cash Benefit under the Silver plan?",
+    "How much can one receive under the Gold plan for the Overseas Hospital Cash Benefit due to COVID-19?",
+    "What is the total limit of the Overseas Hospital Cash Benefit for the Platinium plan?",
+    "How often is the $100 disbursed under the Overseas Hospital Cash Benefit for COVID-19?",
+    "Are there different limits for the Overseas Hospital Cash Benefit based on the plan type?",
+    "What are the differences in the Overseas Hospital Cash Benefit between the Silver, Gold, and Platinium plans?",
+    "Can you receive the Overseas Hospital Cash Benefit for more than 10 days under any plan?",
+    "What is the duration required to qualify for each $100 benefit under the Overseas Hospital Cash Benefit?"
+  ]
+}

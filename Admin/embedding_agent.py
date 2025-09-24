@@ -377,7 +377,7 @@ def embed_product(product_name, weaviate_client):
 
     all_objects = []
     benefits_chunks = []  # Store benefits chunks for display
-
+    
     # First pass: chunk all documents
     for file_info in files_to_process:
         file_path = file_info["path"]
@@ -385,13 +385,13 @@ def embed_product(product_name, weaviate_client):
             logger.info(f"Processing file: {file_path}")
             chunks = file_info["chunker"](file_path)
             logger.info(f"Generated {len(chunks)} chunks from {os.path.basename(file_path)}")
-
+            
             valid_chunks_count = 0
             empty_chunks_count = 0
-
+            
             for i, chunk in enumerate(chunks):
                 chunk_id = f"{product_name}_{file_info['doc_type']}_{i+1}"
-
+                
                 if not chunk or not chunk.strip():
                     logger.warning(f"Skipping empty chunk {chunk_id} from file: {os.path.basename(file_path)}")
                     empty_chunks_count += 1
@@ -408,7 +408,7 @@ def embed_product(product_name, weaviate_client):
                         "length": len(chunk),
                         "source_file": os.path.basename(file_path)
                     })
-
+                
                 all_objects.append({
                     "content": chunk,
                     "questions": [],  # Will be generated later
@@ -416,7 +416,7 @@ def embed_product(product_name, weaviate_client):
                     "doc_type": file_info["doc_type"],
                     "source_file": os.path.basename(file_path)
                 })
-
+            
             logger.info(f"File {os.path.basename(file_path)} processing complete: {valid_chunks_count} valid chunks, {empty_chunks_count} empty chunks skipped")
         else:
             logger.warning(f"File not found, skipping: {file_path}")
@@ -526,10 +526,10 @@ def embed_product(product_name, weaviate_client):
                         # Generate separate embeddings (3072-dim each) using the azure_embed function
                         logger.debug(f"Generating content embedding for chunk {i+1}")
                         content_embedding = azure_embed(content_text)
-
+                        
                         # Prepare vectors dictionary
                         vectors = {"content_vector": content_embedding}
-
+                        
                         # Generate questions embedding if questions exist
                         if questions_text and questions_text.strip():
                             logger.debug(f"Generating questions embedding for chunk {i+1}")

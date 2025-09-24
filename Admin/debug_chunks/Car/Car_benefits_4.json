@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Car_benefits_4",
+  "metadata": {
+    "product_name": "Car",
+    "doc_type": "benefits",
+    "source_file": "Car_benefits.txt",
+    "chunk_index": 4,
+    "content_length": 417,
+    "is_empty": false
+  },
+  "content": "Under the You or Your Passenger’s Medical Expenses coverage, medical expenses for the Policyholder, Authorised Driver, and Passengers up to the car's legal seating capacity are covered up to S$1,000 each.\nUnder the Personal Accident Cover for Injuries in the Car, personal accident benefits are provided up to S$20,000 for the Policyholder, up to S$10,000 for the Authorised Driver, and up to S$10,000 for Passengers.",
+  "questions": [
+    "What is the maximum coverage amount for medical expenses under the policy for each passenger?",
+    "How much personal accident coverage does the policyholder receive under the Personal Accident Cover?",
+    "What is the coverage limit for the authorised driver under the Personal Accident Cover for Injuries in the Car?",
+    "Are passengers covered for personal accidents, and if so, up to what amount?",
+    "Does the medical expenses coverage extend to the authorised driver?",
+    "What is the legal seating capacity's role in the medical expenses coverage?",
+    "Can you explain the difference in coverage amounts between the policyholder and passengers under the Personal Accident Cover?",
+    "Is there a specific coverage for injuries occurring inside the car?",
+    "How are medical expenses handled if there are more passengers than the car’s legal seating capacity?",
+    "What types of expenses are covered under the You or Your Passenger’s Medical Expenses coverage?"
+  ]
+}

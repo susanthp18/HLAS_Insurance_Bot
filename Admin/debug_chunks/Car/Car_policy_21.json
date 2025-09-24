@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Car_policy_21",
+  "metadata": {
+    "product_name": "Car",
+    "doc_type": "policy",
+    "source_file": "Car_policy.md",
+    "chunk_index": 21,
+    "content_length": 322,
+    "is_empty": false
+  },
+  "content": "Provided that the person driving is permitted in accordance with the licensing or other laws or regulations to drive the Motor Vehicle described in the Schedule or has been so permitted and is not disqualified by order of a Court of Law or by reason of any enactment or regulation in that behalf from driving such vehicle.",
+  "questions": [
+    "What conditions must be met for a person to be allowed to drive the motor vehicle described in the schedule?",
+    "Does the driver need to be specifically permitted by licensing laws to drive the vehicle?",
+    "Can a person who has been disqualified by a court order drive the vehicle?",
+    "What regulations affect a person's eligibility to drive the motor vehicle?",
+    "Is it necessary for the driver to have a specific permit to drive the vehicle according to the schedule?",
+    "What happens if someone drives the vehicle but is disqualified by law or regulation?",
+    "Are there any specific laws that need to be followed for someone to drive the vehicle mentioned in the schedule?",
+    "Can a person drive the vehicle if they are not specifically permitted by the licensing laws?",
+    "What are the legal repercussions for driving the vehicle if disqualified by a court of law?",
+    "Does the driver need to comply with both licensing laws and other regulations to drive the vehicle?"
+  ]
+}
