@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Maid_policy_88",
+  "metadata": {
+    "product_name": "Maid",
+    "doc_type": "policy",
+    "source_file": "Maid_policy.md",
+    "chunk_index": 88,
+    "content_length": 842,
+    "is_empty": false
+  },
+  "content": "New characteristic electrocardiographic changes; with the development of any of the following: ST elevation or depression, T wave inversion, pathological Q waves or left bundle branch block;\n\nElevation of the cardiac biomarkers, inclusive of CKMB above the generally accepted normal laboratory levels or Cardiac Troponin T or I at 0.5ng/ml and above; Imaging evidence of new loss of viable myocardium or new regional wall motion abnormality. The imaging must be done by Cardiologist specified by Us.\n\nFor the above definition, the following are excluded:\n\n- Angina;\n- Heart attack of indeterminate age; and\n- A rise in cardiac biomarkers or Troponin T or I following an intra-arterial cardiac procedure including, but not limited to, coronary angiography and coronary angioplasty.\n\nExplanatory note: 0.5ng/ml = 0.5ug/L = 500pg/ml\n\n# 3. Stroke",
+  "questions": [
+    "What are the electrocardiographic changes that indicate a cardiac issue?",
+    "What cardiac biomarkers are mentioned in the text?",
+    "What is the significance of a Cardiac Troponin T or I level of 0.5ng/ml?",
+    "Who must perform the imaging to confirm new loss of viable myocardium?",
+    "What conditions are excluded from the definition provided in the text?",
+    "How does ST elevation differ from T wave inversion?",
+    "What does the presence of pathological Q waves indicate?",
+    "What is the role of CKMB in diagnosing cardiac conditions?",
+    "What types of procedures are mentioned that could cause a rise in cardiac biomarkers?",
+    "What is the relationship between imaging evidence and regional wall motion abnormalities?"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Travel_benefits_30",
+  "metadata": {
+    "product_name": "Travel",
+    "doc_type": "benefits",
+    "source_file": "Travel_benefits.txt",
+    "chunk_index": 30,
+    "content_length": 393,
+    "is_empty": false
+  },
+  "content": "Under the Enhanced Medical Benefits for COVID-19, the Repatriation of Mortal Remains due to COVID-19 is not available for the Basic plan, but is Unlimited for the Silver, Gold, and Platinium plans.\nUnder the Enhanced Medical Benefits for COVID-19, the Emergency Medical Evacuation due to COVID-19 is not available for the Basic plan, but is Unlimited for the Silver, Gold, and Platinium plans.",
+  "questions": [
+    "What benefits are not available under the Basic plan for COVID-19?",
+    "Are the Repatriation of Mortal Remains benefits unlimited in the Silver plan for COVID-19?",
+    "Is Emergency Medical Evacuation covered under the Gold plan for COVID-19?",
+    "Does the Platinium plan offer unlimited Repatriation of Mortal Remains for COVID-19?",
+    "What is the coverage for Emergency Medical Evacuation in the Silver plan for COVID-19?",
+    "Are there any limitations on COVID-19 benefits in the Basic plan?",
+    "Which plans offer unlimited Emergency Medical Evacuation for COVID-19?",
+    "Is the Repatriation of Mortal Remains benefit included in the Basic plan for COVID-19?",
+    "What are the differences in COVID-19 coverage between the Basic and Platinium plans?",
+    "Which plans provide unlimited benefits for both Repatriation of Mortal Remains and Emergency Medical Evacuation due to COVID-19?"
+  ]
+}

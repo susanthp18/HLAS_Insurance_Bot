@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Maid_benefits_7",
+  "metadata": {
+    "product_name": "Maid",
+    "doc_type": "benefits",
+    "source_file": "Maid_benefits.txt",
+    "chunk_index": 7,
+    "content_length": 458,
+    "is_empty": false
+  },
+  "content": "Section 2 - Hospital and Surgical Expenses:\nHospital and Surgical Expenses Annual Limit covers when your helper is hospitalized due to an injury or illness and extends to cover Infectious Diseases with up to ninety days Pre and Post hospitalization or Day Surgery, providing sixty thousand dollars annual limit for Basic plan, sixty thousand dollars for Enhanced plan, eighty thousand dollars for Premier plan, and eighty thousand dollars for Exclusive plan.",
+  "questions": [
+    "What types of expenses are covered under Section 2?",
+    "Is there a limit on hospital expenses for the Basic plan?",
+    "How long does the coverage extend for pre and post hospitalization?",
+    "What is the annual limit for the Enhanced plan?",
+    "Are infectious diseases included in the hospital expenses coverage?",
+    "What is the annual limit for the Premier plan?",
+    "Does the Exclusive plan offer the same annual limit as the Premier plan?",
+    "What happens if my helper is hospitalized for more than ninety days?",
+    "Can I claim for day surgery under this section?",
+    "What plans are available for hospital and surgical expenses?"
+  ]
+}

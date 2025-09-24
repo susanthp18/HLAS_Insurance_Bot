@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Travel_policy_209",
+  "metadata": {
+    "product_name": "Travel",
+    "doc_type": "policy",
+    "source_file": "Travel_policy.md",
+    "chunk_index": 209,
+    "content_length": 684,
+    "is_empty": false
+  },
+  "content": "* (a) Loss of or damage to data or software, in particular any detrimental change in data, software or computer programs that is caused by a deletion, a corruption or a deformation of the original structure, and any business interruption losses resulting from such loss or damage. Notwithstanding this exclusion, loss of or damage to data or software which is the direct consequence of insured physical damage to the substance of property shall be covered.\n    * (b) Loss or damage resulting from an impairment in the function, availability, range of use or accessibility of data, software or computer programs, and any business interruption losses resulting from such loss or damage.",
+  "questions": [
+    "What types of losses related to data or software are excluded from coverage?",
+    "Is there any scenario where loss of or damage to data or software might be covered?",
+    "What does the insurance policy say about business interruption losses due to data or software issues?",
+    "Does the insurance cover any physical damage to property that results in data loss?",
+    "What specific changes to data or software are mentioned as being excluded from coverage?",
+    "Are there any exceptions to the exclusion of data or software damage?",
+    "What are the conditions under which data or software loss due to physical damage is covered?",
+    "Can you explain what is meant by 'detrimental change' in the context of data and software?",
+    "What does the policy specify about the coverage of business interruptions caused by software or data impairment?",
+    "What types of functionality impairments of software or data are not covered by the insurance?"
+  ]
+}

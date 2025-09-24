@@ -1,0 +1,18 @@
+CHUNK ANALYSIS SUMMARY FOR Maid
+==================================================
+
+Total Chunks: 110
+Empty Chunks: 0
+Valid Chunks: 110
+
+BREAKDOWN BY DOCUMENT TYPE:
+------------------------------
+benefits: 33 total, 33 valid, 0 empty
+faq: 24 total, 24 valid, 0 empty
+policy: 53 total, 53 valid, 0 empty
+
+BREAKDOWN BY SOURCE FILE:
+------------------------------
+Maid_benefits.txt: 33 total, 33 valid, 0 empty
+Maid_FAQs.txt: 24 total, 24 valid, 0 empty
+Maid_policy.md: 53 total, 53 valid, 0 empty

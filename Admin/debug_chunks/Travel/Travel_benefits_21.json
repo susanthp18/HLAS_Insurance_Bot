@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Travel_benefits_21",
+  "metadata": {
+    "product_name": "Travel",
+    "doc_type": "benefits",
+    "source_file": "Travel_benefits.txt",
+    "chunk_index": 21,
+    "content_length": 420,
+    "is_empty": false
+  },
+  "content": "Under the Travel Inconvenience coverage, the Flight Diversion benefit provides S$100 for every 6 hours, up to a total of $1,000 for the Basic, Silver, Gold, and Platinium plans.\nUnder the Travel Inconvenience coverage, the Hijack of Common Carrier benefit provides S$100 for every 6 hours, up to a total of $500 for the Basic plan, $1,000 for the Silver plan, $2,000 for the Gold plan, and $3,000 for the Platinium plan.",
+  "questions": [
+    "What is the maximum compensation available under the Flight Diversion benefit for any plan?",
+    "How much does the Hijack of Common Carrier benefit pay per 6 hours?",
+    "What is the total compensation available for the Hijack of Common Carrier benefit under the Gold plan?",
+    "Are there different compensation limits for the Hijack of Common Carrier benefit across different plans?",
+    "How long does a flight need to be diverted to qualify for the S$100 compensation?",
+    "What are the compensation differences between the Basic and Platinium plans under the Hijack of Common Carrier benefit?",
+    "Can you receive compensation for both Flight Diversion and Hijack of Common Carrier under the same plan?",
+    "What is the maximum payout for the Flight Diversion benefit under the Silver plan?",
+    "How does the compensation for a hijacked common carrier accumulate over time?",
+    "Is the compensation for Flight Diversion the same across all plan types?"
+  ]
+}

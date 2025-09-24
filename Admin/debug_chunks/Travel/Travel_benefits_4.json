@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Travel_benefits_4",
+  "metadata": {
+    "product_name": "Travel",
+    "doc_type": "benefits",
+    "source_file": "Travel_benefits.txt",
+    "chunk_index": 4,
+    "content_length": 1000,
+    "is_empty": false
+  },
+  "content": "a total of $10,000 for the Basic plan, $15,000 for the Silver plan, $20,000 for the Gold plan, and $25,000 for the Platinium plan.\nUnder the Medical And Other Expenses coverage, the Hospital Cash Benefit in Singapore provides S$200 for every 24 hours, up to a total of $600 for the Basic plan, $1,000 for the Silver plan, $1,600 for the Gold plan, and $2,000 for the Platinium plan.\nUnder the Personal Accident coverage for Accidental Death & Permanent Disablement, the benefit for an Adult (age 70 years and below) is $200,000 for the Basic plan, $250,000 for the Silver plan, $300,000 for the Gold plan, and $350,000 for the Platinium plan.\nUnder the Personal Accident coverage for Accidental Death & Permanent Disablement, the benefit for an Adult (age above 70 years) is $50,000 for the Basic, Silver, Gold, and Platinium plans.\nUnder the Personal Accident coverage for Accidental Death & Permanent Disablement, the benefit for a Child is $50,000 for the Basic, Silver, Gold, and Platinium plans.",
+  "questions": [
+    "What are the total coverage limits for each plan regarding Medical and Other Expenses, and how do these limits interact with the Hospital Cash Benefit provided in Singapore, including the daily cash amount and maximum payout for each plan?",
+    "How does the Personal Accident coverage differ for adults aged 70 years and below compared to those above 70 years, particularly in terms of Accidental Death & Permanent Disablement benefits, and what implications does this have for family planning and insurance needs?",
+    "What are the specific benefits provided under the Personal Accident coverage for children, and how do these benefits compare to those offered to adults in terms of coverage limits and conditions for Accidental Death & Permanent Disablement?",
+    "In what scenarios would the Hospital Cash Benefit be applicable, and how does the duration of hospitalization affect the total payout across different plans, including the maximum limits for each plan?",
+    "How do the coverage amounts for Accidental Death & Permanent Disablement vary across different plans for both adults and children, and what factors should policyholders consider when choosing between the Basic, Silver, Gold, and Platinium plans?",
+    "What are the implications of the varying coverage limits for Medical and Other Expenses across the different plans, especially in relation to the Hospital Cash Benefit and how it may affect out-of-pocket expenses during hospitalization?",
+    "How does the age of the insured impact the benefits received under the Personal Accident coverage, particularly for adults over 70 years, and what strategies can be employed to ensure adequate coverage for aging family members?",
+    "What are the overall benefits of selecting a higher-tier plan like the Platinium plan compared to the Basic plan, particularly in terms of Hospital Cash Benefits and Personal Accident coverage for both adults and children?",
+    "How do the different plans address the needs of families with children in terms of Personal Accident coverage, and what should parents consider when evaluating the benefits for their children versus their own coverage?",
+    "What processes are in place for filing claims under the Medical and Other Expenses coverage, and how do these processes differ based on the plan selected, particularly in relation to the Hospital Cash Benefit and Personal Accident claims?"
+  ]
+}

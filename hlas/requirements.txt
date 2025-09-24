@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+python-dotenv
+langchain_openai
+langchain
+crewai
+weaviate-client
+pyyaml

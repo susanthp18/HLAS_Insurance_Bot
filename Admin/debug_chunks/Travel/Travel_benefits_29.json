@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Travel_benefits_29",
+  "metadata": {
+    "product_name": "Travel",
+    "doc_type": "benefits",
+    "source_file": "Travel_benefits.txt",
+    "chunk_index": 29,
+    "content_length": 302,
+    "is_empty": false
+  },
+  "content": "Under the Enhanced Medical Benefits for COVID-19, the Overseas Quarantine Allowance due to COVID-19 pays $50 for every 24 hours on the Silver plan, $100 on the Gold plan, and $150 on the Platinium plan, up to total limits of $500, $1,000, and $1,500 respectively; it is not available on the Basic plan.",
+  "questions": [
+    "What are the daily payment rates for the Overseas Quarantine Allowance under different plans?",
+    "How much can one receive in total from the Overseas Quarantine Allowance on the Silver plan?",
+    "Is the Overseas Quarantine Allowance available on the Basic plan?",
+    "What is the maximum amount payable under the Gold plan for the Overseas Quarantine Allowance?",
+    "How much does the Platinium plan pay per day for the Overseas Quarantine Allowance?",
+    "What are the total limit amounts for the Overseas Quarantine Allowance on the Platinium plan?",
+    "Can you receive the Overseas Quarantine Allowance for more than 15 days on the Silver plan?",
+    "What is the difference in daily allowance between the Silver and Gold plans for the Overseas Quarantine Allowance?",
+    "Are there any plans that do not offer the Overseas Quarantine Allowance?",
+    "What is the maximum duration one can receive the Overseas Quarantine Allowance on the Gold plan?"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Car_faq_11",
+  "metadata": {
+    "product_name": "Car",
+    "doc_type": "faq",
+    "source_file": "Car_FAQs.txt",
+    "chunk_index": 11,
+    "content_length": 526,
+    "is_empty": false
+  },
+  "content": "Q: What is the No Claim Discount (NCD) Protector? How does it work?\nA: The NCD protector is an optional benefit and applies only to policyholders of 50% NCD at an additional premium. It will protect your NCD in the event of a first claim during your policy period. If a second claim is made, the normal NCD rules apply and your NCD will be reduced to 20% on your next policy renewal. The protected NCD is not transferable to another insurer. You will need to renew your policy with HL Assurance in order to enjoy this benefit.",
+  "questions": [
+    "What is the purpose of the No Claim Discount (NCD) Protector?",
+    "How does the NCD Protector benefit work?",
+    "Who is eligible to purchase the NCD Protector?",
+    "What happens to the NCD if I make a claim while having the NCD Protector?",
+    "Is the NCD Protector benefit applicable after multiple claims?",
+    "Can I transfer the NCD Protector benefit if I switch to another insurance company?",
+    "What conditions must be met to continue enjoying the benefits of the NCD Protector?",
+    "What is the impact on NCD if two claims are made in the policy period with the NCD Protector?",
+    "What is the reduction in NCD after the first claim if I do not have the NCD Protector?",
+    "What additional cost is associated with adding the NCD Protector to my policy?"
+  ]
+}

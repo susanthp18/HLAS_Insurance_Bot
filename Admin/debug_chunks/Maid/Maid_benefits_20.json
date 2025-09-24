@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Maid_benefits_20",
+  "metadata": {
+    "product_name": "Maid",
+    "doc_type": "benefits",
+    "source_file": "Maid_benefits.txt",
+    "chunk_index": 20,
+    "content_length": 166,
+    "is_empty": false
+  },
+  "content": "Subsidised treatment fee at panel of clinics provides waived fees and is included for Enhanced, Premier, and Exclusive plans but not explicitly stated for Basic plan.",
+  "questions": [
+    "What types of plans include subsidised treatment fees?",
+    "Are the waived fees applicable to the Basic plan?",
+    "Which clinics are part of the panel for subsidised treatment?",
+    "What is the difference between Enhanced, Premier, and Exclusive plans regarding treatment fees?",
+    "Is there any mention of treatment fees for the Basic plan?",
+    "How can I find out more about the panel of clinics?",
+    "What benefits do Enhanced, Premier, and Exclusive plans offer?",
+    "Are there any additional costs associated with the subsidised treatment fee?",
+    "Can I switch from the Basic plan to a plan that includes waived fees?",
+    "What should I do if I have questions about my treatment fees?"
+  ]
+}

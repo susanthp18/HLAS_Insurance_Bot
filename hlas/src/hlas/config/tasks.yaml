@@ -1,0 +1,206 @@
+identify_product:
+  description: |
+    Identify which insurance product the user refers to. **Handle typos robustly**.
+    If ambiguous, provide a short clarification question.
+    Return a JSON object.
+  agent: "product_identifier"
+  expected_output: |
+    { "product": "Travel" | "Maid" | "Car" | "", "confidence": 0.0-1.0, "question"?: string }
+
+
+questionnaire_ask_next_slot:
+  description: |
+    Ask for the next required slot for a recommendation, based on the product and known slots.
+    Inputs (via context): Product, Known slots, Next required slot.
+    Return a compact JSON object with keys "slot_name" and "question" targeting that specific next slot.
+    Keep the question short and user-friendly.
+    Preferred phrasing:
+    - For plan_preference: "Do you prefer a budget-friendly plan or a comprehensive plan?"
+    - For maid_country: "May I know which country is your maid from?"
+    - For coverage_above_mom_minimum: "Would you like coverage for medical expenses beyond the MOM minimum requirement?"
+    - For add_ons: "Would you be also interested in add-on coverages such as increased Hospital expenses, waiver of excess and medical examination package cover?"
+  agent: "questionnaire_agent"
+  expected_output: |
+    { "slot_name": "<slot>", "question": "<short question>" }
+
+questionnaire_capture_pending_slot:
+  description: |
+    Capture the user's value for the specific pending slot only. Do not switch slots.
+    Inputs (via context): Product, Known slots, Pending slot, User message.
+    - If the user's message contains a value for the pending slot, extract and return the core value: {"slot_name":"<pending>","value":"<extracted value>"}.
+    - For travel_duration: extract numbers from "200 days", "3 weeks" → return "200", "21" (convert weeks to days).
+    - For destination: extract place from "going to Japan" → return "Japan".
+    - For medical conditions: extract intent from "I have diabetes" → return "yes".
+    - For plan preference: extract intent from "cheapest option" → return "budget".
+    - For maid_country: extract country from "from Philippines" → return "Philippines".
+    - For coverage_above_mom_minimum: extract intent from "yes, more coverage" → return "yes".
+    - For add_ons: extract intent from "yes, interested" → return "required".
+    - Otherwise, return {"slot_name":"<pending>","question":"<short clarifying question>"}.
+  agent: "questionnaire_agent"
+  expected_output: |
+    { "slot_name": "<pending>", "value"?: "<extracted core value>", "question"?: "<short clarifying question>" }
+
+provide_recommendation:
+  description: |
+    Based on product and completed required slots, recommend exactly one tier.
+    Return a JSON object with product, tier and a brief reason.
+  agent: "recommendation_agent"
+  expected_output: |
+    { "product": "<product>", "tier": "<tier>", "reason": "<short reason>" }
+
+retrieve_information:
+  description: |
+    Retrieve information to answer the user's question via RAG.
+    - If product is unknown, return a JSON object with a short clarification using key "question".
+    - Otherwise return a JSON object with an "answer" and an array of "sources".
+  agent: "rag_agent"
+  expected_output: |
+    { "answer": "<answer text>", "sources": ["https://...", "https://..."] }
+
+compare_products:
+  description: |
+    Compare up to three insurance plans/tiers for the specified product. Focus on the user's question.
+    Return concise differences with benefit highlights; if tiers are missing or unclear, ask one concise clarification.
+  agent: "comparison_agent"
+  expected_output: |
+    { "comparison": [ { "tier": "<tier>", "highlights": ["<bullet>"] } ], "notes"?: "<short>" }
+
+summarize_product:
+  description: |
+    Provide a concise summary of a specific product or one or more tiers for the identified product.
+    First, analyze the latest user message and the recent conversation to detect product and tier mentions (including references like "above plan(s)").
+    If product or tiers are missing or conflicting, return one short clarifying question.
+    Return a JSON object.
+  agent: "summary_agent"
+  expected_output: |
+    { "summary": "<short summary>", "notes"?: "<short>", "sources"?: ["https://..."] }
+
+identify_tiers:
+  description: |
+    Identify which tiers to compare for a given product from the user's message and recent session context.
+    - Inputs (via context): Product, User message, Recent history window (optional)
+    - Output 2+ tiers when available for Travel/Maid; for Car, indicate that tiers do not apply.
+    If ambiguous or insufficient, return a short clarification question.
+  agent: "tier_identifier"
+  expected_output: |
+    { "product": "<product>", "tiers": ["<tier>", "<tier>", ...], "question"?: "<short>" }
+
+followup_clarification:
+  description: |
+    Generate one short, guided clarification question to collect the next missing detail in comparison or summary flow.
+    Inputs (via context):
+    - await: product|tiers
+    - product (may be null)
+    - known tiers (optional)
+    - recent history (optional)
+    - flow_type: comparison|summary (optional, defaults to comparison)
+  agent: "followup_clarification_agent"
+  expected_output: |
+    { "question": "<short question>", "options"?: ["<opt>"] }
+
+
+synthesize_response:
+  description: |
+    Use the provided system and user context to synthesize a response.
+  agent: "recommendation_responder"
+  expected_output: |
+    { "response": "<final response>" }
+
+extract_slots:
+  description: "Extract and update product-specific slot values from user message using conversation context."
+  agent: "slot_extractor"
+  expected_output: |
+    {
+      "slot_name_1": "<extracted/updated value or empty string>",
+      "slot_name_2": "<extracted/updated value or empty string>",
+      "slot_name_3": "<extracted/updated value or empty string>",
+      "user_needs_explanation": "<slot_name if user asks for clarification about a slot, otherwise empty string>",
+      "explanation": "<short explanation (under 50 words) ending with a yes/no question if user_needs_explanation is not empty, otherwise empty string>"
+    }
+    
+    Note: Only return slots for the specified product. Use last bot question to disambiguate yes/no answers.
+    Can return multiple slots if user provides multiple pieces of information.
+    Can update existing slot values if user provides new/different information.
+      If user asks for clarification (like "what does that mean?", "I don't know", "explain"), set user_needs_explanation to the relevant slot name and provide a short explanation (under 50 words) ending with a yes/no question.
+      Example: {"explanation": "MOM minimum covers basic medical expenses up to $15,000. Additional coverage provides higher limits and more protection. Would you like coverage beyond the MOM minimum? (Yes/No)"}
+      Clarification targeting policy (generic): Prefer the last asked slot (from "Last bot question"). If unavailable, target the first missing slot in the provided ordered list.
+
+ask_question:
+  description: "Generate a clear, user-friendly question to collect missing slot information for insurance recommendations."
+  agent: "question_asker"
+  expected_output: |
+    { "question": "<clear, concise question for the missing slot>" }
+
+
+validate_slot:
+  description: |
+    Validate and normalize one {product} slot for the given product.
+    FOLLOW ONLY THE PROVIDED SLOT. Prefer Value normalization from capture.
+    Use ONLY the validation rules provided via context and the current date.
+    If invalid or ambiguous, return a short guiding question (don't output exact variable names) that references the user's provided value and the expected format.
+    Return a JSON object.
+  agent: "slot_validator"
+  expected_output: |
+    { "valid": true|false, "slot_name": string, "normalized_value"?: string, "question"?: string, "reason"?: string }
+
+ 
+route_decision:
+  description: |
+    Analyze the user's message and recent conversation to determine the primary intent.
+    Input format:
+    - Last_user_message: The current user message
+    - Product_in_session: Current product context (if any)
+    - Recent_conversation: Last 3 conversation turns (most recent first)
+    Return a JSON object with a single high-level directive.
+  agent: "orchestrator"
+  expected_output: |
+    { "directive": "greet" | "handle_recommendation" | "handle_information" | "handle_follow_up" | "plan_only_comparison" | "handle_summary" | "handle_capabilities" | "handle_other" }
+
+construct_follow_up_query:
+  description: |
+    Build a standalone, precise question/query for retrieval from a follow-up message.
+    Inputs (via context):
+    - Product
+    - Latest user message
+    - Recent conversation window (up to 5 turns with user/assistant pairs)
+    Goals:
+    - Resolve pronouns/deixis ("that", "those", "what about limits?") using the window
+    - Avoid adding assumptions; prefer quoting exact entities/benefits from the context when possible
+    - Output exactly one concise question that can be answered directly by the knowledge base
+  agent: "follow_up_agent"
+  expected_output: |
+    { "query": "<standalone follow-up query>" }
+
+manage_travel_recommendation_flow:
+  description: |
+    Manage the next step for Travel insurance recommendation.
+    - Follow the ordered slot policy: destination, travel_duration, pre_existing_medical_condition, plan_preference.
+    - If the user's message provides a value for the current required slot, set directive to 'capture_slot' and include 'slot_name' and normalized 'value'.
+    - Otherwise, set directive to 'ask_slot' and include 'slot_to_ask' and a concise 'question'.
+    - When all required slots are present, set directive to 'recommend'.
+    Return a JSON object describing this decision.
+  agent: "travel_recommendation_manager"
+  expected_output: |
+    { "directive": "ask_slot" | "capture_slot" | "recommend", "product": "Travel", "slot_to_ask"?: "<slot>", "question"?: "<short question>", "slot_name"?: "<slot>", "value"?: "<normalized value>" }
+
+manage_maid_recommendation_flow:
+  description: |
+    Manage the next step for Maid insurance recommendation.
+    - Follow the ordered slot policy: duration_of_insurance, maid_country, coverage_above_mom_minimum, add_ons.
+    - If the user's message provides a value for the current required slot, set directive to 'capture_slot' and include 'slot_name' and normalized 'value'.
+    - Otherwise, set directive to 'ask_slot' and include 'slot_to_ask' and a concise 'question'.
+    - When all required slots are present, set directive to 'recommend'.
+    Return a JSON object describing this decision.
+  agent: "maid_recommendation_manager"
+  expected_output: |
+    { "directive": "ask_slot" | "capture_slot" | "recommend", "product": "Maid", "slot_to_ask"?: "<slot>", "question"?: "<short question>", "slot_name"?: "<slot>", "value"?: "<normalized value>" }
+
+manage_car_recommendation_flow:
+  description: |
+    Manage the step for Car insurance recommendation.
+    - There are no tiers or slots to collect.
+    - Always set directive to 'recommend'.
+    Return a JSON object describing this decision.
+  agent: "car_recommendation_manager"
+  expected_output: |
+    { "directive": "recommend", "product": "Car" }

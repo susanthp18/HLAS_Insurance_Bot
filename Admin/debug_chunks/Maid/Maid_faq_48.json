@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Maid_faq_48",
+  "metadata": {
+    "product_name": "Maid",
+    "doc_type": "faq",
+    "source_file": "Maid_FAQs.txt",
+    "chunk_index": 48,
+    "content_length": 593,
+    "is_empty": false
+  },
+  "content": "Q: How does the MOM Insurance Guarantee Bond and the Waiver of Counter Indemnity work?\nA: We will issue a Letter of Guarantee for the S$5,000 security bond on your behalf to MOM. If MOM makes a demand, we will first make the payment and recover the payment from you under the policy conditions of Section 9 (Refer to the policy wordings) Suppose you opt for the optional cover for Waiver of Counter Indemnity. In that case, you only need to reimburse us the excess amount of S$250, provided that the payment is not caused by or resulting from your breach of conditions under the Security Bond.",
+  "questions": [
+    "What is the purpose of the MOM Insurance Guarantee Bond?",
+    "How much is the security bond amount for the MOM Insurance Guarantee?",
+    "What happens if MOM makes a demand on the guarantee bond?",
+    "What is the process for recovering payments made under the MOM Insurance Guarantee Bond?",
+    "What does the Waiver of Counter Indemnity cover?",
+    "How much do I need to reimburse if I opt for the Waiver of Counter Indemnity?",
+    "Are there any conditions under which I would not need to reimburse the excess amount?",
+    "What section of the policy should I refer to for more details on the conditions?",
+    "What is the significance of the S$250 excess amount in the Waiver of Counter Indemnity?",
+    "Can I breach the conditions of the Security Bond and still benefit from the Waiver of Counter Indemnity?"
+  ]
+}

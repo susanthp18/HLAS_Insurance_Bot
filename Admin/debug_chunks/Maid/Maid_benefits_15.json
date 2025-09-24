@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Maid_benefits_15",
+  "metadata": {
+    "product_name": "Maid",
+    "doc_type": "benefits",
+    "source_file": "Maid_benefits.txt",
+    "chunk_index": 15,
+    "content_length": 281,
+    "is_empty": false
+  },
+  "content": "Section 9 - Insurance Guarantee Bond:\nInsurance Guarantee Bond to Ministry of Manpower provides a letter of guarantee for a five thousand dollar Security Bond that will be issued on your behalf to MOM, with coverage included for all plans - Basic, Enhanced, Premier, and Exclusive.",
+  "questions": [
+    "What is the purpose of the Insurance Guarantee Bond?",
+    "How much is the Security Bond provided to the Ministry of Manpower?",
+    "What types of plans are covered by the Insurance Guarantee Bond?",
+    "Who issues the Insurance Guarantee Bond on behalf of the individual?",
+    "Is the coverage for the Insurance Guarantee Bond limited to one plan?",
+    "What is the role of the Ministry of Manpower in relation to the Insurance Guarantee Bond?",
+    "Can I choose between different plans for the Insurance Guarantee Bond?",
+    "What is the minimum amount for the Security Bond mentioned in the text?",
+    "Does the Insurance Guarantee Bond cover any additional fees?",
+    "What happens if I need to claim against the Insurance Guarantee Bond?"
+  ]
+}

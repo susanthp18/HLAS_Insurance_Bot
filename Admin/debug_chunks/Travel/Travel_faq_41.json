@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Travel_faq_41",
+  "metadata": {
+    "product_name": "Travel",
+    "doc_type": "faq",
+    "source_file": "Travel_FAQs.txt",
+    "chunk_index": 41,
+    "content_length": 118,
+    "is_empty": false
+  },
+  "content": "Q: Can I buy travel insurance after departure?\nA: No, travel insurance should be purchased before your trip commences.",
+  "questions": [
+    "Is it possible to purchase travel insurance once I have already started my journey?",
+    "What is the policy on buying travel insurance after leaving for a trip?",
+    "Can travel insurance be obtained after departure?",
+    "When should travel insurance be purchased?",
+    "Is it mandatory to buy travel insurance before the trip starts?",
+    "What happens if I try to buy travel insurance after my trip has started?",
+    "Are there any exceptions that allow purchasing travel insurance post-departure?",
+    "Why can't I buy travel insurance after I've already departed?",
+    "What are the rules regarding the timing of purchasing travel insurance?",
+    "Can I get travel insurance if I forgot to purchase it before my trip?"
+  ]
+}

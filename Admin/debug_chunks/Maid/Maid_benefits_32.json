@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Maid_benefits_32",
+  "metadata": {
+    "product_name": "Maid",
+    "doc_type": "benefits",
+    "source_file": "Maid_benefits.txt",
+    "chunk_index": 32,
+    "content_length": 465,
+    "is_empty": false
+  },
+  "content": "Short Period Rates for twenty six months Policy provides one hundred percent premium refund for coverage not exceeding thirty days, fifty percent premium refund for thirty one to ninety days coverage, thirty percent premium refund for ninety one to two hundred seventy days coverage, and zero percent premium refund for coverage exceeding two hundred seventy days.\n\nRefund conditions specify that no refund shall be made payable if a claim is made under the policy.",
+  "questions": [
+    "What is the premium refund for coverage not exceeding thirty days?",
+    "How much premium refund is available for coverage between thirty one to ninety days?",
+    "Is there a premium refund for coverage exceeding two hundred seventy days?",
+    "What happens to the premium refund if a claim is made under the policy?",
+    "What is the refund percentage for coverage lasting from ninety one to two hundred seventy days?",
+    "Are there any conditions that affect the premium refund?",
+    "How long is the policy coverage period for the short period rates?",
+    "Can I receive a refund if I have a claim pending?",
+    "What is the total premium refund for a policy covering exactly thirty days?",
+    "What is the refund policy for a coverage period of one hundred days?"
+  ]
+}

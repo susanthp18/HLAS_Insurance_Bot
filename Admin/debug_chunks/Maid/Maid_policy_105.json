@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Maid_policy_105",
+  "metadata": {
+    "product_name": "Maid",
+    "doc_type": "policy",
+    "source_file": "Maid_policy.md",
+    "chunk_index": 105,
+    "content_length": 984,
+    "is_empty": false
+  },
+  "content": "---\n\n# Page 11\n\n\n\nBond was effected on or before the effective date (“the effective date”) or the renewal date of the coverage. Payment shall be deemed to have been effected to Us or the intermediary when one of the following acts takes place:\n\n1. Cash or honoured cheque for the premium is handed over to Us or the intermediary;\n2. A credit or debit card transaction for the premium is approved by the issuing bank;\n3. A payment through an electronic medium including the internet is approved by the relevant party;\n4. A credit in favour of Us or the intermediary is made through an electronic medium including the internet.\n\nIn the event that the total premium due is not paid to Us (or the intermediary through whom this Policy or Bond was effected) on or before the inception date or the renewal date, then the insurance shall not attach and no benefits whatsoever shall be payable by Us. Any payment received thereafter shall be of no effect whatsoever as cover has not attached.",
+  "questions": [
+    "What is the effective date in relation to the bond?",
+    "How can payment for the premium be made?",
+    "What happens if the total premium is not paid by the inception date?",
+    "Is a payment made after the renewal date considered valid?",
+    "What forms of payment are accepted for the premium?",
+    "What does it mean for the insurance to not attach?",
+    "Can a payment made through the internet be considered valid?",
+    "What is required for a credit card transaction to be deemed approved?",
+    "Who can receive the payment for the premium?",
+    "What are the consequences of not paying the premium on time?"
+  ]
+}

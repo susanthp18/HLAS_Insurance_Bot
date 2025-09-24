@@ -1,0 +1,43 @@
+travel:
+  destination:
+    - "- Validate only the country/entity mentioned."
+    - "- Accept common abbreviations (e.g., 'USA' -> 'United States')."
+    - "- Strip prepositions like 'to'/'in' and normalize to a canonical country name."
+    - "- Ignore durations, dates, or any other slot information in the message."
+    - "- If the user says 'don't know' or similar: briefly explain that 'destination' refers to the country they will travel to, then ask again concisely."
+  travel_duration:
+    - "- Step 1 — determine day count: if a date range is provided, calculate inclusive days; if a numeric duration is provided, use it as days."
+    - "- If day count is NOT between 1 and 365 (inclusive): return valid:false with a short question indicating the allowed range."
+    - "- Step 2 — validate dates (if dates are present) in Asia/Singapore timezone: start date must be on/after the Current date; end date must be on/after start date."
+    - "- If start date is before the Current date: return valid:false with a short question indicating dates must be future-dated."
+    - "- If end date is before start date: return valid:false with a short question indicating end must be on/after start."
+    - "- Only if both steps pass: return valid:true and set normalized_value to the day count as a string."
+    - "- If the user says 'don't know' or similar: briefly explain that 'travel duration' is the total number of days for the trip (max 365) and that dates must be in the future; then ask for either a day count or a date range."
+  pre_existing_medical_condition:
+    - "- Normalize to 'yes' or 'no'."
+    - "- Accept variants: yes -> ['y','yep','yeah','affirmative','have one']; no -> ['n','nope','not really','none']."
+    - "- Ignore other slot information."
+    - "- If the user says 'don't know' or similar: briefly explain that pre-existing conditions are illnesses/conditions diagnosed before the policy start (e.g., diabetes, asthma, heart disease); then ask a concise yes/no question."
+  plan_preference:
+    - "- Normalize to 'budget' or 'comprehensive'."
+    - "- Accept synonyms: 'basic'/'starter' -> 'budget'; 'premium'/'full'/'extensive' -> 'comprehensive'."
+    - "- Ignore other slot information."
+    - "- If the user says 'don't know' or similar: briefly explain that 'budget-friendly' focuses on essential coverage at lower cost, while 'comprehensive' offers broader protection and higher limits; then ask a concise preference question."
+
+maid:
+  duration_of_insurance:
+    - "- Normalize to '12' or '24' (months)."
+    - "- Accept '12 months' -> '12', '24 months' -> '24'."
+    - "- If the user says 'don't know' or similar: briefly explain that duration refers to how many months the policy should cover (12 or 24); then ask a concise choice."
+  maid_country:
+    - "- Validate only the country/entity mentioned."
+    - "- Accept common country names and normalize to standard form (e.g., 'Philippines', 'Indonesia', 'Myanmar', 'India')."
+    - "- If the user says 'don't know' or similar: briefly explain that this refers to the country of origin of the domestic helper; then ask for the country name."
+  coverage_above_mom_minimum:
+    - "- Normalize to 'yes' or 'no'."
+    - "- Accept variants: yes -> ['y','yep','yeah','want more coverage','beyond minimum']; no -> ['n','nope','basic is fine','minimum only']."
+    - "- If the user says 'don't know' or similar: briefly explain that it is about coverage beyond the Ministry of Manpower (MOM) minimum requirement.; then ask a concise yes/no question."
+  add_ons:
+    - "- Normalize to 'required' or 'not_required'."
+    - "- Accept variants: required -> ['yes','interested','want add-ons','need extras']; not_required -> ['no','not interested','basic only','no extras']."
+    - "- If the user says 'don't know' or similar: briefly explain that add-ons include increased hospital expenses, waiver of excess, and medical examination package; then ask if they're interested."

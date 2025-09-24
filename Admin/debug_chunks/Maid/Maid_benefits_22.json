@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Maid_benefits_22",
+  "metadata": {
+    "product_name": "Maid",
+    "doc_type": "benefits",
+    "source_file": "Maid_benefits.txt",
+    "chunk_index": 22,
+    "content_length": 313,
+    "is_empty": false
+  },
+  "content": "Premium rates with GST for aged fifty and below for twenty six months policy are five hundred seven dollars for Basic plan, five hundred fifty six dollars and ninety cents for Enhanced plan, five hundred eighty three dollars and sixty cents for Premier plan, and six hundred ninety two dollars for Exclusive plan.",
+  "questions": [
+    "What are the premium rates for the Basic plan?",
+    "How much does the Enhanced plan cost for individuals aged fifty and below?",
+    "What is the premium for the Premier plan for a twenty six months policy?",
+    "Is there a difference in premium rates between the Basic and Exclusive plans?",
+    "What is the total cost of the Exclusive plan including GST?",
+    "How long is the policy duration mentioned in the text?",
+    "What age group is the premium rate information applicable to?",
+    "Which plan has the highest premium rate?",
+    "What is the premium rate for the Enhanced plan compared to the Basic plan?",
+    "Are the premium rates mentioned inclusive of GST?"
+  ]
+}

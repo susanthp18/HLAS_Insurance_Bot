@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Travel_benefits_22",
+  "metadata": {
+    "product_name": "Travel",
+    "doc_type": "benefits",
+    "source_file": "Travel_benefits.txt",
+    "chunk_index": 22,
+    "content_length": 471,
+    "is_empty": false
+  },
+  "content": "Under the Travel Inconvenience coverage, the Kidnap & Hostage benefit provides S$500 for every 6 hours and is not available for the Basic plan, but has a total limit of $2,500 for the Silver plan, $5,000 for the Gold plan, and $7,500 for the Platinium plan.\nUnder the Travel Inconvenience coverage, the Insolvency of Travel Agency benefit is not available for the Basic plan, but is $1,000 for the Silver plan, $2,000 for the Gold plan, and $3,000 for the Platinium plan.",
+  "questions": [
+    "What is the compensation rate for the Kidnap & Hostage benefit under the Travel Inconvenience coverage?",
+    "Is the Kidnap & Hostage benefit available under the Basic plan in Travel Inconvenience coverage?",
+    "What is the maximum limit for the Kidnap & Hostage benefit in the Silver plan?",
+    "How much can one claim for the Kidnap & Hostage benefit in the Gold plan?",
+    "What is the highest compensation available for the Kidnap & Hostage benefit in the Platinium plan?",
+    "Is the Insolvency of Travel Agency benefit included in the Basic plan?",
+    "What amount is covered under the Insolvency of Travel Agency benefit for the Silver plan?",
+    "How much does the Gold plan cover for the Insolvency of Travel Agency benefit?",
+    "What is the coverage limit for the Insolvency of Travel Agency benefit in the Platinium plan?",
+    "How do the coverage limits differ between the Silver, Gold, and Platinium plans for both Kidnap & Hostage and Insolvency of Travel Agency benefits?"
+  ]
+}

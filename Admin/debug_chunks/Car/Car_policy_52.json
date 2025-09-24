@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Car_policy_52",
+  "metadata": {
+    "product_name": "Car",
+    "doc_type": "policy",
+    "source_file": "Car_policy.md",
+    "chunk_index": 52,
+    "content_length": 303,
+    "is_empty": false
+  },
+  "content": "* For a period of coverage not exceeding 7 months, the premium refund is 20.00% of the annual premium.\n* For a period of coverage not exceeding 8 months, the premium refund is 12.50% of the annual premium.\n* For a period of coverage exceeding 8 months, the premium refund is 0.00% of the annual premium.",
+  "questions": [
+    "What is the premium refund percentage if the coverage period does not exceed 7 months?",
+    "How much premium refund can one expect for a coverage period not exceeding 8 months?",
+    "Is there any premium refund available if the coverage period exceeds 8 months?",
+    "What happens to the premium refund if I cancel my policy after 8 months?",
+    "Can I get a 20% refund on my annual premium if I cancel within 7 months?",
+    "What is the maximum refund percentage available for cancelling the insurance policy?",
+    "How does the premium refund percentage change as the coverage period increases?",
+    "What is the refund policy for a coverage period of exactly 8 months?",
+    "Is it possible to receive any premium refund after 9 months of coverage?",
+    "What are the conditions for receiving a 12.50% refund on the annual premium?"
+  ]
+}

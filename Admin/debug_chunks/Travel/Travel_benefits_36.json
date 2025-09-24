@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Travel_benefits_36",
+  "metadata": {
+    "product_name": "Travel",
+    "doc_type": "benefits",
+    "source_file": "Travel_benefits.txt",
+    "chunk_index": 36,
+    "content_length": 278,
+    "is_empty": false
+  },
+  "content": "Under Add-On Coverages, the Flight Delay benefit provides $100 for every 3 hours of delay, up to a total of $1,000 for the Basic, Silver, Gold, and Platinium plans.\nUnder Add-On Coverages, Loss of Frequent Flyer Miles is Covered for the Basic, Silver, Gold, and Platinium plans.",
+  "questions": [
+    "What is the compensation provided for flight delays under the add-on coverages?",
+    "How much can one claim for flight delays in the Basic plan?",
+    "Is there a maximum limit to the flight delay benefit in the Platinium plan?",
+    "Are frequent flyer miles covered under the Basic plan?",
+    "What plans include the Loss of Frequent Flyer Miles coverage?",
+    "How long does a flight need to be delayed to qualify for the $100 compensation?",
+    "Can I receive compensation for a flight delay under the Silver plan?",
+    "What is the maximum compensation available for flight delays across all plans?",
+    "Are all tiers of plans covered for loss of frequent flyer miles?",
+    "How frequently is the $100 disbursed for ongoing flight delays?"
+  ]
+}

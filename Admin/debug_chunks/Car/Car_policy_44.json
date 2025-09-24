@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Car_policy_44",
+  "metadata": {
+    "product_name": "Car",
+    "doc_type": "policy",
+    "source_file": "Car_policy.md",
+    "chunk_index": 44,
+    "content_length": 966,
+    "is_empty": false
+  },
+  "content": "### NO CLAIM DISCOUNT (NCD)\nIf there is no claim made under this Policy, We will give You a discount on Your premium on the following scale when You renew Your Policy:\n\n**NCD Table 1**\n* For one (1) year with no claims, the No Claim Discount (NCD) is 10%.\n* For two (2) consecutive years with no claims, the No Claim Discount (NCD) is 20%.\n* For three (3) consecutive years with no claims, the No Claim Discount (NCD) is 30%.\n* For four (4) consecutive years with no claims, the No Claim Discount (NCD) is 40%.\n* For five (5) or more consecutive years with no claims, the No Claim Discount (NCD) is 50%.\n\nIf more than one Insured Vehicle is described in the Schedule, the No Claim Discount (NCD) shall be applied as if a separate Policy has been issued in respect of each such Insured Vehicle.\n\nIf We shall consent to a transfer of interest in this Policy, the period during which the interest was in the Transferor shall not accrue to the benefit of the Transferee.",
+  "questions": [
+    "What is a No Claim Discount (NCD) in insurance terms?",
+    "How much discount can I get after one year of no claims on my insurance policy?",
+    "What is the maximum NCD percentage I can receive if I make no claims for five or more years?",
+    "Does the NCD apply separately to each vehicle if I insure multiple vehicles under the same policy?",
+    "What happens to the NCD if the ownership of the insured vehicle is transferred?",
+    "Can you explain the scale of NCD provided for consecutive years without claims?",
+    "Is the NCD transferable between different policyholders?",
+    "What is the NCD percentage for four consecutive years without any insurance claims?",
+    "How does the NCD benefit me when renewing my insurance policy?",
+    "What conditions must be met for the NCD to increase to 50%?"
+  ]
+}

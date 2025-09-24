@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Car_policy_95",
+  "metadata": {
+    "product_name": "Car",
+    "doc_type": "policy",
+    "source_file": "Car_policy.md",
+    "chunk_index": 95,
+    "content_length": 801,
+    "is_empty": false
+  },
+  "content": "#### M09 - Restriction Of Indemnity (Applicable for Parallel-Imported Vehicle)\nIt is hereby noted and agreed that the indemnity under Section I of the Policy shall be restricted as follows:\n1. the amount payable for storage charges of the Insured Vehicle shall be limited to the number of days recommended by the Surveyor to repair or replace any part of the Insured Vehicle subject to a maximum of S$500. The indemnity shall not apply to any additional storage cost payable due to the delay caused by the parts being unavailable or need to be imported from outside of Singapore.\n2. the amount payable for freight charges or additional cost incurred to import any parts required for the repair or replacement, shall be limited to the amount of sea freight charge payable subject to a maximum of S$200.",
+  "questions": [
+    "What is the maximum coverage for storage charges under Section I for parallel-imported vehicles?",
+    "Are additional storage costs covered if there is a delay due to unavailable parts for parallel-imported vehicles?",
+    "What is the indemnity limit for freight charges for importing parts for vehicle repairs?",
+    "Does the indemnity cover air freight charges for importing parts for parallel-imported vehicles?",
+    "What conditions apply to the indemnity for storage charges in the case of parallel-imported vehicles?",
+    "How is the indemnity for freight charges calculated for parallel-imported vehicles?",
+    "What is the maximum amount payable for sea freight under the policy for parallel-imported vehicles?",
+    "Are there any restrictions on indemnity for costs exceeding the recommended repair time by the Surveyor?",
+    "What specific restrictions are placed on indemnity under Section I for parallel-imported vehicles?",
+    "Is there a cap on the number of days for which storage charges are covered for insured parallel-imported vehicles?"
+  ]
+}

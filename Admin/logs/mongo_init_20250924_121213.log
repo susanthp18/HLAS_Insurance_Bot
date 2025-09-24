@@ -1,0 +1,31 @@
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:52] - Logging initialized. Log file: logs\mongo_init_20250924_121213.log
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:53] - Error log file: logs\mongo_init_errors_20250924_121213.log
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:296] - ============================================================
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:297] - MongoDB Initialization Script Started
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:298] - ============================================================
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:299] - Script arguments: reset=False, log_level=INFO
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:67] - Starting environment validation
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:82] - MONGO_URI found in environment
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:98] - Using database name: 'hlas_insurance'
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:113] - Testing MongoDB connection...
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:125] - Successfully connected to MongoDB server
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:129] - MongoDB server version: 8.0.11
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:319] - Connected to database: 'hlas_insurance'
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:241] - Starting collection initialization
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:247] - Initializing 'sessions' collection...
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:217] - Created unique index on 'session_id': session_id_1
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:220] - Created index on 'last_active': last_active_1
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:257] - 'sessions' collection initialized (2/2 indexes created)
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:260] - Initializing 'conversation_history' collection...
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:220] - Created index on 'session_id': session_id_1
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:220] - Created index on 'timestamp': timestamp_1
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:270] - 'conversation_history' collection initialized (2/2 indexes created)
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:275] - Database 'hlas_insurance' statistics:
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:276] -   - Collections: 3
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:277] -   - Data size: 3865.0 bytes
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:278] -   - Index size: 356352.0 bytes
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:330] - MongoDB initialization completed successfully
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:348] - MongoDB connection closed successfully
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:352] - ============================================================
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:353] - MongoDB Initialization Script Completed (exit code: 0)
+2025-09-24 12:12:13 - mongo_init - INFO - [initialize_mongo.py:354] - ============================================================

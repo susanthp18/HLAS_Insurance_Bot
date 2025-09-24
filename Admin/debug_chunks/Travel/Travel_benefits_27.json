@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Travel_benefits_27",
+  "metadata": {
+    "product_name": "Travel",
+    "doc_type": "benefits",
+    "source_file": "Travel_benefits.txt",
+    "chunk_index": 27,
+    "content_length": 241,
+    "is_empty": false
+  },
+  "content": "Under the Enhanced Medical Benefits for COVID-19, Overseas Medical Expenses for a Child are not available for the Basic plan, but are covered up to $50,000 for the Silver plan, $150,000 for the Gold plan, and $200,000 for the Platinium plan.",
+  "questions": [
+    "What are the coverage limits for Overseas Medical Expenses for a Child under the Enhanced Medical Benefits for COVID-19?",
+    "Is there any coverage for Overseas Medical Expenses for a Child under the Basic plan for COVID-19?",
+    "How much coverage does the Silver plan offer for Overseas Medical Expenses for a Child under the Enhanced Medical Benefits for COVID-19?",
+    "What is the maximum amount covered under the Gold plan for Overseas Medical Expenses for a Child?",
+    "Can you tell me the coverage amount for Overseas Medical Expenses for a Child under the Platinium plan?",
+    "Are there different coverage levels for Overseas Medical Expenses for a Child in the Enhanced Medical Benefits for COVID-19?",
+    "What plan should I choose if I need $200,000 coverage for Overseas Medical Expenses for a Child?",
+    "Does the Enhanced Medical Benefits for COVID-19 provide coverage for Overseas Medical Expenses for a Child in all plans?",
+    "What is the difference in coverage for Overseas Medical Expenses for a Child between the Silver and Gold plans?",
+    "Which plan under the Enhanced Medical Benefits for COVID-19 does not offer any coverage for Overseas Medical Expenses for a Child?"
+  ]
+}

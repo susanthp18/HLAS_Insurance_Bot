@@ -1,0 +1,24 @@
+{
+  "chunk_id": "Maid_faq_43",
+  "metadata": {
+    "product_name": "Maid",
+    "doc_type": "faq",
+    "source_file": "Maid_FAQs.txt",
+    "chunk_index": 43,
+    "content_length": 254,
+    "is_empty": false
+  },
+  "content": "Q: How do I make a claim?\nA: You can submit the claim form, along with the supporting documents by fax at 6224 1923 or email at claims@hlas.com.sg. Alternatively, you can post it to HL Assurance office at 11 Keppel Road #11-01 ABI Plaza Singapore 089057.",
+  "questions": [
+    "What is the process for making a claim?",
+    "Where can I send my claim form?",
+    "What documents do I need to submit with my claim?",
+    "Can I submit my claim via email?",
+    "What is the fax number for submitting claims?",
+    "Is there a physical address where I can post my claim?",
+    "What is the email address for claims submission?",
+    "Can I submit my claim through multiple methods?",
+    "What should I do if I have questions about my claim?",
+    "Is there a specific format for the claim form?"
+  ]
+}

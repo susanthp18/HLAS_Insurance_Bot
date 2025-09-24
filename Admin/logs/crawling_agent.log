@@ -1,0 +1,177 @@
+2025-09-17 10:09:47 - crawling_agent - INFO - Logging system initialized
+2025-09-17 10:09:47 - crawling_agent - INFO - Log level: INFO
+2025-09-17 10:09:47 - crawling_agent - INFO - Log file: logs/crawling_agent.log
+2025-09-17 10:09:47 - crawling_agent - INFO - Gemini API configured successfully
+2025-09-17 10:09:51 - crawling_agent - INFO - LlamaParse library imported successfully
+2025-09-17 10:09:51 - crawling_agent - INFO - Starting crawling agent for URL: https://www.hlas.com.sg/personal-insurance/car-insurance/
+2025-09-17 10:09:51 - crawling_agent - DEBUG - Extracting product name from URL: https://www.hlas.com.sg/personal-insurance/car-insurance/
+2025-09-17 10:09:51 - crawling_agent - INFO - Product identified: Car (pattern: car-insurance)
+2025-09-17 10:09:51 - crawling_agent - INFO - Creating folder structure for product: Car
+2025-09-17 10:09:51 - crawling_agent - DEBUG - Ensured folder exists: source_db/FAQ
+2025-09-17 10:09:51 - crawling_agent - DEBUG - Ensured folder exists: source_db/benefits
+2025-09-17 10:09:51 - crawling_agent - DEBUG - Ensured folder exists: source_db/policy
+2025-09-17 10:09:51 - crawling_agent - DEBUG - Ensured folder exists: source_db/pdfs/Car
+2025-09-17 10:09:51 - crawling_agent - INFO - Folder structure created successfully
+2025-09-17 10:09:51 - crawling_agent - INFO - Fetching webpage content from: https://www.hlas.com.sg/personal-insurance/car-insurance/
+2025-09-17 10:09:51 - crawling_agent - DEBUG - Making HTTP request with timeout: 30s
+2025-09-17 10:09:51 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): www.hlas.com.sg:443
+2025-09-17 10:09:53 - urllib3.connectionpool - DEBUG - https://www.hlas.com.sg:443 "GET /personal-insurance/car-insurance/ HTTP/1.1" 200 40738
+2025-09-17 10:09:53 - crawling_agent - INFO - Successfully fetched content. Status: 200, Size: 227463 bytes
+2025-09-17 10:09:53 - crawling_agent - DEBUG - Content parsed with BeautifulSoup
+2025-09-17 10:09:53 - crawling_agent - INFO - Attempting headless browser fetch to bypass pop-ups/overlays
+2025-09-17 10:09:53 - crawling_agent - WARNING - Playwright not available: No module named 'playwright'
+2025-09-17 10:09:53 - crawling_agent - INFO - Webpage content loaded successfully
+2025-09-17 10:09:53 - crawling_agent - INFO - Starting Phase 1: FAQ Extraction & Deduplication
+2025-09-17 10:09:53 - crawling_agent - INFO - Starting enhanced FAQ extraction for product: Car
+2025-09-17 10:09:53 - crawling_agent - INFO - Found 24 potential FAQ sections
+2025-09-17 10:09:54 - crawling_agent - INFO - Phase 1 completed: 12 deduplicated FAQs
+2025-09-17 10:09:54 - crawling_agent - INFO - Starting Phase 2: Table Extraction
+2025-09-17 10:09:54 - crawling_agent - DEBUG - Processing table with Gemini for product: Car
+2025-09-17 10:09:54 - crawling_agent - DEBUG - Generated prompt length: 3462 characters
+2025-09-17 10:09:54 - crawling_agent - INFO - Attempting to process with Gemini...
+2025-09-17 10:10:12 - crawling_agent - DEBUG - Received response from Gemini API
+2025-09-17 10:10:12 - crawling_agent - DEBUG - Processing 13 lines from LLM response
+2025-09-17 10:10:12 - crawling_agent - INFO - Generated 13 sentences from LLM response
+2025-09-17 10:10:12 - crawling_agent - DEBUG - Applying API delay: 3s
+2025-09-17 10:10:15 - crawling_agent - INFO - Phase 2 completed: 13 table sentences generated
+2025-09-17 10:10:15 - crawling_agent - INFO - Starting Phase 3: PDF Extraction
+2025-09-17 10:10:15 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): www.hlas.com.sg:443
+2025-09-17 10:10:16 - urllib3.connectionpool - DEBUG - https://www.hlas.com.sg:443 "GET /wp-content/uploads/2023/10/HL-Assurance-Motor-Insurance-Policy-Wording.pdf HTTP/1.1" 200 597222
+2025-09-17 10:10:17 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): www.hlas.com.sg:443
+2025-09-17 10:10:19 - urllib3.connectionpool - DEBUG - https://www.hlas.com.sg:443 "GET /wp-content/uploads/Approved_Workshop/HLAS_APPROVED_WORKSHOP.pdf HTTP/1.1" 200 130766
+2025-09-17 10:10:20 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): www.hlas.com.sg:443
+2025-09-17 10:10:20 - urllib3.connectionpool - DEBUG - https://www.hlas.com.sg:443 "GET /wp-content/uploads/Approved_Workshop/HLAS_APPROVED_WORKSHOP.pdf HTTP/1.1" 200 130766
+2025-09-17 10:10:21 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): www.hlas.com.sg:443
+2025-09-17 10:10:23 - urllib3.connectionpool - DEBUG - https://www.hlas.com.sg:443 "GET /wp-content/uploads/2020/03/Windscreen-Claim-Form.pdf HTTP/1.1" 200 155495
+2025-09-17 10:10:24 - crawling_agent - INFO - Phase 3 completed: 4 PDFs downloaded
+2025-09-17 10:10:24 - crawling_agent - INFO - Starting Phase 4: PDF Parsing with LlamaParse
+2025-09-17 10:10:24 - crawling_agent - INFO - Setting up LlamaParse
+2025-09-17 10:10:24 - crawling_agent - DEBUG - Initializing LlamaParse with configuration
+2025-09-17 10:10:24 - crawling_agent - INFO - LlamaParse configured successfully
+2025-09-17 10:10:24 - asyncio - DEBUG - Using proactor: IocpProactor
+2025-09-17 10:10:24 - fsspec.local - DEBUG - open file: D:/OneDrive - BIGTAPP PTE LTD/BigTapp/HLAS_BOT/HLAS_BOT/Admin/source_db/pdfs/Car/here.pdf
+2025-09-17 10:10:25 - httpcore.connection - DEBUG - connect_tcp.started host='api.cloud.llamaindex.ai' port=443 local_address=None timeout=2000 socket_options=None
+2025-09-17 10:10:25 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x000002370BD46870>
+2025-09-17 10:10:25 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x000002370BD16350> server_hostname='api.cloud.llamaindex.ai' timeout=2000
+2025-09-17 10:10:25 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x000002370BB82ED0>
+2025-09-17 10:10:25 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2025-09-17 10:10:25 - httpcore.http11 - DEBUG - send_request_headers.complete
+2025-09-17 10:10:25 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2025-09-17 10:10:37 - httpcore.http11 - DEBUG - send_request_body.complete
+2025-09-17 10:10:37 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2025-09-17 10:10:39 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Wed, 17 Sep 2025 04:40:39 GMT'), (b'Content-Type', b'application/json'), (b'Content-Length', b'64'), (b'Connection', b'keep-alive'), (b'x-session-id', b'5f251af8-b9c9-483c-86de-815e2c80ba5d'), (b'x-correlation-id', b'8a65736b-9459-446d-863c-0444cc75ce1a'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains')])
+2025-09-17 10:10:39 - httpx - INFO - HTTP Request: POST https://api.cloud.llamaindex.ai/api/parsing/upload "HTTP/1.1 200 OK"
+2025-09-17 10:10:39 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2025-09-17 10:10:39 - httpcore.http11 - DEBUG - receive_response_body.complete
+2025-09-17 10:10:39 - httpcore.http11 - DEBUG - response_closed.started
+2025-09-17 10:10:39 - httpcore.http11 - DEBUG - response_closed.complete
+2025-09-17 10:10:40 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'GET']>
+2025-09-17 10:10:40 - httpcore.http11 - DEBUG - send_request_headers.complete
+2025-09-17 10:10:40 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'GET']>
+2025-09-17 10:10:40 - httpcore.http11 - DEBUG - send_request_body.complete
+2025-09-17 10:10:40 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'GET']>
+2025-09-17 10:10:41 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Wed, 17 Sep 2025 04:40:41 GMT'), (b'Content-Type', b'application/json'), (b'Content-Length', b'64'), (b'Connection', b'keep-alive'), (b'x-session-id', b'70e939d1-654f-41c1-8a64-306d8e2366a6'), (b'x-correlation-id', b'67e93515-1856-4fa5-ac6e-c2de751032db'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains')])
+2025-09-17 10:10:41 - httpx - INFO - HTTP Request: GET https://api.cloud.llamaindex.ai/api/parsing/job/97d2b2f8-9b76-4e9e-90ba-2f2dcc64d5e5 "HTTP/1.1 200 OK"
+2025-09-17 10:10:41 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'GET']>
+2025-09-17 10:10:41 - httpcore.http11 - DEBUG - receive_response_body.complete
+2025-09-17 10:10:41 - httpcore.http11 - DEBUG - response_closed.started
+2025-09-17 10:10:41 - httpcore.http11 - DEBUG - response_closed.complete
+2025-09-17 10:10:43 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'GET']>
+2025-09-17 10:10:43 - httpcore.http11 - DEBUG - send_request_headers.complete
+2025-09-17 10:10:43 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'GET']>
+2025-09-17 10:10:43 - httpcore.http11 - DEBUG - send_request_body.complete
+2025-09-17 10:10:43 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'GET']>
+2025-09-17 10:10:43 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Wed, 17 Sep 2025 04:40:43 GMT'), (b'Content-Type', b'application/json'), (b'Content-Length', b'64'), (b'Connection', b'keep-alive'), (b'x-session-id', b'9b04115f-3527-44f9-94d2-eba55ac4f3d5'), (b'x-correlation-id', b'01b092fa-3411-4aa1-8927-cdac011f72dc'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains')])
+2025-09-17 10:10:43 - httpx - INFO - HTTP Request: GET https://api.cloud.llamaindex.ai/api/parsing/job/97d2b2f8-9b76-4e9e-90ba-2f2dcc64d5e5 "HTTP/1.1 200 OK"
+2025-09-17 10:10:43 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'GET']>
+2025-09-17 10:10:43 - httpcore.http11 - DEBUG - receive_response_body.complete
+2025-09-17 10:10:43 - httpcore.http11 - DEBUG - response_closed.started
+2025-09-17 10:10:43 - httpcore.http11 - DEBUG - response_closed.complete
+2025-09-17 10:10:46 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'GET']>
+2025-09-17 10:10:46 - httpcore.http11 - DEBUG - send_request_headers.complete
+2025-09-17 10:10:46 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'GET']>
+2025-09-17 10:10:46 - httpcore.http11 - DEBUG - send_request_body.complete
+2025-09-17 10:10:46 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'GET']>
+2025-09-17 10:10:47 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Wed, 17 Sep 2025 04:40:47 GMT'), (b'Content-Type', b'application/json'), (b'Content-Length', b'64'), (b'Connection', b'keep-alive'), (b'x-session-id', b'd03b40f8-13f9-49b8-9955-1b0b9f5738fb'), (b'x-correlation-id', b'cb73bdb5-daf4-4c5a-a193-030b9263c10c'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains')])
+2025-09-17 10:10:47 - httpx - INFO - HTTP Request: GET https://api.cloud.llamaindex.ai/api/parsing/job/97d2b2f8-9b76-4e9e-90ba-2f2dcc64d5e5 "HTTP/1.1 200 OK"
+2025-09-17 10:10:47 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'GET']>
+2025-09-17 10:10:47 - httpcore.http11 - DEBUG - receive_response_body.complete
+2025-09-17 10:10:47 - httpcore.http11 - DEBUG - response_closed.started
+2025-09-17 10:10:47 - httpcore.http11 - DEBUG - response_closed.complete
+2025-09-17 10:10:51 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'GET']>
+2025-09-17 10:10:51 - httpcore.http11 - DEBUG - send_request_headers.complete
+2025-09-17 10:10:51 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'GET']>
+2025-09-17 10:10:51 - httpcore.http11 - DEBUG - send_request_body.complete
+2025-09-17 10:10:51 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'GET']>
+2025-09-17 10:10:51 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Wed, 17 Sep 2025 04:40:51 GMT'), (b'Content-Type', b'application/json'), (b'Content-Length', b'64'), (b'Connection', b'keep-alive'), (b'x-session-id', b'eb0add8b-fd36-4852-aee4-29e690553390'), (b'x-correlation-id', b'87babc6f-058d-4df6-a343-e42ff5310945'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains')])
+2025-09-17 10:10:51 - httpx - INFO - HTTP Request: GET https://api.cloud.llamaindex.ai/api/parsing/job/97d2b2f8-9b76-4e9e-90ba-2f2dcc64d5e5 "HTTP/1.1 200 OK"
+2025-09-17 10:10:51 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'GET']>
+2025-09-17 10:10:51 - httpcore.http11 - DEBUG - receive_response_body.complete
+2025-09-17 10:10:51 - httpcore.http11 - DEBUG - response_closed.started
+2025-09-17 10:10:51 - httpcore.http11 - DEBUG - response_closed.complete
+2025-09-17 10:10:56 - httpcore.connection - DEBUG - close.started
+2025-09-17 10:10:56 - httpcore.connection - DEBUG - close.complete
+2025-09-17 10:10:56 - httpcore.connection - DEBUG - connect_tcp.started host='api.cloud.llamaindex.ai' port=443 local_address=None timeout=2000 socket_options=None
+2025-09-17 10:10:57 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x000002370BDAB0E0>
+2025-09-17 10:10:57 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x000002370BD16350> server_hostname='api.cloud.llamaindex.ai' timeout=2000
+2025-09-17 10:10:57 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x000002370BB82EA0>
+2025-09-17 10:10:57 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'GET']>
+2025-09-17 10:10:57 - httpcore.http11 - DEBUG - send_request_headers.complete
+2025-09-17 10:10:57 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'GET']>
+2025-09-17 10:10:57 - httpcore.http11 - DEBUG - send_request_body.complete
+2025-09-17 10:10:57 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'GET']>
+2025-09-17 10:10:58 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Wed, 17 Sep 2025 04:40:57 GMT'), (b'Content-Type', b'application/json'), (b'Content-Length', b'64'), (b'Connection', b'keep-alive'), (b'x-session-id', b'f2d78dee-b713-40c6-a7f1-3ea2b7f5126a'), (b'x-correlation-id', b'050a6c6f-c4a9-443a-8630-4501dec39a13'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains')])
+2025-09-17 10:10:58 - httpx - INFO - HTTP Request: GET https://api.cloud.llamaindex.ai/api/parsing/job/97d2b2f8-9b76-4e9e-90ba-2f2dcc64d5e5 "HTTP/1.1 200 OK"
+2025-09-17 10:10:58 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'GET']>
+2025-09-17 10:10:58 - httpcore.http11 - DEBUG - receive_response_body.complete
+2025-09-17 10:10:58 - httpcore.http11 - DEBUG - response_closed.started
+2025-09-17 10:10:58 - httpcore.http11 - DEBUG - response_closed.complete
+2025-09-17 10:11:03 - httpcore.connection - DEBUG - close.started
+2025-09-17 10:11:03 - httpcore.connection - DEBUG - close.complete
+2025-09-17 10:11:03 - httpcore.connection - DEBUG - connect_tcp.started host='api.cloud.llamaindex.ai' port=443 local_address=None timeout=2000 socket_options=None
+2025-09-17 10:11:03 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x000002370BDC43B0>
+2025-09-17 10:11:03 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x000002370BD16350> server_hostname='api.cloud.llamaindex.ai' timeout=2000
+2025-09-17 10:11:03 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x000002370BDC4260>
+2025-09-17 10:11:03 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'GET']>
+2025-09-17 10:11:03 - httpcore.http11 - DEBUG - send_request_headers.complete
+2025-09-17 10:11:03 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'GET']>
+2025-09-17 10:11:03 - httpcore.http11 - DEBUG - send_request_body.complete
+2025-09-17 10:11:03 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'GET']>
+2025-09-17 10:11:10 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Wed, 17 Sep 2025 04:41:10 GMT'), (b'Content-Type', b'application/json'), (b'Content-Length', b'64'), (b'Connection', b'keep-alive'), (b'x-session-id', b'51b383c8-15f0-455a-a79e-24145fdf67ad'), (b'x-correlation-id', b'703790a5-f39d-46f5-aa5a-fc9383e57bf5'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains')])
+2025-09-17 10:11:10 - httpx - INFO - HTTP Request: GET https://api.cloud.llamaindex.ai/api/parsing/job/97d2b2f8-9b76-4e9e-90ba-2f2dcc64d5e5 "HTTP/1.1 200 OK"
+2025-09-17 10:11:10 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'GET']>
+2025-09-17 10:11:10 - httpcore.http11 - DEBUG - receive_response_body.complete
+2025-09-17 10:11:10 - httpcore.http11 - DEBUG - response_closed.started
+2025-09-17 10:11:10 - httpcore.http11 - DEBUG - response_closed.complete
+2025-09-17 10:11:15 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'GET']>
+2025-09-17 10:11:15 - httpcore.http11 - DEBUG - send_request_headers.complete
+2025-09-17 10:11:15 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'GET']>
+2025-09-17 10:11:15 - httpcore.http11 - DEBUG - send_request_body.complete
+2025-09-17 10:11:15 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'GET']>
+2025-09-17 10:11:15 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Wed, 17 Sep 2025 04:41:15 GMT'), (b'Content-Type', b'application/json'), (b'Content-Length', b'64'), (b'Connection', b'keep-alive'), (b'x-session-id', b'6ae91e2f-daff-4e03-b8cf-7d65612b48e3'), (b'x-correlation-id', b'97fa7e9b-fa11-4789-97ae-7987b999b4ea'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains')])
+2025-09-17 10:11:15 - httpx - INFO - HTTP Request: GET https://api.cloud.llamaindex.ai/api/parsing/job/97d2b2f8-9b76-4e9e-90ba-2f2dcc64d5e5 "HTTP/1.1 200 OK"
+2025-09-17 10:11:15 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'GET']>
+2025-09-17 10:11:15 - httpcore.http11 - DEBUG - receive_response_body.complete
+2025-09-17 10:11:15 - httpcore.http11 - DEBUG - response_closed.started
+2025-09-17 10:11:15 - httpcore.http11 - DEBUG - response_closed.complete
+2025-09-17 10:11:15 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'GET']>
+2025-09-17 10:11:15 - httpcore.http11 - DEBUG - send_request_headers.complete
+2025-09-17 10:11:15 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'GET']>
+2025-09-17 10:11:15 - httpcore.http11 - DEBUG - send_request_body.complete
+2025-09-17 10:11:15 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'GET']>
+2025-09-17 10:11:16 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Wed, 17 Sep 2025 04:41:16 GMT'), (b'Content-Type', b'application/json'), (b'Content-Length', b'381597'), (b'Connection', b'keep-alive'), (b'x-session-id', b'a1af0ced-6e73-48a7-a134-c8f924cac5f1'), (b'x-correlation-id', b'6d50b7c8-e87c-43be-ab7d-36ae4009bd18'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains')])
+2025-09-17 10:11:16 - httpx - INFO - HTTP Request: GET https://api.cloud.llamaindex.ai/api/parsing/job/97d2b2f8-9b76-4e9e-90ba-2f2dcc64d5e5/result/json "HTTP/1.1 200 OK"
+2025-09-17 10:11:16 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'GET']>
+2025-09-17 10:11:17 - httpcore.http11 - DEBUG - receive_response_body.complete
+2025-09-17 10:11:17 - httpcore.http11 - DEBUG - response_closed.started
+2025-09-17 10:11:17 - httpcore.http11 - DEBUG - response_closed.complete
+2025-09-17 10:11:17 - crawling_agent - INFO - Phase 4 completed: 1 PDFs parsed
+2025-09-17 10:11:17 - crawling_agent - INFO - Starting Phase 5: Markdown Table Processing
+2025-09-17 10:11:17 - crawling_agent - INFO - Attempting to process markdown table with Gemini...
+2025-09-17 10:11:42 - crawling_agent - DEBUG - Applying API delay: 3s
+2025-09-17 10:11:45 - crawling_agent - INFO - Attempting to process markdown table with Gemini...
+2025-09-17 10:12:08 - crawling_agent - DEBUG - Applying API delay: 3s
+2025-09-17 10:12:11 - crawling_agent - INFO - Phase 5 completed: 2 markdown tables processed
+2025-09-17 10:12:11 - crawling_agent - INFO - Generating final summary
+2025-09-17 10:12:11 - crawling_agent - INFO - Crawling completed for Car: FAQs=12, Tables=13, PDFs=4, Parsed=1, MD_Tables=2
+2025-09-17 10:12:11 - crawling_agent - INFO - Crawling Agent completed successfully
