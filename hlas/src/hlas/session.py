@@ -147,8 +147,8 @@ class MongoSessionManager:
             created_at = existing.get("created_at") if existing else datetime.now(timezone.utc)
 
             fields_to_unset = {
-                "compare_pending": "",
-                "summary_pending": "",
+                "comparison_status": "",
+                "summary_status": "",
                 "comparison_slot": "",
                 "comparison_history": "",
                 "summary_slot": "",

@@ -241,42 +241,27 @@ class CompareFlowHelper:
 
         # Handle missing product
         if not product:
-            # Set pending and ask a single guided question
-            try:
-                session["compare_pending"] = {"await": "product", "first_msg": first_msg}
-            except Exception:
-                pass
+            # Set status and ask a single guided question
+            session["comparison_status"] = "in_progress"
             q = ask_clarify("product", None, None)
             state.reply = q
-            try:
-                logger.info("CompareFlow.pending: await=product first_msg=%s", first_msg)
-                logger.info("CompareFlow.clarify_question: %s", q)
-            except Exception:
-                pass
+            logger.info("CompareFlow.pending: await=product")
+            logger.info("CompareFlow.clarify_question: %s", q)
             return "__done__"
 
         # Car product: ignore tiers and proceed
         if product.lower() == "car":
             if tiers_list:
-                try:
-                    logger.info("CompareFlow: Car has no tiers; ignoring tiers=%s", tiers_list)
-                except Exception:
-                    pass
+                logger.info("CompareFlow: Car has no tiers; ignoring tiers=%s", tiers_list)
             # Proceed to synthesis directly for Car
         else:
             # Need at least two tiers
             if len(tiers_list) < 2:
-                try:
-                    session["compare_pending"] = {"await": "tiers", "first_msg": first_msg, "product": product}
-                except Exception:
-                    pass
+                session["comparison_status"] = "in_progress"
                 q = ask_clarify("tiers", product, tiers_list)
                 state.reply = q
-                try:
-                    logger.info("CompareFlow.pending: await=tiers first_msg=%s", first_msg)
-                    logger.info("CompareFlow.clarify_question: %s", q)
-                except Exception:
-                    pass
+                logger.info("CompareFlow.pending: await=tiers")
+                logger.info("CompareFlow.clarify_question: %s", q)
                 return "__done__"
 
         # ---- Ready: both product and tiers (or Car) identified ----
@@ -330,16 +315,12 @@ class CompareFlowHelper:
         except Exception:
             pass
 
-        # Clear pending and mark completion
-        had_pending = bool(session.get("compare_pending"))
-        try:
-            session.pop("compare_pending", None)
-        except Exception:
-            pass
-        try:
-            logger.info("CompareFlow.completed: cleared compare_pending (had_pending=%s)", had_pending)
-        except Exception:
-            pass
+        # Mark flow as done and clean up the working slot
+        session["comparison_status"] = "done"
+        session.pop("comparison_slot", None)
+
+        logger.info("CompareFlow.completed: status set to 'done' and slot cleared.")
+
         try:
             session.setdefault("comparison_history", [])
             session["comparison_history"].append({

@@ -215,17 +215,11 @@ class SummaryFlowHelper:
 
         # Missing product → ask
         if not product:
-            try:
-                session["summary_pending"] = {"await": "product", "first_msg": first_msg}
-            except Exception:
-                pass
+            session["summary_status"] = "in_progress"
             q = ask_clarify("product", None, None)
             state.reply = q
-            try:
-                logger.info("SummaryFlow.pending: await=product first_msg=%s", first_msg)
-                logger.info("SummaryFlow.clarify_question: %s", q)
-            except Exception:
-                pass
+            logger.info("SummaryFlow.pending: await=product")
+            logger.info("SummaryFlow.clarify_question: %s", q)
             return "__done__"
 
         # Car: ignore tiers and proceed
@@ -234,17 +228,11 @@ class SummaryFlowHelper:
         else:
             # Need at least 1 tier for summary
             if len(tiers_list) < 1:
-                try:
-                    session["summary_pending"] = {"await": "tiers", "first_msg": first_msg, "product": product}
-                except Exception:
-                    pass
+                session["summary_status"] = "in_progress"
                 q = ask_clarify("tiers", product, tiers_list)
                 state.reply = q
-                try:
-                    logger.info("SummaryFlow.pending: await=tiers first_msg=%s", first_msg)
-                    logger.info("SummaryFlow.clarify_question: %s", q)
-                except Exception:
-                    pass
+                logger.info("SummaryFlow.pending: await=tiers")
+                logger.info("SummaryFlow.clarify_question: %s", q)
                 return "__done__"
 
         # ---- Ready: have product and (optionally multiple) tiers ----
@@ -298,16 +286,12 @@ class SummaryFlowHelper:
         except Exception:
             pass
 
-        # Cleanup and mark completion
-        had_pending = bool(session.get("summary_pending"))
-        try:
-            session.pop("summary_pending", None)
-        except Exception:
-            pass
-        try:
-            logger.info("SummaryFlow.completed: cleared summary_pending (had_pending=%s)", had_pending)
-        except Exception:
-            pass
+        # Mark flow as done and clean up the working slot
+        session["summary_status"] = "done"
+        session.pop("summary_slot", None)
+
+        logger.info("SummaryFlow.completed: status set to 'done' and slot cleared.")
+
         try:
             session.setdefault("summary_history", [])
             session["summary_history"].append({

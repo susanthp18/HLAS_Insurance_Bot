@@ -71,8 +71,9 @@ async def chat(payload: ChatInput):
         # Suppress third-party console UIs from libraries during flow execution
         with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
             result = await flow.kickoff_async(inputs={"message": payload.message, "session": session})
-        # Persist updated session state if any slots or product were set by the flow
-        new_session = dict(session)
+        # The flow's final state contains the complete, updated session
+        final_session = flow.state.session
+
         # Trim long assistant replies in history to 100 characters for all responses
         assistant_reply_full = str(flow.state.reply)
         assistant_reply_hist = assistant_reply_full
@@ -85,59 +86,15 @@ async def chat(payload: ChatInput):
         # Add the current turn to the history via the session manager
         mongo_session_manager.add_history_entry(payload.session_id, payload.message, assistant_reply_hist)
         
-        new_session.update({
-            "product": flow.state.product or session.get("product"),
-        })
-        if "slots" in flow.state.session:
-            new_session["slots"] = flow.state.session["slots"]
-        # Persist recommendation_status only for simplified state management
-        if flow.state.session.get("recommendation_status"):
-            new_session["recommendation_status"] = flow.state.session.get("recommendation_status")
-            logger.info("Chat.session_persist: recommendation_status='%s'", new_session["recommendation_status"])
-        
-        # Persist last_question for slot extractor context
-        if flow.state.session.get("last_question"):
-            new_session["last_question"] = flow.state.session.get("last_question")
-            logger.info("Chat.session_persist: last_question='%s'", new_session["last_question"])
-            
-        # Persist InfoFlow edge-case flags for product clarification detection
-        if flow.state.session.get("_last_info_prod_q"):
-            new_session["_last_info_prod_q"] = flow.state.session.get("_last_info_prod_q")
-            logger.info("Chat.session_persist: _last_info_prod_q=%s", new_session["_last_info_prod_q"])
-        else:
-            new_session.pop("_last_info_prod_q", None)
-            
-        if flow.state.session.get("_last_info_user_msg"):
-            new_session["_last_info_user_msg"] = flow.state.session.get("_last_info_user_msg")
-            logger.info("Chat.session_persist: _last_info_user_msg='%s'", new_session["_last_info_user_msg"])
-        else:
-            new_session.pop("_last_info_user_msg", None)
-        # Persist comparison and summary states
-        compare_pending_flow = flow.state.session.get("compare_pending")
-        if compare_pending_flow:
-            new_session["compare_pending"] = compare_pending_flow
-        else:
-            new_session.pop("compare_pending", None)
-            
-        summary_pending_flow = flow.state.session.get("summary_pending")
-        if summary_pending_flow:
-            new_session["summary_pending"] = summary_pending_flow
-        else:
-            new_session.pop("summary_pending", None)
-        # Also persist other comparison state
-        if flow.state.session.get("comparison_slot"):
-            new_session["comparison_slot"] = flow.state.session.get("comparison_slot")
-        if flow.state.session.get("comparison_history"):
-            new_session["comparison_history"] = flow.state.session.get("comparison_history")
-        # Persist summary state
-        if flow.state.session.get("summary_slot"):
-            new_session["summary_slot"] = flow.state.session.get("summary_slot")
-        if flow.state.session.get("summary_history"):
-            new_session["summary_history"] = flow.state.session.get("summary_history")
         # Log the final session state before persisting
-        logger.info("Chat.session_persist.final: rec_status='%s' keys=%s",
-                   new_session.get("recommendation_status"), list(new_session.keys()))
-        mongo_session_manager.save_session(payload.session_id, new_session)
+        logger.info("Chat.session_persist.final: rec_status='%s' cmp_status='%s' sum_status='%s' keys=%s",
+                   final_session.get("recommendation_status"),
+                   final_session.get("comparison_status"),
+                   final_session.get("summary_status"),
+                   list(final_session.keys()))
+        
+        # Persist the entire updated session state from the flow
+        mongo_session_manager.save_session(payload.session_id, final_session)
         logger.info("Chat.completed: product=%s reply_len=%d sources=%s",
                    flow.state.product, len(str(flow.state.reply or "")), str(flow.state.sources))
         return {"response": str(flow.state.reply), "sources": flow.state.sources}

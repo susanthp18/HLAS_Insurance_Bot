@@ -50,6 +50,7 @@ class HlasState(BaseModel):
     doc_type: Optional[str] = None
     slot_to_ask: Optional[str] = None
     question: Optional[str] = None
+    last_question: Optional[str] = None
     slot_name: Optional[str] = None
     slot_value: Optional[str] = None
     reply: str = ""
@@ -155,144 +156,45 @@ class HlasFlow(Flow[HlasState]):
     def decide(self, payload: Dict[str, Any]) -> str:
         # Debug session state at entry
         recommendation_status = self.state.session.get("recommendation_status")
+        comparison_status = self.state.session.get("comparison_status")
+        summary_status = self.state.session.get("summary_status")
         session_product = self.state.session.get("product")
         
-        logger.info("HlasFlow.decide: Entry state - message='%s', rec_status='%s', session_product='%s', state_product='%s'", 
-                   self.state.message[:100], recommendation_status, session_product, self.state.product)
+        logger.info("HlasFlow.decide: Entry state - message='%s', rec_status='%s', cmp_status='%s', sum_status='%s', product='%s'", 
+                   self.state.message[:100], recommendation_status, comparison_status, summary_status, session_product)
         
         # Check recommendation status for simplified flow control
         if recommendation_status == "in_progress":
-            # Recommendation in progress - bypass orchestrator and continue with RecFlow
             logger.info("HlasFlow.decide: Recommendation in progress, bypassing orchestrator to RecFlow")
             if RECFLOW_AVAILABLE and RecFlowHelper:
                 return RecFlowHelper.handle(self.state, {"directive": "continue_recommendation"}, self._logger)
             else:
                 logger.error("HlasFlow.decide: RecFlow not available but recommendation_status='in_progress'")
-                # Clear status and proceed to orchestrator as fallback
                 self.state.session.pop("recommendation_status", None)
-        elif recommendation_status == "done":
-            logger.info("HlasFlow.decide: Recommendation done, clearing status and proceeding to orchestrator")
-            self.state.session.pop("recommendation_status", None)
-        else:
-            logger.debug("HlasFlow.decide: No active recommendation status")
 
-        # Clean up stale states from completed flows (comparison and summary only)
-        compare_pending = self.state.session.get("compare_pending")
-        summary_pending = self.state.session.get("summary_pending")
-        
-        # Reconstruct compare_pending if needed based on last_question
-        if not compare_pending:
-            last_q = (self.state.session.get("last_question") or "").lower()
-            if last_q and ("tier" in last_q or "tiers" in last_q):
-                self.state.session["compare_pending"] = {
-                    "await": "tiers",
-                    "product": self.state.session.get("product") or self.state.product,
-                }
-                compare_pending = self.state.session.get("compare_pending")
-                logger.info("HlasFlow.decide: Reconstructed compare_pending from last_question - await='tiers'")
-                
-        if compare_pending:
-            await_key = compare_pending.get("await")
-            logger.info("HlasFlow.decide: Compare bypass detected - await=%s", await_key)
-            
-            # Re-identify product only if we're awaiting 'product'. If awaiting tiers, keep current session product.
-            current_product = self.state.session.get("product") or self.state.product
-            if await_key == "product" or not current_product:
-                logger.info("HlasFlow.decide: Compare bypass - identifying product for await=%s", await_key)
-                prod_probe = run_direct_task(
-                    agent_obj=identify_product_task.agent,
-                    agent_key="product_identifier",
-                    task_key="identify_product",
-                    context_text=f"User Message: {self.state.message}\nSession product: {current_product}",
-                    logger=self._logger,
-                    label="product_identifier.identify_product.on_compare_bypass",
-                ) or {}
-                
-                logger.info("HlasFlow.decide: Compare bypass product identification - identified=%s, confidence=%s, has_question=%s",
-                           prod_probe.get("product"), prod_probe.get("confidence"), bool(prod_probe.get("question")))
-                           
-                identified = prod_probe.get("product")
-                if identified and identified != current_product:
-                    logger.info("HlasFlow.decide: Compare bypass product switch - %s->%s", current_product, identified)
-                    self.state.product = identified
-                    self.state.session["product"] = identified
-                elif not identified and prod_probe.get("question") and await_key == "product":
-                    # Ask clarification specifically for comparison path
-                    self.state.reply = prod_probe.get("question")
-                    self.state.session["compare_pending"] = {"await": "product"}
-                    logger.info("HlasFlow.decide: Compare bypass requesting product clarification")
-                    return "__done__"
-            else:
-                # Ensure state.product is set from session when awaiting tiers
-                self.state.product = current_product
-                logger.debug("HlasFlow.decide: Compare bypass - using session product=%s for tiers", current_product)
-                
-                # Additionally, if user's clarification message mentions a different product, switch now
-                prod_probe2 = run_direct_task(
-                    agent_obj=identify_product_task.agent,
-                    agent_key="product_identifier",
-                    task_key="identify_product",
-                    context_text=f"User Message: {self.state.message}\nSession product: {current_product}",
-                    logger=self._logger,
-                    label="product_identifier.identify_product.on_compare_bypass_tiers",
-                ) or {}
-                
-                logger.debug("HlasFlow.decide: Compare bypass tiers product check - identified=%s", prod_probe2.get("product"))
-                
-                identified2 = prod_probe2.get("product")
-                if identified2 and identified2 != current_product:
-                    logger.info("HlasFlow.decide: Compare bypass tiers - product switch detected (%s -> %s)", 
-                               current_product, identified2)
-                    self.state.product = identified2
-                    self.state.session["product"] = identified2
-                    if isinstance(compare_pending, dict):
-                        compare_pending["product"] = identified2
-                        self.state.session["compare_pending"] = compare_pending
-            
+        elif comparison_status == "in_progress":
+            logger.info("HlasFlow.decide: Comparison in progress, bypassing orchestrator to CompareFlow")
             return CompareFlowHelper.handle(self.state, {}, self._logger)
 
-        # Reconstruct summary_pending if needed based on last_question
-        if not summary_pending:
-            last_q = (self.state.session.get("last_question") or "").lower()
-            if last_q and ("summarize" in last_q or "summary" in last_q):
-                self.state.session["summary_pending"] = {
-                    "await": "tiers",
-                    "product": self.state.session.get("product") or self.state.product,
-                }
-                summary_pending = self.state.session.get("summary_pending")
-                logger.info("HlasFlow.decide: Reconstructed summary_pending from last_question - await='tiers'")
-        
-        if summary_pending:
-            await_key = summary_pending.get("await")
-            logger.info("HlasFlow.decide: Summary bypass detected - await=%s", await_key)
-            
-            # Re-identify product only if we're awaiting 'product'. If awaiting tiers, keep current session product.
-            current_product = self.state.session.get("product") or self.state.product
-            if await_key == "product" or not current_product:
-                logger.info("HlasFlow.decide: Summary bypass - identifying product for await=%s", await_key)
-                prod_probe = run_direct_task(
-                    agent_obj=identify_product_task.agent,
-                    agent_key="product_identifier",
-                    task_key="identify_product",
-                    context_text=f"User Message: {self.state.message}\nSession product: {current_product}",
-                    logger=self._logger,
-                    label="product_identifier.identify_product.on_summary_bypass",
-                ) or {}
-                
-                logger.info("HlasFlow.decide: Summary bypass product identification - identified=%s, confidence=%s",
-                           prod_probe.get("product"), prod_probe.get("confidence"))
-                
-                identified = prod_probe.get("product")
-                if identified and identified != current_product:
-                    logger.info("HlasFlow.decide: Summary bypass product switch - %s->%s", current_product, identified)
-                    self.state.product = identified
-                    self.state.session["product"] = identified
-            else:
-                # Ensure state.product is set from session when awaiting tiers
-                self.state.product = current_product
-                logger.debug("HlasFlow.decide: Summary bypass - using session product=%s", current_product)
-            
+        elif summary_status == "in_progress":
+            logger.info("HlasFlow.decide: Summary in progress, bypassing orchestrator to SummaryFlow")
             return SummaryFlowHelper.handle(self.state, {}, self._logger)
+
+        # Cleanup for completed flows
+        if recommendation_status == "done":
+            logger.info("HlasFlow.decide: Recommendation done, clearing status.")
+            self.state.session.pop("recommendation_status", None)
+
+        if comparison_status == "done":
+            logger.info("HlasFlow.decide: Comparison done, clearing status.")
+            self.state.session.pop("comparison_status", None)
+
+        if summary_status == "done":
+            logger.info("HlasFlow.decide: Summary done, clearing status.")
+            self.state.session.pop("summary_status", None)
+
+        # Fall through to orchestrator if no multi-turn flow is active
+        logger.debug("HlasFlow.decide: No active multi-turn flow, proceeding to orchestrator")
 
         # Create structured context for the orchestrator
         last_user_message = self.state.message
@@ -336,6 +238,17 @@ class HlasFlow(Flow[HlasState]):
         directive = d.get("directive", "handle_capabilities")
         logger.info("HlasFlow.decide: Orchestrator output - directive=%s, keys=%s", directive, list(d.keys()))
 
+        # --- Smart State Cleanup ---
+        # If the orchestrator decides this is NOT a follow-up, it's a new topic.
+        # Safely clear any temporary flags from a previous, completed info_flow clarification.
+        if directive != "handle_follow_up":
+            if "_last_info_prod_q" in self.state.session:
+                self.state.session.pop("_last_info_prod_q", None)
+                self.state.session.pop("_last_info_user_msg", None)
+                self.state.session.pop("last_question", None)
+                self._logger.info("HlasFlow.decide: Directive is not a follow-up. Clearing stale info-flow flags.")
+        # --- End of Smart Cleanup ---
+
         if directive == "greet":
             # Time-aware greeting (Singapore)
             salutation = "Hello"
@@ -366,7 +279,43 @@ class HlasFlow(Flow[HlasState]):
             return InfoFlowHelper.handle(self.state, {}, self._logger)
 
         if directive == "handle_follow_up":
-            logger.info("HlasFlow.decide: Handling follow-up query")
+            # Check if this is a follow-up to a product clarification question
+            if self.state.session.get("_last_info_prod_q"):
+                self._logger.info("HlasFlow.decide: Handling product clarification follow-up.")
+                
+                # The user's message is the product
+                product_clarification = self.state.message
+                
+                # The original question is in the session
+                original_question = self.state.session.get("_last_info_user_msg")
+
+                if original_question:
+                    # Re-route to InfoFlow, but with the original question and the now-clarified product
+                    self.state.message = original_question
+                    
+                    # Run the clarification through the identifier to normalize it (e.g., handle typos)
+                    prod_probe = run_direct_task(
+                        agent_obj=identify_product_task.agent,
+                        agent_key="product_identifier",
+                        task_key="identify_product",
+                        context_text=f"Message: {product_clarification}",
+                        logger=self._logger,
+                        label="product_identifier.identify_product.on_clarification_follow_up",
+                    ) or {}
+                    
+                    clarified_product = prod_probe.get("product") or product_clarification
+                    self.state.product = clarified_product
+                    self.state.session["product"] = clarified_product
+                    
+                    # Clear the flags now that they've been used
+                    self.state.session.pop("_last_info_prod_q", None)
+                    self.state.session.pop("_last_info_user_msg", None)
+                    self.state.session.pop("last_question", None)
+                    
+                    self._logger.info("HlasFlow.decide: Re-routing to InfoFlow with original question and clarified product ('%s').", clarified_product)
+                    return InfoFlowHelper.handle(self.state, {}, self._logger)
+
+            self._logger.info("HlasFlow.decide: Handling generic follow-up query (pronoun resolution, etc.).")
             
             # Detect product (and switch) before constructing follow-up query to avoid leakage
             current_product = self.state.session.get("product") or self.state.product

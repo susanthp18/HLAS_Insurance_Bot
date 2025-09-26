@@ -134,11 +134,17 @@ ask_question:
 
 validate_slot:
   description: |
-    Validate and normalize one {product} slot for the given product.
-    FOLLOW ONLY THE PROVIDED SLOT. Prefer Value normalization from capture.
-    Use ONLY the validation rules provided via context and the current date.
-    If invalid or ambiguous, return a short guiding question (don't output exact variable names) that references the user's provided value and the expected format.
-    Return a JSON object.
+    Your task is to validate and normalize one {product} slot for the given product.
+
+    **CRITICAL RULES:**
+    1.  You must validate ONLY the single slot specified in the [Context] block under the "Slot:" key. Do not infer or validate other slots.
+    2.  You must use ONLY the validation rules provided in the [Context] block under "Validation rules:".
+    3.  Prioritize the provided 'Value' field from the [Context] when it is already in a normalized format (e.g., an integer for days).
+    4.  Your response must be a single, complete JSON object that adheres to the Output contract.
+
+    **CLARIFICATION QUESTION FORMAT:**
+    - If validation fails because the input is invalid, your generated "question" MUST clearly explain WHY the provided value is incorrect and state the expected format or range.
+    - **Example:** "The duration '400 days' is not valid because it is outside the allowed range. Please provide a travel duration between 1 and 365 days."
   agent: "slot_validator"
   expected_output: |
     { "valid": true|false, "slot_name": string, "normalized_value"?: string, "question"?: string, "reason"?: string }

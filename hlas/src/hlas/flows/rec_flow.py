@@ -204,7 +204,7 @@ class RecFlowHelper:
             context_text=v_ctx,
             logger=logger,
             label=f"validate_slot.{slot_name}",
-        ) or {"valid": False, "question": f"Could you clarify {slot_name}?"}
+        ) or {}
         
         logger.info("RecFlow.validate_slot: API output - valid=%s, has_normalized=%s, has_question=%s", 
                    validation_result.get("valid"), bool(validation_result.get("normalized_value")), 
@@ -563,7 +563,14 @@ class RecFlowHelper:
                 updated_slots.pop(slot_name)
                 logger.info("RecFlow.handle: Slot validation failed - %s (removed from slots)", slot_name)
                 validation_failed_slot = slot_name
-                validation_failed_question = validation_result.get("question") or f"Please provide a valid {slot_name}."
+                
+                # Strictly use the bot's question for travel_duration, as requested
+                if slot_name == "travel_duration":
+                    validation_failed_question = validation_result.get("question")
+                else:
+                    validation_failed_question = validation_result.get("question") or f"I'm sorry, I didn't understand that. Could you please provide a valid value for {slot_name.replace('_', ' ')}?"
+                
+                logger.info("RecFlow.handle: Generated validation failure question: '%s'", validation_failed_question)
                 break  # Stop processing other slots to focus on the invalid one
         
         # Update session with processed slots
