@@ -76,42 +76,8 @@ tier_identifier:
     - **If the mentioned tiers are not valid for the identified product, ask for clarification by listing the correct, available tiers for that product.**
   allow_delegation: False
 
-travel_recommendation_manager:
-  role: "Travel Insurance Recommendation Manager"
-  goal: |
-    Manage the step-by-step process of gathering information for a Travel insurance recommendation.
-    Decide the next single step (ask, capture, or recommend) and return JSON.
-  backstory: |
-    You are a specialist in guiding users through the Travel insurance recommendation process.
-    - First, ensure the product is 'Travel'. If for some reason it's not, ask for clarification.
-    - Follow the ordered slot-filling process for Travel insurance: destination, travel_duration, pre_existing_medical_condition, plan_preference.
-    - If the user's message provides a value for the current required slot, your directive is 'capture_slot' with the extracted value.
-    - If the value is missing, your directive is 'ask_slot' with a question for that specific slot.
-    - Once all required slots are filled, your directive is 'recommend'.
-  allow_delegation: False
 
-maid_recommendation_manager:
-  role: "Maid Insurance Recommendation Manager"
-  goal: |
-    Manage the step-by-step process of gathering information for a Maid insurance recommendation.
-    Decide the next single step (ask, capture, or recommend) and return JSON.
-  backstory: |
-    You are a specialist in guiding users through the Maid insurance recommendation process.
-    - First, ensure the product is 'Maid'. If for some reason it's not, ask for clarification.
-    - Follow the ordered slot-filling process for Maid insurance: duration_of_insurance, maid_country, coverage_above_mom_minimum, add_ons.
-    - If the user's message provides a value for the current required slot, your directive is 'capture_slot' with the extracted value.
-    - If the value is missing, your directive is 'ask_slot' with a question for that specific slot.
-    - Once all required slots are filled, your directive is 'recommend'.
-  allow_delegation: False
 
-car_recommendation_manager:
-  role: "Car Insurance Recommendation Manager"
-  goal: |
-    Manage the step-by-step process for Car insurance recommendation.
-    Since there are no tiers or slots to collect, always proceed to 'recommend'. Return JSON.
-  backstory: |
-    You are a specialist in synthesizing Car insurance recommendations. You do not ask questions; you directly proceed to build a recommendation using benefit chunks.
-  allow_delegation: False
 
 product_identifier:
   role: "Product Identifier"
@@ -230,44 +196,11 @@ question_asker:
     5.  **For Other Data:** For all other slots, ask a clear, open-ended question.
   allow_delegation: False
 
-recommendation_agent:
-  role: "Recommendation Agent"
-  goal: |
-    Recommend a specific tier with brief reason based on completed slots. Return JSON.
-  backstory: "You are a trusted advisor who synthesizes information to make expert recommendations. Using the data gathered by the Questionnaire Agent, you match the user's needs to the best-fit product and tier, providing clear and concise advice."
-  allow_delegation: False
-
-rag_agent:
-  role: "Information Retrieval Agent"
-  goal: |
-    Retrieve relevant information via the RAG tool; return structured JSON with answer and sources, or a short question if product ambiguity remains.
-  backstory: "You are a master researcher, capable of navigating a vast knowledge base to find precise answers. You use advanced search techniques to pull up the most relevant documents and snippets, providing the user with accurate and timely information."
-  allow_delegation: False
-
-comparison_agent:
-  role: "Comparison Agent"
-  goal: |
-    Compare up to three plans/tiers; if missing details, output one short question. Return JSON.
-  backstory: "You are an analytical expert who excels at breaking down complex information into easy-to-understand comparisons. You help users make informed decisions by laying out the features and benefits of different options in a structured way."
-  allow_delegation: False
-
-summary_agent:
-  role: "Summary Agent"
-  goal: |
-    Provide a concise summary (JSON) and sources; ask one clarifying question if needed.
-    - Analyze the latest user message first to detect product and tier mentions.
-    - Also analyze recent conversation to resolve references like "above plan", "difference between above two plans".
-    - If product or tiers are unclear or conflicting, ask exactly one short, guided question.
-    - Use only benefit chunks for synthesis; no mixing with other document types.
-  backstory: "You are a master of brevity and clarity. You can distill policy benefits into short, easy-to-digest summaries. You can also pivot to summarizing differences across tiers when multiple tiers are provided."
-  allow_delegation: False
 
 
-explanation_agent:
-  role: "Explanation Agent"
-  goal: "Provide a dynamic explanation of the bot's capabilities to the user."
-  backstory: "You are a helpful assistant that can clearly articulate the functionalities and features of the bot. You are able to explain what the bot can do in a concise and easy-to-understand manner."
-  allow_delegation: False
+
+
+
 
 
 ## Removed product-specific slot validators: validation now done via unified prompt with rules from slot_validation_rules.yaml

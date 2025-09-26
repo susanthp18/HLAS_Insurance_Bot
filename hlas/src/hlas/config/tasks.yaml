@@ -40,40 +40,9 @@ questionnaire_capture_pending_slot:
   expected_output: |
     { "slot_name": "<pending>", "value"?: "<extracted core value>", "question"?: "<short clarifying question>" }
 
-provide_recommendation:
-  description: |
-    Based on product and completed required slots, recommend exactly one tier.
-    Return a JSON object with product, tier and a brief reason.
-  agent: "recommendation_agent"
-  expected_output: |
-    { "product": "<product>", "tier": "<tier>", "reason": "<short reason>" }
 
-retrieve_information:
-  description: |
-    Retrieve information to answer the user's question via RAG.
-    - If product is unknown, return a JSON object with a short clarification using key "question".
-    - Otherwise return a JSON object with an "answer" and an array of "sources".
-  agent: "rag_agent"
-  expected_output: |
-    { "answer": "<answer text>", "sources": ["https://...", "https://..."] }
 
-compare_products:
-  description: |
-    Compare up to three insurance plans/tiers for the specified product. Focus on the user's question.
-    Return concise differences with benefit highlights; if tiers are missing or unclear, ask one concise clarification.
-  agent: "comparison_agent"
-  expected_output: |
-    { "comparison": [ { "tier": "<tier>", "highlights": ["<bullet>"] } ], "notes"?: "<short>" }
 
-summarize_product:
-  description: |
-    Provide a concise summary of a specific product or one or more tiers for the identified product.
-    First, analyze the latest user message and the recent conversation to detect product and tier mentions (including references like "above plan(s)").
-    If product or tiers are missing or conflicting, return one short clarifying question.
-    Return a JSON object.
-  agent: "summary_agent"
-  expected_output: |
-    { "summary": "<short summary>", "notes"?: "<short>", "sources"?: ["https://..."] }
 
 identify_tiers:
   description: |
@@ -173,36 +142,5 @@ construct_follow_up_query:
   expected_output: |
     { "query": "<standalone follow-up query>" }
 
-manage_travel_recommendation_flow:
-  description: |
-    Manage the next step for Travel insurance recommendation.
-    - Follow the ordered slot policy: destination, travel_duration, pre_existing_medical_condition, plan_preference.
-    - If the user's message provides a value for the current required slot, set directive to 'capture_slot' and include 'slot_name' and normalized 'value'.
-    - Otherwise, set directive to 'ask_slot' and include 'slot_to_ask' and a concise 'question'.
-    - When all required slots are present, set directive to 'recommend'.
-    Return a JSON object describing this decision.
-  agent: "travel_recommendation_manager"
-  expected_output: |
-    { "directive": "ask_slot" | "capture_slot" | "recommend", "product": "Travel", "slot_to_ask"?: "<slot>", "question"?: "<short question>", "slot_name"?: "<slot>", "value"?: "<normalized value>" }
 
-manage_maid_recommendation_flow:
-  description: |
-    Manage the next step for Maid insurance recommendation.
-    - Follow the ordered slot policy: duration_of_insurance, maid_country, coverage_above_mom_minimum, add_ons.
-    - If the user's message provides a value for the current required slot, set directive to 'capture_slot' and include 'slot_name' and normalized 'value'.
-    - Otherwise, set directive to 'ask_slot' and include 'slot_to_ask' and a concise 'question'.
-    - When all required slots are present, set directive to 'recommend'.
-    Return a JSON object describing this decision.
-  agent: "maid_recommendation_manager"
-  expected_output: |
-    { "directive": "ask_slot" | "capture_slot" | "recommend", "product": "Maid", "slot_to_ask"?: "<slot>", "question"?: "<short question>", "slot_name"?: "<slot>", "value"?: "<normalized value>" }
 
-manage_car_recommendation_flow:
-  description: |
-    Manage the step for Car insurance recommendation.
-    - There are no tiers or slots to collect.
-    - Always set directive to 'recommend'.
-    Return a JSON object describing this decision.
-  agent: "car_recommendation_manager"
-  expected_output: |
-    { "directive": "recommend", "product": "Car" }
