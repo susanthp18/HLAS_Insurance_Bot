@@ -58,6 +58,8 @@ class SummaryFlowHelper:
                         ctx_lines.append("available_tiers=Basic, Silver, Gold, Platinum")
                     elif pl == "maid":
                         ctx_lines.append("available_tiers=Basic, Enhanced, Premier, Exclusive")
+                    elif pl == "personalaccident":
+                        ctx_lines.append("available_tiers=Bronze, Silver, Premier, Platinum")
                     elif pl == "car":
                         ctx_lines.append("available_tiers=None (Car has no tiers)")
                 # Include brief history window to resolve "above plan(s)"

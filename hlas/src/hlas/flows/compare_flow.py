@@ -3,10 +3,8 @@ import logging
 from pathlib import Path
 import yaml
 
-from ..tasks import compare_products_task, identify_product_task, identify_tiers_task
+from ..tasks import identify_product_task, identify_tiers_task
 from ..prompt_runner import run_direct_task
-from ..vector_store import get_weaviate_client
-from weaviate.classes.query import Filter
 from ..llm import azure_llm
 from ..tools.benefits_tool import benefits_tool
 
@@ -62,6 +60,8 @@ class CompareFlowHelper:
                         ctx_lines.append("available_tiers=Basic, Silver, Gold, Platinum")
                     elif prod_lower == "maid":
                         ctx_lines.append("available_tiers=Basic, Enhanced, Premier, Exclusive")
+                    elif prod_lower == "personalaccident":
+                        ctx_lines.append("available_tiers=Bronze, Silver, Premier, Platinum")
                     elif prod_lower == "car":
                         ctx_lines.append("available_tiers=None (Car has no tiers)")
                 
@@ -127,6 +127,8 @@ class CompareFlowHelper:
                     return "Which Travel tiers would you like to compare? Available: Basic, Silver, Gold, Platinum"
                 if prod == "maid":
                     return "Which Maid tiers would you like to compare? Available: Basic, Enhanced, Premier, Exclusive"
+                if prod == "personalaccident":
+                    return "Which Personal Accident tiers would you like to compare? Available: Bronze, Silver, Premier, Platinum"
                 if prod == "car":
                     return "Car has no tiers to compare. Which aspects would you like me to compare?"
                 return "Which two tiers should I compare?"

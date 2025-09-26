@@ -40,6 +40,8 @@ class RecFlowHelper:
                 "coverage_above_mom_minimum", 
                 "add_ons",
             ]
+        if p == "personalaccident":
+            return ["coverage_scope", "risk_level", "desired_amount"]
         if p == "car":
             return []  # Car insurance has no slots to collect
         return []
@@ -59,6 +61,11 @@ class RecFlowHelper:
                 "maid_country": "Country where the domestic helper is from",
                 "coverage_above_mom_minimum": "Whether user wants coverage beyond MOM minimum (yes/no)",
                 "add_ons": "Whether user wants additional add-on coverages (required/not_required)"
+            },
+            "personalaccident": {
+                "coverage_scope": "The choice between coverage for 'yourself' or for your 'family'.",
+                "risk_level": "The choice between a 'high-risk' (e.g., manual labor) or 'low-risk' (e.g., office-based) occupation.",
+                "desired_amount": "The desired coverage amount for medical expenses, between $500 and $3,500."
             },
             "car": {}  # Car insurance has no slots
         }
@@ -184,7 +191,7 @@ class RecFlowHelper:
                 rules_block = "Validation rules:\n" + "\n".join(lines)
                 logger.debug("RecFlow.validate_slot: Loaded %d validation rules for %s.%s", len(lines), product_key, slot_key)
         except Exception as e:
-            logger.warning("RecFlow.validate_slot: Failed to load validation rules - %s", str(e))
+            logger.error("RecFlow.validate_slot: FAILED TO LOAD OR PARSE slot_validation_rules.yaml. Error: %s", str(e), exc_info=True)
 
         v_ctx = (
             f"Product: {product}\n"
@@ -289,6 +296,17 @@ class RecFlowHelper:
                 tier = "Premier"
             elif coverage_above_mom == "no":
                 tier = "Enhanced"
+        elif (product or "").lower() == "personalaccident":
+            try:
+                amount = int(cls._get_slot_value(slots, "desired_amount"))
+                if 500 <= amount <= 1000:
+                    tier = "Silver"
+                elif 1001 <= amount <= 2500:
+                    tier = "Premier"
+                elif 2501 <= amount <= 3500:
+                    tier = "Platinum"
+            except (ValueError, TypeError):
+                tier = None # Should not happen if validation is correct
         
         logger.info("RecFlow.generate_recommendation: Determined tier=%s for product=%s", tier, product)
         

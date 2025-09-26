@@ -11,15 +11,7 @@ from .prompt_runner import run_direct_task
 from zoneinfo import ZoneInfo  # Python 3.9+
 from .tasks import (
     identify_product_task,
-    retrieve_information_task,
-    summarize_product_task,
-    compare_products_task,
-    provide_recommendation_task,
     route_decision_task,
-    questionnaire_ask_next_slot_task,
-    questionnaire_capture_pending_slot_task,
-    manage_travel_recommendation_flow_task,
-    manage_maid_recommendation_flow_task,
     construct_follow_up_query_task,
 )
 from .tools.benefits_tool import benefits_tool
@@ -29,7 +21,6 @@ import re
 from .flows.info_flow import InfoFlowHelper
 from .flows.compare_flow import CompareFlowHelper
 from .flows.summary_flow import SummaryFlowHelper
-from .flows.recommendation_flow import RecommendationFlowHelper
 from .utils.greeting import get_time_based_greeting
 
 # Try to import RecFlow with error handling
@@ -131,6 +122,8 @@ class HlasFlow(Flow[HlasState]):
                 "coverage_above_mom_minimum",
                 "add_ons",
             ]
+        if p == "personalaccident":
+            return ["coverage_scope", "risk_level", "desired_amount"]
         return []
 
     def _first_missing_slot(self) -> Optional[str]:
@@ -216,9 +209,11 @@ class HlasFlow(Flow[HlasState]):
         
         recent_conversation_text = "\n".join(recent_conversation) if recent_conversation else "No recent conversation"
         
+        available_products = "Travel, Maid, Car, PersonalAccident"
         context_rd = (
             f"Last_user_message: {last_user_message}\n"
             f"Product_in_session: {product_in_session}\n"
+            f"Available_products: {available_products}\n"
             f"Recent_conversation:\n{recent_conversation_text}"
         )
 

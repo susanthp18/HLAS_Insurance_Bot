@@ -51,3 +51,18 @@ maid:
     - "1. **Normalize Input**: Convert user's input into 'required' or 'not_required'. Be flexible with user phrasing. Accept common variants like: 'yes', 'yep', 'yup', 'sure', 'interested', 'want add-ons' should normalize to 'required'. Variants like 'no', 'nope', 'nah', 'not interested', 'no extras' should normalize to 'not_required'."
     - "2. **Handle Ambiguity**: If the user's response is unclear, re-ask the question clearly: 'Just to be sure, are you interested in learning about optional add-ons for greater coverage? (Yes/No)'"
     - "3. **Handle 'I Don't Know'**: If the user says they 'don't know' or asks what they are, explain the add-ons and ask for a clear choice: 'Optional add-ons include benefits like increased hospital expense limits and coverage for medical check-ups. Are you interested in these extra coverages? (Yes/No)'"
+
+personalaccident:
+  coverage_scope:
+    - "Your goal is to determine if the policy should cover just the individual ('self') or their family."
+    - "1. **Normalize Input**: Attempt to normalize the user's input to either 'self' or 'family'. Synonyms for 'self' include 'just me' and 'myself'. Synonyms for 'family' include 'my whole family' and 'for us'."
+    - "2. **Handle Failure**: If the input cannot be confidently normalized to 'self' or 'family' (e.g., it is ambiguous like 'the adults' or invalid like 'my friend'), validation fails. You MUST ask a direct, non-yes/no question that guides the user to choose one of the two valid options. For example: 'Please specify if the coverage is for yourself or for your family.'"
+  risk_level:
+    - "Your goal is to determine if the user's occupational risk is 'high' or 'low'."
+    - "1. **Normalize/Classify Input**: First, attempt to normalize a direct answer like 'high' or 'low'. If the user provides their occupation instead (e.g., 'driver', 'accountant'), you MUST classify it into 'high' or 'low' risk based on these guidelines: manual labor or non-office jobs are 'high' risk; administrative or office-based jobs are 'low' risk."
+    - "2. **Handle Failure**: If the input is ambiguous ('it depends') or you cannot confidently classify the provided occupation, validation fails. You MUST then ask for the user's occupation directly so you can classify it. For example: 'To determine the risk level, could you please tell me your occupation?'"
+  desired_amount:
+    - "Your goal is to validate the desired coverage amount is a number between 500 and 3500."
+    - "1. **Validate Input**: Check if the user's input is a number and if it falls within the range of 500 to 3500, inclusive."
+    - "2. **Handle Failure**: If the input is not a number or is outside the valid range, validation fails. Your question MUST explain the error and state the valid range. For example: 'The amount you provided is not valid. Please provide an amount between $500 and $3,500.'"
+    - "If valid, the `normalized_value` must be the number as a string."

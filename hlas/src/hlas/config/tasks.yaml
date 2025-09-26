@@ -5,7 +5,7 @@ identify_product:
     Return a JSON object.
   agent: "product_identifier"
   expected_output: |
-    { "product": "Travel" | "Maid" | "Car" | "", "confidence": 0.0-1.0, "question"?: string }
+    { "product": "Travel" | "Maid" | "Car" | "PersonalAccident" | "", "confidence": 0.0-1.0, "question"?: string }
 
 
 questionnaire_ask_next_slot:
@@ -153,10 +153,6 @@ validate_slot:
 route_decision:
   description: |
     Analyze the user's message and recent conversation to determine the primary intent.
-    Input format:
-    - Last_user_message: The current user message
-    - Product_in_session: Current product context (if any)
-    - Recent_conversation: Last 3 conversation turns (most recent first)
     Return a JSON object with a single high-level directive.
   agent: "orchestrator"
   expected_output: |

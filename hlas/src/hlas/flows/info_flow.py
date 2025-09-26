@@ -1,7 +1,7 @@
 from typing import Dict, Any
 import logging
 
-from ..tasks import retrieve_information_task, identify_product_task
+from ..tasks import identify_product_task
 from ..vector_store import get_weaviate_client
 from ..llm import azure_llm, azure_embeddings
 from ..prompt_runner import run_direct_task
