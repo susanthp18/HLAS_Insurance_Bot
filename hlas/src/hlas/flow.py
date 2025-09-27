@@ -8,6 +8,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 import yaml
 from .prompt_runner import run_direct_task
+from .config_loader import get_agents_spec, get_tasks_spec
 from zoneinfo import ZoneInfo  # Python 3.9+
 from .tasks import (
     identify_product_task,
@@ -17,6 +18,7 @@ from .tasks import (
 from .tools.benefits_tool import benefits_tool
 from .agents import recommendation_responder
 from json import loads as json_loads
+from json import dumps as json_dumps
 import re
 from .flows.info_flow import InfoFlowHelper
 from .flows.compare_flow import CompareFlowHelper
@@ -54,19 +56,11 @@ class HlasFlow(Flow[HlasState]):
         self._logger = logging.getLogger(__name__)
         logger.info("HlasFlow.__init__: Initializing with RECFLOW_AVAILABLE=%s", RECFLOW_AVAILABLE)
         
-        # Load agent/task specs for building direct LLM prompts
-        self._agents_spec = {}
-        self._tasks_spec = {}
-        try:
-            base_dir = Path(__file__).parent
-            with open(base_dir / "config/agents.yaml", "r", encoding="utf-8") as _af:
-                self._agents_spec = yaml.safe_load(_af) or {}
-            with open(base_dir / "config/tasks.yaml", "r", encoding="utf-8") as _tf:
-                self._tasks_spec = yaml.safe_load(_tf) or {}
-            logger.info("HlasFlow.__init__: Config loaded - agents=%d, tasks=%d", 
-                       len(self._agents_spec), len(self._tasks_spec))
-        except Exception as e:
-            logger.warning("HlasFlow.__init__: Config loading failed - %s", str(e))
+        # Use cached agent/task specs from config_loader
+        self._agents_spec = get_agents_spec()
+        self._tasks_spec = get_tasks_spec()
+        logger.info("HlasFlow.__init__: Using cached config - agents=%d, tasks=%d", 
+                   len(self._agents_spec), len(self._tasks_spec))
 
     def _llm_json_from_agent(self, agent_obj: Any, system_prompt: str, user_prompt: str, label: str) -> Dict[str, Any]:
         logger.debug("HlasFlow._llm_json_from_agent: Starting %s - sys_len=%d, user_len=%d", 
@@ -189,33 +183,49 @@ class HlasFlow(Flow[HlasState]):
         # Fall through to orchestrator if no multi-turn flow is active
         logger.debug("HlasFlow.decide: No active multi-turn flow, proceeding to orchestrator")
 
-        # Create structured context for the orchestrator
-        last_user_message = self.state.message
-        product_in_session = self.state.session.get("product") or "None"
-        
-        # Get recent conversation (last 3 turns, most recent first)
-        history = self.state.session.get("history", [])
-        recent_conversation = []
+        # Create structured context for the orchestrator (compact JSON, explicit flags)
+        current_user_message = self.state.message
+        product_in_session = self.state.session.get("product") or None
+
+        # Conversation stats and last assistant question flag
+        history = self.state.session.get("history", []) or []
+        history_len = len(history)
+        last_assistant_msg = ""
         if history:
-            # Take last 1 turn and reverse to show most recent first
+            try:
+                last_assistant_msg = history[-1].get("assistant", "") or ""
+            except Exception:
+                last_assistant_msg = ""
+        has_prior_assistant_question = bool((last_assistant_msg or "").strip().endswith("?"))
+        has_session_pending_flag = bool(self.state.session.get("last_question") or self.state.session.get("_last_info_prod_q"))
+
+        # Prepare a short recent conversation window (most recent first) as structured pairs
+        recent_pairs = []
+        if history:
             recent_turns = history[-1:]
             recent_turns.reverse()
             for turn in recent_turns:
-                user_msg = turn.get("user", "")
-                assistant_msg = turn.get("assistant", "")
-                if user_msg and assistant_msg:
-                    recent_conversation.append(f"User: {user_msg}")
-                    recent_conversation.append(f"Assistant: {assistant_msg}")
-        
-        recent_conversation_text = "\n".join(recent_conversation) if recent_conversation else "No recent conversation"
-        
-        available_products = "Travel, Maid, Car, PersonalAccident"
-        context_rd = (
-            f"Last_user_message: {last_user_message}\n"
-            f"Product_in_session: {product_in_session}\n"
-            f"Available_products: {available_products}\n"
-            f"Recent_conversation:\n{recent_conversation_text}"
-        )
+                pair = {}
+                u = turn.get("user", "")
+                a = turn.get("assistant", "")
+                if u:
+                    pair["user"] = u
+                if a:
+                    pair["assistant"] = a
+                if pair:
+                    recent_pairs.append(pair)
+
+        # Explicit flow flags in a single JSON object
+        context_rd_obj = {
+            "current_user_message": current_user_message,
+            "session_product": product_in_session,
+            "first_turn": (history_len == 0),
+            "history_len": history_len,
+            "has_prior_assistant_question": has_prior_assistant_question,
+            "has_session_pending_flag": has_session_pending_flag,
+            "recent_conversation": recent_pairs,
+        }
+        context_rd = json_dumps(context_rd_obj)
 
         
         logger.info("HlasFlow.decide: Calling orchestrator - context_len=%d", len(context_rd))
@@ -232,6 +242,21 @@ class HlasFlow(Flow[HlasState]):
         # Log the orchestrator's raw output for debugging/traceability
         directive = d.get("directive", "handle_capabilities")
         logger.info("HlasFlow.decide: Orchestrator output - directive=%s, keys=%s", directive, list(d.keys()))
+
+        # --- Safety guard for first-turn follow-up misclassification ---
+        try:
+            hist_len = len(self.state.session.get("history", []) or [])
+        except Exception:
+            hist_len = 0
+        if directive == "handle_follow_up" and hist_len == 0:
+            logger.warning("HlasFlow.decide: Orchestrator returned 'handle_follow_up' but no prior conversation exists (hist_len=0). Overriding to 'handle_information'.")
+            directive = "handle_information"
+        # --- End guard ---
+
+        # --- Observability for follow-up ---
+        if directive == "handle_follow_up":
+            logger.info("HlasFlow.decide: follow_up selected by orchestrator (non-first turn). Proceeding as follow-up.")
+        # --- End observability ---
 
         # --- Smart State Cleanup ---
         # If the orchestrator decides this is NOT a follow-up, it's a new topic.
@@ -364,11 +389,20 @@ class HlasFlow(Flow[HlasState]):
                     continue
             convo_context = "\n".join(context_lines)
 
-            fu_context = (
-                f"Product: {self.state.session.get('product') or ''}\n"
-                f"Latest: {self.state.message}\n"
-                f"Recent conversation (most recent first):\n{convo_context}"
-            )
+            # If the last bot response was a recommendation, skip adding prior conversation context
+            skip_context = self.state.session.get("last_completed") == "recommendation"
+            if skip_context:
+                fu_context = (
+                    f"Product: {self.state.session.get('product') or ''}\n"
+                    f"Latest: {self.state.message}\n"
+                )
+                logger.info("HlasFlow.decide: Skipping conversation context for follow-up after recommendation message.")
+            else:
+                fu_context = (
+                    f"Product: {self.state.session.get('product') or ''}\n"
+                    f"Latest: {self.state.message}\n"
+                    f"Recent conversation (most recent first):\n{convo_context}"
+                )
 
             logger.info("HlasFlow.decide: Constructing follow-up query - context_len=%d", len(fu_context))
 

@@ -4,6 +4,29 @@ import logging
 import logging.handlers
 from dotenv import load_dotenv
 
+try:
+    # Optional import early; Redis is mandatory for the app, but we avoid failing logging if anything changes.
+    from .redis_utils import get_redis
+except Exception:
+    get_redis = None  # type: ignore
+
+
+def _log_once_global(key: str, level: int, message: str):
+    """Log a message only once across workers using Redis SETNX. Falls back to normal log if Redis import fails."""
+    logger = logging.getLogger('hlas')
+    try:
+        if get_redis is None:
+            # No Redis import available; log normally
+            logger.log(level, message)
+            return
+        r = get_redis()
+        if r.set(f"log_once:{key}", "1", nx=True, ex=3600):
+            logger.log(level, message)
+    except Exception:
+        # As a safety net, still log
+        logger.log(level, message)
+
+
 def setup_logging():
     """
     Configures the 'hlas' package logger to output to the console and a rotating file.
@@ -11,7 +34,8 @@ def setup_logging():
     """
     load_dotenv()
 
-    if os.getenv("LOGGING_ENABLED", "false").lower() != "true":
+    # Log only when DEBUG=True
+    if os.getenv("DEBUG", "false").lower() != "true":
         return
 
     log_file = os.getenv("LOG_FILE", "logs/app.log")
@@ -52,4 +76,9 @@ def setup_logging():
     except Exception as e:
         hlas_logger.error(f"Failed to set up file logging for '{log_file}': {e}", exc_info=True)
 
-    hlas_logger.info(f"Logging for 'hlas' package initialized. Level: {log_level_name}. Log file: {log_file}")
+    # Gate this info message so only one worker prints it
+    _log_once_global(
+        key="logging_initialized",
+        level=logging.INFO,
+        message=f"Logging for 'hlas' package initialized. Level: {log_level_name}. Log file: {log_file}",
+    )

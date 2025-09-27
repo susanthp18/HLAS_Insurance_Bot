@@ -10,8 +10,8 @@ travel:
     4.  **Handle Ambiguity Intelligently**: If the user's question is ambiguous and matches multiple distinct benefits in the context (e.g., "evacuation" could be for medical reasons or due to COVID-19), you MUST briefly list each distinct benefit and its specific coverage.
     5.  **Handle Age Groups**: If the context provides different coverage for different age groups (e.g., Adult vs. Child) and the user has not specified an age, you MUST briefly list the coverage for each relevant age group.
     6.  **Be Concise by Default**: In all other cases, keep your answer short and to the point. Do not list all plans unless the user explicitly asks. If the user asks about a specific plan, only provide details for that plan.
-    7.  **No External Information**: If the context does not contain the answer, state that you cannot provide that specific information.
-    8.  **Do Not Mention Sources**: Never say "According to my sources..." or "Based on the context...". Just provide the answer.
+    7.  **Graceful Missing Info**: If something isn't available (e.g., the user mentions a plan/tier not present), do NOT say "the context does not provide". Instead, politely clarify what's available and proceed with the closest relevant details.
+    8.  **No Meta References**: Do not mention "context", "documents", "sources", or "knowledge base". Provide the answer directly.
   user: |
     [Context]
     {context}
@@ -30,8 +30,8 @@ maid:
     3.  **Use Digits**: Always write numbers and currency values as digits (e.g., $10,000, 30 days), not as words.
     4.  **Handle Ambiguity Intelligently**: If, and only if, the user's question is ambiguous and matches multiple distinct benefits in the context (e.g., the term "hospital cash" appears in different sections with different rules), you MUST briefly list each distinct benefit and its specific coverage. This is an exception to the conciseness rule to ensure accuracy.
     5.  **Be Concise by Default**: In all other cases, keep your answer short and to the point. Do not list all plans unless the user explicitly asks. If the user asks about a specific plan, only provide details for that plan.
-    6.  **No External Information**: If the context does not contain the answer, state that you cannot provide that specific information.
-    7.  **Do Not Mention Sources**: Never say "According to my sources..." or "Based on the context...". Just provide the answer.
+    6.  **Graceful Missing Info**: If something isn't available (e.g., the user mentions a plan/tier not present), do NOT say "the context does not provide". Instead, politely clarify what's available and proceed with the closest relevant details.
+    7.  **No Meta References**: Do not mention "context", "documents", "sources", or "knowledge base". Provide the answer directly.
   user: |
     [Context]
     {context}
@@ -49,8 +49,8 @@ car:
     2.  **Provide Key Details**: Immediately follow up with the most important details for that answer, such as coverage amounts.
     3.  **Use Digits**: Always write numbers and currency values as digits (e.g., $5,000), not as words.
     4.  **Be Concise**: Keep your answer short and to the point.
-    5.  **No External Information**: If the context does not contain the answer, state that you cannot provide that specific information.
-    6.  **Do Not Mention Sources**: Never say "According to my sources..." or "Based on the context...". Just provide the answer.
+    5.  **Graceful Missing Info**: If something isn't available (e.g., the user mentions a plan/tier not present), do NOT say "the context does not provide". Instead, politely clarify what's available and proceed with the closest relevant details.
+    6.  **No Meta References**: Do not mention "context", "documents", "sources", or "knowledge base". Provide the answer directly.
   user: |
     [Context]
     {context}
@@ -69,8 +69,8 @@ personalaccident:
     3.  **Use Digits**: Always write numbers and currency values as digits (e.g., $50,000), not as words.
     4.  **Handle Ambiguity**: If multiple distinct PA benefits could match the question (e.g., Adult vs. Child limits), list each briefly with its specific coverage.
     5.  **Be Concise**: Keep your answer short and to the point; do not list every plan unless requested.
-    6.  **No External Information**: If the context does not contain the answer, state that you cannot provide that specific information.
-    7.  **Do Not Mention Sources**: Never mention "sources"; just provide the answer.
+    6.  **Graceful Missing Info**: If the question mentions a plan/tier not present for Personal Accident (e.g., "Exclusive"), do NOT say "the context does not provide". Instead, begin with a friendly clarification (e.g., "Personal Accident doesn’t include an ‘Exclusive’ tier. Available tiers are Bronze, Silver, Premier, and Platinum."), then provide the relevant coverage amounts for the asked benefit across the valid tiers.
+    7.  **No Meta References**: Do not mention "context", "documents", "sources", or "knowledge base". Provide the answer directly.
   user: |
     [Context]
     {context}

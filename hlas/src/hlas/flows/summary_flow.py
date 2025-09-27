@@ -6,7 +6,7 @@ import yaml
 from ..tasks import identify_product_task, identify_tiers_task
 from ..prompt_runner import run_direct_task
 from ..tools.benefits_tool import benefits_tool
-from ..llm import azure_llm
+from ..llm import azure_llm, azure_response_llm
 
 
 class SummaryFlowHelper:
@@ -273,7 +273,8 @@ class SummaryFlowHelper:
 
         logger.info("LLM Direct [summary.synthesis]:\n[SYSTEM]\n%s\n\n[USER]\n%s", sys_t, usr_t)
         try:
-            txt = azure_llm.call(messages=[
+            # Use response LLM for user-facing summary synthesis
+            txt = azure_response_llm.call(messages=[
                 {"role": "system", "content": sys_t},
                 {"role": "user", "content": usr_t},
             ])

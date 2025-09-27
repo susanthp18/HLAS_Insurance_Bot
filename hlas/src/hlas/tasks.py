@@ -4,7 +4,6 @@ from pathlib import Path
 from .agents import (
     product_identifier,
     orchestrator,
-    questionnaire_agent,
     slot_validator,
     slot_extractor,
     question_asker,
@@ -26,7 +25,6 @@ tasks_config = yaml.safe_load(yaml_content)
 
 agent_map = {
     "product_identifier": product_identifier,
-    "questionnaire_agent": questionnaire_agent,
     "orchestrator": orchestrator,
     "slot_validator": slot_validator,
     "slot_extractor": slot_extractor,
@@ -51,8 +49,6 @@ def build_task(config_key: str) -> Task:
 
 # Instantiate the tasks with proper Agent instances
 identify_product_task = build_task("identify_product")
-questionnaire_ask_next_slot_task = build_task("questionnaire_ask_next_slot")
-questionnaire_capture_pending_slot_task = build_task("questionnaire_capture_pending_slot")
 synthesize_response_task = build_task("synthesize_response")
 route_decision_task = build_task("route_decision")
 construct_follow_up_query_task = build_task("construct_follow_up_query")
@@ -65,8 +61,6 @@ ask_question_task = build_task("ask_question")
 # Expose a name -> Task mapping for routing convenience
 task_by_name = {
     "identify_product": identify_product_task,
-    "questionnaire_ask_next_slot": questionnaire_ask_next_slot_task,
-    "questionnaire_capture_pending_slot": questionnaire_capture_pending_slot_task,
     "synthesize_response": synthesize_response_task,
     "route_decision": route_decision_task,
     "identify_tiers": identify_tiers_task,

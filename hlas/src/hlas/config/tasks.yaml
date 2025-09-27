@@ -1,46 +1,13 @@
 identify_product:
   description: |
     Identify which insurance product the user refers to. **Handle typos robustly**.
+    If the user's message is exactly one product name or a known alias (case-insensitive) and contains no conflicting references, return that product with confidence 1.0 and do not include a question.
+    For non-unique tier names ("Basic", "Silver", "Gold", "Premier", "Platinum"), require additional product cues; otherwise, ask a short clarification question.
     If ambiguous, provide a short clarification question.
     Return a JSON object.
   agent: "product_identifier"
   expected_output: |
     { "product": "Travel" | "Maid" | "Car" | "PersonalAccident" | "", "confidence": 0.0-1.0, "question"?: string }
-
-
-questionnaire_ask_next_slot:
-  description: |
-    Ask for the next required slot for a recommendation, based on the product and known slots.
-    Inputs (via context): Product, Known slots, Next required slot.
-    Return a compact JSON object with keys "slot_name" and "question" targeting that specific next slot.
-    Keep the question short and user-friendly.
-    Preferred phrasing:
-    - For plan_preference: "Do you prefer a budget-friendly plan or a comprehensive plan?"
-    - For maid_country: "May I know which country is your maid from?"
-    - For coverage_above_mom_minimum: "Would you like coverage for medical expenses beyond the MOM minimum requirement?"
-    - For add_ons: "Would you be also interested in add-on coverages such as increased Hospital expenses, waiver of excess and medical examination package cover?"
-  agent: "questionnaire_agent"
-  expected_output: |
-    { "slot_name": "<slot>", "question": "<short question>" }
-
-questionnaire_capture_pending_slot:
-  description: |
-    Capture the user's value for the specific pending slot only. Do not switch slots.
-    Inputs (via context): Product, Known slots, Pending slot, User message.
-    - If the user's message contains a value for the pending slot, extract and return the core value: {"slot_name":"<pending>","value":"<extracted value>"}.
-    - For travel_duration: extract numbers from "200 days", "3 weeks" → return "200", "21" (convert weeks to days).
-    - For destination: extract place from "going to Japan" → return "Japan".
-    - For medical conditions: extract intent from "I have diabetes" → return "yes".
-    - For plan preference: extract intent from "cheapest option" → return "budget".
-    - For maid_country: extract country from "from Philippines" → return "Philippines".
-    - For coverage_above_mom_minimum: extract intent from "yes, more coverage" → return "yes".
-    - For add_ons: extract intent from "yes, interested" → return "required".
-    - Otherwise, return {"slot_name":"<pending>","question":"<short clarifying question>"}.
-  agent: "questionnaire_agent"
-  expected_output: |
-    { "slot_name": "<pending>", "value"?: "<extracted core value>", "question"?: "<short clarifying question>" }
-
-
 
 
 
@@ -49,6 +16,7 @@ identify_tiers:
     Identify which tiers to compare for a given product from the user's message and recent session context.
     - Inputs (via context): Product, User message, Recent history window (optional)
     - Output 2+ tiers when available for Travel/Maid; for Car, indicate that tiers do not apply.
+    - If the message indicates an aggregate request (e.g., "across plans", "all plans", "across all plans", "any plan", "all of them"), return the full set of valid tiers for the product.
     If ambiguous or insufficient, return a short clarification question.
   agent: "tier_identifier"
   expected_output: |
@@ -76,7 +44,22 @@ synthesize_response:
     { "response": "<final response>" }
 
 extract_slots:
-  description: "Extract and update product-specific slot values from user message using conversation context."
+  description: |
+    Extract and update slot values from the user's message using conversation context.
+    The context WILL provide a product-specific list of valid slots under "Valid slots" and a JSON object under "Slot meta" describing each slot's type (value|choice|yesno) and any options.
+    - Only return keys that appear in the provided "Valid slots" list.
+    - Use "Last bot question" to disambiguate yes/no replies.
+    - Do NOT validate ranges or reject values based on Slot meta; treat ranges/options as hints only. Always extract the raw value if you can identify it.
+    - IMPORTANT: If the user message contains NO slot-related information (e.g., just a product name), return empty strings for all slots and DO NOT set user_needs_explanation.
+    - Only set user_needs_explanation if the user EXPLICITLY asks for an explanation about a specific slot (e.g., "what does that mean?", "explain destination").
+    - Common phrases that indicate choice preferences:
+      * "no budget constraints", "money is no issue", "best coverage" → extract as "comprehensive" for plan_preference
+      * "cheapest", "budget option", "basic" → extract as "budget" for plan_preference
+    - If a value appears out of range or malformed, still extract it; downstream validation will handle corrections.
+    - If the user asks for clarification about a specific slot, set user_needs_explanation to that slot and provide a SHORT explanation (under 50 words) that ends with the right type of request:
+      * Yes/No slots → ask a clear (Yes/No) question
+      * Choice-based slots → ask the user to choose one of the listed options
+      * Value slots → ask for the specific value in the expected format/range (NEVER Yes/No)
   agent: "slot_extractor"
   expected_output: |
     {
@@ -84,15 +67,8 @@ extract_slots:
       "slot_name_2": "<extracted/updated value or empty string>",
       "slot_name_3": "<extracted/updated value or empty string>",
       "user_needs_explanation": "<slot_name if user asks for clarification about a slot, otherwise empty string>",
-      "explanation": "<short explanation (under 50 words) ending with a yes/no question if user_needs_explanation is not empty, otherwise empty string>"
+      "explanation": "<short explanation (under 50 words) that ends with a slot-appropriate request if user_needs_explanation is not empty; otherwise empty>"
     }
-    
-    Note: Only return slots for the specified product. Use last bot question to disambiguate yes/no answers.
-    Can return multiple slots if user provides multiple pieces of information.
-    Can update existing slot values if user provides new/different information.
-      If user asks for clarification (like "what does that mean?", "I don't know", "explain"), set user_needs_explanation to the relevant slot name and provide a short explanation (under 50 words) ending with a yes/no question.
-      Example: {"explanation": "MOM minimum covers basic medical expenses up to $15,000. Additional coverage provides higher limits and more protection. Would you like coverage beyond the MOM minimum? (Yes/No)"}
-      Clarification targeting policy (generic): Prefer the last asked slot (from "Last bot question"). If unavailable, target the first missing slot in the provided ordered list.
 
 ask_question:
   description: "Generate a clear, user-friendly question to collect missing slot information for insurance recommendations."
@@ -111,9 +87,11 @@ validate_slot:
     3.  Prioritize the provided 'Value' field from the [Context] when it is already in a normalized format (e.g., an integer for days).
     4.  Your response must be a single, complete JSON object that adheres to the Output contract.
 
-    **CLARIFICATION QUESTION FORMAT:**
-    - If validation fails because the input is invalid, your generated "question" MUST clearly explain WHY the provided value is incorrect and state the expected format or range.
-    - **Example:** "The duration '400 days' is not valid because it is outside the allowed range. Please provide a travel duration between 1 and 365 days."
+    **WHEN INVALID (valid:false):**
+    - Always provide both "reason" (brief explanation of what's wrong) and "question" (what to provide instead).
+    - Reference the user's input when helpful (e.g., "'Karur' appears to be a city" or "Sep 2020 is in the past").
+    - Keep questions short and actionable (<25 words when possible).
+    - Pattern: "<Brief reason>. <Clear instruction for what to provide>."
   agent: "slot_validator"
   expected_output: |
     { "valid": true|false, "slot_name": string, "normalized_value"?: string, "question"?: string, "reason"?: string }
@@ -121,8 +99,15 @@ validate_slot:
  
 route_decision:
   description: |
-    Analyze the user's message and recent conversation to determine the primary intent.
-    Return a JSON object with a single high-level directive.
+    Decide a single high-level directive for the current turn using a compact JSON context.
+    The user content you receive is a JSON object with fields:
+      - current_user_message: string
+      - session_product: string|null
+      - first_turn: boolean
+      - history_len: integer
+      - has_prior_assistant_question: boolean
+      - has_session_pending_flag: boolean (e.g., last_question or a pending info-flow flag)
+      - recent_conversation: [ { user?: string, assistant?: string } ] (most recent first, up to 1 pair)
   agent: "orchestrator"
   expected_output: |
     { "directive": "greet" | "handle_recommendation" | "handle_information" | "handle_follow_up" | "plan_only_comparison" | "handle_summary" | "handle_capabilities" | "handle_other" }

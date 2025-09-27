@@ -6,3 +6,6 @@ langchain
 crewai
 weaviate-client
 pyyaml
+redis
+prometheus-client
+orjson

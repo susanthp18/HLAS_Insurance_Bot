@@ -13,10 +13,16 @@ from typing import Dict, Any, Optional, Tuple
 from datetime import datetime
 import asyncio
 from fastapi import Request, Response
-import requests
+import httpx
 from contextlib import redirect_stdout, redirect_stderr
 import io
+import time
+import hmac
+import hashlib
 from zoneinfo import ZoneInfo
+
+from ..redis_utils import RateLimiter, Deduplicator, OrderGuard, RedisLock, session_lock_key
+from ..metrics import WA_MESSAGES_PROCESSED_TOTAL, REDIS_LOCK_TIMEOUTS
 
 # Import HLAS components at module level to avoid circular imports and runtime overhead
 try:
@@ -43,16 +49,30 @@ class WhatsAppMessageHandler:
         self.access_token = os.environ.get("META_ACCESS_TOKEN")
         self.phone_number_id = os.environ.get("META_PHONE_NUMBER_ID")
         self.max_message_length = 4096  # WhatsApp limit
-        self.rate_limit_window = 60  # seconds
-        self.rate_limit_max_messages = 10  # per window
-        self.message_counts = {}  # Simple rate limiting storage
+
+        # Reusable async HTTP client for outbound WhatsApp messages
+        # Set sane timeouts and allow re-use of connections to reduce latency.
+        self._http: Optional[httpx.AsyncClient] = httpx.AsyncClient(
+            timeout=httpx.Timeout(connect=5.0, read=10.0, write=10.0, pool=10.0)
+        )
+
+        # Redis-backed controls
+        self.rate_limiter = RateLimiter()
+        self.deduper = Deduplicator()
+        self.order_guard = OrderGuard()
         
         # Initialize shared MongoDB session manager (reuse connection pool)
         self._mongo_session_manager = None
         if HLAS_IMPORTS_AVAILABLE and MongoSessionManager:
             try:
                 self._mongo_session_manager = MongoSessionManager()
-                logger.info("WhatsApp handler initialized with MongoDB connection pool")
+                try:
+                    from ..redis_utils import get_redis
+                    r = get_redis()
+                    if r.set("log_once:wa_handler_init", "1", nx=True, ex=3600):
+                        logger.info("WhatsApp handler initialized with MongoDB connection pool")
+                except Exception:
+                    logger.info("WhatsApp handler initialized with MongoDB connection pool")
             except Exception as e:
                 logger.error(f"Failed to initialize MongoDB session manager: {e}")
                 self._mongo_session_manager = None
@@ -209,33 +229,10 @@ class WhatsAppMessageHandler:
     
     def check_rate_limit(self, user_phone: str) -> bool:
         """
-        Simple rate limiting check.
+        Redis-backed rate limiting check (mandatory).
         """
-        try:
-            current_time = datetime.now(ZoneInfo("Asia/Singapore"))
-            
-            if user_phone not in self.message_counts:
-                self.message_counts[user_phone] = []
-            
-            # Clean old entries
-            cutoff_time = current_time.timestamp() - self.rate_limit_window
-            self.message_counts[user_phone] = [
-                timestamp for timestamp in self.message_counts[user_phone]
-                if timestamp > cutoff_time
-            ]
-            
-            # Check if limit exceeded
-            if len(self.message_counts[user_phone]) >= self.rate_limit_max_messages:
-                logger.warning(f"Rate limit exceeded for {user_phone}")
-                return False
-            
-            # Add current message
-            self.message_counts[user_phone].append(current_time.timestamp())
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error in rate limiting: {str(e)}")
-            return True  # Allow on error
+        # Any Redis issue will raise and be logged by the limiter.
+        return self.rate_limiter.allow(user_phone)
     
     async def handle_message(self, message: str, user_phone: str, metadata: Dict[str, Any]) -> str:
         """
@@ -322,13 +319,16 @@ class WhatsAppMessageHandler:
             logger.error(f"Error processing message from {user_phone}: {str(e)}")
             return "I'm sorry, there was an error processing your message. Please try again later."
     
-    def _send_message(self, recipient_number: str, message_body: str):
+    async def _send_message_async(self, recipient_number: str, message_body: str):
         """
-        Sends a WhatsApp message to a specified recipient using the Meta API.
+        Sends a WhatsApp message asynchronously using the Meta API with retries/backoff.
         """
         if not self.phone_number_id or not self.access_token:
             logger.error("Environment variables META_PHONE_NUMBER_ID and/or META_ACCESS_TOKEN are not set.")
             return
+
+        if not self._http:
+            raise RuntimeError("HTTP client not initialized")
 
         url = f"https://graph.facebook.com/v18.0/{self.phone_number_id}/messages"
         
@@ -346,15 +346,33 @@ class WhatsAppMessageHandler:
             }
         }
 
-        try:
-            response = requests.post(url, headers=headers, json=payload)
-            response.raise_for_status()
-            logger.info(f"Message sent successfully to {recipient_number}. Response: {response.json()}")
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to send message to {recipient_number}: {e}")
-            if e.response is not None:
-                logger.error(f"Response status code: {e.response.status_code}")
-                logger.error(f"Response content: {e.response.text}")
+        # Retry with exponential backoff (non-blocking)
+        attempts = 0
+        max_attempts = 3
+        backoff = 0.5
+        while True:
+            try:
+                response = await self._http.post(url, headers=headers, json=payload)
+                response.raise_for_status()
+                try:
+                    logger.info(f"Message sent successfully to {recipient_number}. Response: {response.json()}")
+                except Exception:
+                    logger.info(f"Message sent successfully to {recipient_number}.")
+                break
+            except httpx.HTTPError as e:
+                attempts += 1
+                logger.warning(f"Send attempt {attempts}/{max_attempts} failed for {recipient_number}: {e}")
+                if hasattr(e, 'response') and e.response is not None:
+                    try:
+                        logger.warning(f"Response status code: {e.response.status_code}")
+                        logger.warning(f"Response content: {e.response.text}")
+                    except Exception:
+                        pass
+                if attempts >= max_attempts:
+                    logger.error(f"Exhausted retries sending message to {recipient_number}")
+                    break
+                await asyncio.sleep(backoff)
+                backoff *= 2
     
     async def _process_and_respond(self, message: str, user_phone: str, metadata: Dict[str, Any]):
         """
@@ -363,14 +381,19 @@ class WhatsAppMessageHandler:
         # Rate limiting check
         if not self.check_rate_limit(user_phone):
             rate_limit_msg = "You're sending messages too quickly! 😅 Please wait a moment and try again."
-            self._send_message(user_phone, rate_limit_msg)
+            await self._send_message_async(user_phone, rate_limit_msg)
+            WA_MESSAGES_PROCESSED_TOTAL.labels(result="rate_limited").inc()
             return
 
-        # Process message
-        response = await self.handle_message(message, user_phone, metadata)
-        
-        # Send response
-        self._send_message(user_phone, response)
+        # Acquire per-session lock to avoid concurrent processing for same user
+        session_id = f"whatsapp_{user_phone}"
+        with RedisLock(session_lock_key(session_id), ttl_seconds=15.0, wait_timeout=5.0):
+            # Process message
+            response = await self.handle_message(message, user_phone, metadata)
+            
+            # Send response
+            await self._send_message_async(user_phone, response)
+            WA_MESSAGES_PROCESSED_TOTAL.labels(result="ok").inc()
 
     async def process_webhook(self, request: Request) -> Response:
         """
@@ -378,20 +401,61 @@ class WhatsAppMessageHandler:
         and then processes the message in the background.
         """
         try:
+            # Verify request signature if app secret is configured
+            raw_body = await request.body()
+            app_secret = os.environ.get("META_APP_SECRET")
+            sig_header = request.headers.get("X-Hub-Signature-256")
+            if app_secret:
+                if not sig_header or not sig_header.startswith("sha256="):
+                    logger.error("Webhook signature missing or malformed; rejecting")
+                    return Response(status_code=403)
+                expected = hmac.new(app_secret.encode("utf-8"), raw_body, hashlib.sha256).hexdigest()
+                provided = sig_header.split("=", 1)[1]
+                if not hmac.compare_digest(expected, provided):
+                    logger.error("Webhook signature mismatch; rejecting")
+                    return Response(status_code=403)
+
             data = await request.json()
             logger.debug(f"Received webhook data: {data}")
             
             message, user_phone, metadata = self.extract_message_data(data)
             
             if message and user_phone:
+                # De-duplication using WhatsApp message_id when available
+                message_id = (metadata.get('message_id') if isinstance(metadata, dict) else None) or ""
+                if message_id:
+                    try:
+                        if not self.deduper.is_new(message_id):
+                            logger.info("Duplicate message detected (message_id=%s). Ignoring.", message_id)
+                            WA_MESSAGES_PROCESSED_TOTAL.labels(result="duplicate").inc()
+                            return Response(status_code=200)
+                    except Exception:
+                        pass
+                
+                # Basic ordering: drop messages older than last processed
+                try:
+                    ts = int(metadata.get('timestamp')) if metadata.get('timestamp') else int(time.time())
+                except Exception:
+                    ts = int(time.time())
+                if not self.order_guard.allow(user_phone, ts):
+                    logger.info("Out-of-order message dropped for %s (ts=%s)", user_phone, ts)
+                    WA_MESSAGES_PROCESSED_TOTAL.labels(result="out_of_order").inc()
+                    return Response(status_code=200)
+
                 # Acknowledge immediately and process in the background
                 asyncio.create_task(self._process_and_respond(message, user_phone, metadata))
             
             # Always return 200 to acknowledge receipt of the event
             return Response(status_code=200)
             
+        except TimeoutError as e:
+            logger.error(f"Redis lock timeout for WhatsApp session: {e}")
+            REDIS_LOCK_TIMEOUTS.labels(scope="whatsapp").inc()
+            WA_MESSAGES_PROCESSED_TOTAL.labels(result="error").inc()
+            return Response(status_code=200)
         except Exception as e:
             logger.error(f"Critical error in webhook processing: {str(e)}")
+            WA_MESSAGES_PROCESSED_TOTAL.labels(result="error").inc()
             # Still return 200 to avoid webhook disabling, but log the error
             return Response(status_code=200)
     
@@ -400,18 +464,10 @@ class WhatsAppMessageHandler:
         Get health status for monitoring.
         """
         try:
-            # Note: Session cleanup is handled by MongoDB TTL or periodic cleanup
-            
-            # Get rate limiting stats
-            active_users = len([
-                phone for phone, timestamps in self.message_counts.items()
-                if len(timestamps) > 0
-            ])
-            
+            # Note: Session cleanup is handled by MongoDB TTL; per-user rate limiting stats are tracked in Prometheus
             return {
                 "status": "healthy",
                 "timestamp": datetime.now(ZoneInfo("Asia/Singapore")).isoformat(),
-                "active_rate_limited_users": active_users,
                 "webhook_verification_token_configured": bool(self.verify_token)
             }
             
@@ -425,6 +481,16 @@ class WhatsAppMessageHandler:
 
 # Global handler instance
 whatsapp_handler = WhatsAppMessageHandler()
+
+# Expose a close method for FastAPI shutdown
+async def close_whatsapp_handler_http_client():
+    try:
+        if whatsapp_handler._http:
+            await whatsapp_handler._http.aclose()
+            whatsapp_handler._http = None
+            logger.info("Closed WhatsApp AsyncClient")
+    except Exception as e:
+        logger.error(f"Failed to close WhatsApp AsyncClient: {e}")
 
 # Convenience functions for FastAPI routes
 async def handle_whatsapp_verification(request: Request) -> Response:

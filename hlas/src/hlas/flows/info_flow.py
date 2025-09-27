@@ -3,7 +3,7 @@ import logging
 
 from ..tasks import identify_product_task
 from ..vector_store import get_weaviate_client
-from ..llm import azure_llm, azure_embeddings
+from ..llm import azure_llm, azure_embeddings, azure_response_llm
 from ..prompt_runner import run_direct_task
 from pathlib import Path
 import yaml
@@ -46,6 +46,8 @@ class InfoFlowHelper:
                     logger.info("InfoFlow.fast_path: using constructed query (len=%d), bypassing product ID.", len(fu_q))
                     question = fu_q
                     use_fast_path = True
+                else:
+                    logger.info("InfoFlow.fast_path: constructed query available (len=%d) but missing product context; proceeding to product identification.", len(fu_q))
 
         if not use_fast_path:
             # Ensure product
@@ -233,7 +235,8 @@ class InfoFlowHelper:
                        len(sys_t), len(usr_t))
             
             try:
-                txt = azure_llm.call(messages=[
+                # Use response LLM for user-facing information responses
+                txt = azure_response_llm.call(messages=[
                     {"role": "system", "content": sys_t},
                     {"role": "user", "content": usr_t},
                 ])
@@ -245,17 +248,33 @@ class InfoFlowHelper:
 
             state.reply = answer_text or "I couldn't find precise details. Could you clarify your question?"
             
-            # Attach sources
+            # Log full, untruncated chunks to terminal (logger) without including them in output
+            total_attached_chars = 0
+            for i, obj in enumerate(objects):
+                content = obj.properties.get('content', '') or ''
+                doc_type = obj.properties.get('doc_type', '') or ''
+                source = obj.properties.get('source_file', '') or ''
+                logger.info(
+                    "InfoFlow.full_chunk[%d]:\n=== Source: %s | Type: %s ===\n%s",
+                    i, (source or '(unknown)'), doc_type, content,
+                )
+                total_attached_chars += len(content)
+            
+            # Keep response sources concise: list only source file names
             source_files = [obj.properties.get("source_file", "") for obj in objects]
             state.sources = "\n".join([s for s in source_files if s])
             
-            logger.info("InfoFlow.complete: Success with %d sources", len([s for s in source_files if s]))
+            logger.info(
+                "InfoFlow.complete: Logged %d full chunks (total_content_chars=%d); response sources list contains %d file names.",
+                len(objects), total_attached_chars, len([s for s in source_files if s]),
+            )
             return "__done__"
 
         # If retrieval failed or empty, ask for clarification
         logger.info("InfoFlow.complete: No results found, requesting clarification")
+        # Friendlier, non-meta fallback
         state.reply = (
-            f"I couldn't find that in our {product} documents. Could you specify a bit more so I can search precisely?"
+            f"I couldn’t find details for that in our {product} plans. Could you share a bit more so I can look up the exact coverage?"
         )
         state.sources = ""
         return "__done__"

@@ -4,7 +4,7 @@ from pathlib import Path
 import yaml
 from datetime import datetime
 from zoneinfo import ZoneInfo
-
+import json
 
 from ..prompt_runner import run_direct_task
 from ..tools.benefits_tool import benefits_tool
@@ -16,7 +16,7 @@ class RecFlowHelper:
     
     Architecture:
     1. slot_extractor: Extracts all possible slots from user message
-    2. questionnaire_agent: Only asks questions for missing slots
+    2. question_asker: Generates the next question for a missing slot
     3. Clear state management with recommendation_status flag
     """
 
@@ -51,21 +51,21 @@ class RecFlowHelper:
         """Get descriptions for each slot to help extraction."""
         descriptions = {
             "travel": {
-                "destination": "Country or region the user is traveling to",
-                "travel_duration": "Number of days for the trip",
+                "destination": "Country the user is travelling to (country name only)",
+                "travel_duration": "Trip length in days (1-365)",
                 "pre_existing_medical_condition": "Whether user has any pre-existing medical conditions (yes/no)",
                 "plan_preference": "User's coverage preference (budget/comprehensive)"
             },
             "maid": {
-                "duration_of_insurance": "How long the insurance coverage is needed (months/years)",
-                "maid_country": "Country where the domestic helper is from",
+                "duration_of_insurance": "Policy duration (12 or 24 months)",
+                "maid_country": "Helper's country of origin (country name only)",
                 "coverage_above_mom_minimum": "Whether user wants coverage beyond MOM minimum (yes/no)",
                 "add_ons": "Whether user wants additional add-on coverages (required/not_required)"
             },
             "personalaccident": {
-                "coverage_scope": "The choice between coverage for 'yourself' or for your 'family'.",
-                "risk_level": "The choice between a 'high-risk' (e.g., manual labor) or 'low-risk' (e.g., office-based) occupation.",
-                "desired_amount": "The desired coverage amount for medical expenses, between $500 and $3,500."
+                "coverage_scope": "Coverage for yourself or your family",
+                "risk_level": "Occupational risk level: high or low",
+                "desired_amount": "Desired coverage amount between $500 and $3,500"
             },
             "car": {}  # Car insurance has no slots
         }
@@ -110,28 +110,71 @@ class RecFlowHelper:
                     missing.append(slot_name)
         return missing
 
+    @staticmethod
+    def _slot_specs(product: Optional[str]) -> Dict[str, Dict[str, Any]]:
+        """Return product-specific slot metadata (type and options) for dynamic prompting."""
+        p = (product or "").lower()
+        if p == "travel":
+            return {
+                "destination": {"type": "value", "format": "country"},
+                "travel_duration": {"type": "value", "format": "days:int"},
+                "pre_existing_medical_condition": {"type": "yesno"},
+                "plan_preference": {"type": "choice", "options": ["budget", "comprehensive"]},
+            }
+        if p == "maid":
+            return {
+                "duration_of_insurance": {"type": "choice", "options": ["12", "24"]},
+                "maid_country": {"type": "value", "format": "country"},
+                "coverage_above_mom_minimum": {"type": "yesno"},
+                "add_ons": {"type": "choice", "options": ["required", "not_required"]},
+            }
+        if p == "personalaccident":
+            return {
+                "coverage_scope": {"type": "choice", "options": ["self", "family"]},
+                "risk_level": {"type": "choice", "options": ["high", "low"]},
+                "desired_amount": {"type": "value", "format": "amount:int"},
+            }
+        return {}
+
     @classmethod
     def _extract_slots(cls, state: Any, product: str, logger: logging.Logger) -> Dict[str, Any]:
         """Extract product-specific slots from the current user message with context awareness."""
         required_slots = cls._required_slots_for_product(product)
         slot_descriptions = cls._get_slot_descriptions(product)
         current_slots = state.session.get("slots", {}) or {}
+        specs = cls._slot_specs(product)
         
-        # Build product-specific slot context
+        # Build product-specific slot context - only include slots that need extraction
         slot_info = []
-        for slot in required_slots:
-            current_value = cls._get_slot_value(current_slots, slot) or "not filled"
+        missing_slots = cls._get_missing_slots(current_slots, required_slots)
+        
+        # Only include information about missing or invalid slots to reduce prompt size
+        for slot in missing_slots:
             description = slot_descriptions.get(slot, f"Information about {slot}")
-            slot_info.append(f"- {slot}: {description} (current: {current_value})")
+            slot_info.append(f"- {slot}: {description} (current: not filled)")
+        
+        # If no missing slots, still check if user is updating existing slots
+        if not missing_slots:
+            for slot in required_slots:
+                current_value = cls._get_slot_value(current_slots, slot)
+                if current_value:
+                    description = slot_descriptions.get(slot, f"Information about {slot}")
+                    slot_info.append(f"- {slot}: {description} (current: {current_value})")
         
         # Include last bot question for context (crucial for yes/no disambiguation)
         last_bot_question = state.session.get('last_question', 'None')
         
+        targets = missing_slots or required_slots
+        valid_slots_str = ", ".join(targets)
+        slot_meta_json = json.dumps({s: specs.get(s, {}) for s in targets})
+        
         context = (
             f"Product: {product}\n"
             f"User message: {state.message}\n"
-            f"Last bot question: {last_bot_question}\n\n"
-            f"Slots to extract/update:\n" + "\n".join(slot_info)
+            f"Last bot question: {last_bot_question}\n"
+            f"Valid slots: {valid_slots_str}\n"
+            f"Slot meta (JSON): {slot_meta_json}\n\n"
+            f"Slots to extract/update (focus on these only):\n" + "\n".join(slot_info)
         )
         
         logger.info("RecFlow.extract_slots: Starting extraction - product=%s, required_slots=%d, last_question='%s'", 
@@ -228,29 +271,17 @@ class RecFlowHelper:
         slot_descriptions = cls._get_slot_descriptions(product)
         description = slot_descriptions.get(missing_slot, f"information about {missing_slot}")
         
-        # Preferred questions for specific slots
-        preferred_questions = {
-            # Travel slots
-            "destination": "Could you please tell me where you will be travelling to?",
-            "travel_duration": "How long will your trip be?",
-            "pre_existing_medical_condition": "Do you have any pre-existing medical conditions that we should note for this trip?",
-            "plan_preference": "Do you prefer a budget-friendly plan or a comprehensive plan?",
-            # Maid slots
-            "maid_country": "May I know which country is your maid from?",
-            "coverage_above_mom_minimum": "Would you like coverage for medical expenses beyond the MOM minimum requirement?",
-            "add_ons": "Would you be also interested in add-on coverages such as increased Hospital expenses, waiver of excess and medical examination package cover?"
-        }
+        # Generate custom question using question_asker agent with dynamic slot metadata
+        specs = cls._slot_specs(product)
+        slot_meta = specs.get(missing_slot, {})
+        slot_type = slot_meta.get("type", "value")
+        options = slot_meta.get("options", [])
         
-        # Use preferred question if available
-        if missing_slot in preferred_questions:
-            question = preferred_questions[missing_slot]
-            logger.info("RecFlow.ask_question: Using preferred question for slot=%s", missing_slot)
-            return question
-        
-        # Generate custom question using question_asker agent
         context = (
             f"Product: {product}\n"
-            f"Missing slot: {missing_slot}\n" 
+            f"Missing slot: {missing_slot}\n"
+            f"Slot type: {slot_type}\n"
+            f"Options: {', '.join(options) if options else ''}\n"
             f"Slot description: {description}\n"
             f"Current slots: {current_slots}\n"
             f"User wants detailed explanations: {user_wants_details}"
@@ -332,12 +363,12 @@ class RecFlowHelper:
 
         product_key = (product or "").lower()
         tpl = rec_templates.get(product_key) or {}
-        sys_t = (tpl.get("system") or "").format(tier=tier or "")
-        
         if product_key == "maid":
             add_ons_pref = cls._get_slot_value(slots, "add_ons") or "not_required"
+            sys_t = (tpl.get("system") or "").format(tier=tier or "", add_ons=add_ons_pref)
             usr_t = (tpl.get("user") or "").format(tier=tier or "", add_ons=add_ons_pref, benefits=benefits_text or "")
         else:
+            sys_t = (tpl.get("system") or "").format(tier=tier or "")
             usr_t = (tpl.get("user") or "").format(tier=tier or "", benefits=benefits_text or "")
 
         response = ""
@@ -378,7 +409,7 @@ class RecFlowHelper:
         
         logger.info("RecFlow.handle: Product identification - current_product=%s", current_product)
         
-        # Always run product identification to handle switches and corrections
+        # Identify product synchronously (no speculative concurrency)
         prod_result = run_direct_task(
             agent_obj=identify_product_task.agent,
             agent_key="product_identifier",
@@ -387,40 +418,45 @@ class RecFlowHelper:
             logger=logger,
             label="product_identifier.identify_product.rec_flow",
         ) or {}
-        
         identified_product = prod_result.get("product")
-        logger.info("RecFlow.handle: Product identification API output - product=%s, confidence=%s, has_question=%s, keys=%s", 
-                   identified_product, prod_result.get("confidence"), bool(prod_result.get("question")), list(prod_result.keys()))
-        logger.info("RecFlow.handle: Product identification completed - identified=%s, confidence=%s", 
-                   identified_product, prod_result.get("confidence"))
-        
-        # Handle product switch or correction
+        logger.info(
+            "RecFlow.handle: Product identification API output - product=%s, confidence=%s, has_question=%s, keys=%s",
+            identified_product,
+            prod_result.get("confidence"),
+            bool(prod_result.get("question")),
+            list(prod_result.keys()),
+        )
+        logger.info(
+            "RecFlow.handle: Product identification completed - identified=%s, confidence=%s",
+            identified_product,
+            prod_result.get("confidence"),
+        )
         if identified_product and identified_product != current_product:
-            logger.info("RecFlow.handle: Product switch detected - %s -> %s, clearing previous state", 
-                       current_product, identified_product)
-            # Clear previous product's data
+            logger.info(
+                "RecFlow.handle: Product switch detected - %s -> %s, clearing previous state",
+                current_product,
+                identified_product,
+            )
             state.session.pop("slots", None)
             state.session.pop("recommendation_status", None)
-            # Set new product
             product = identified_product
             state.product = product
             state.session["product"] = product
         elif identified_product:
-            # Same product confirmed
             product = identified_product
             state.product = product
             state.session["product"] = product
         elif current_product:
-            # No new product identified, use current
             product = current_product
         else:
-            # No product identified at all - set status to in_progress so we continue in RecFlow
             question = "What type of insurance are you interested in for the recommendation: Travel or Maid?"
             if prod_result and "question" in prod_result:
                 question = prod_result["question"]
             state.reply = question
             state.session["recommendation_status"] = "in_progress"
-            logger.info("RecFlow.handle: No product identified, requesting clarification and setting status to in_progress")
+            logger.info(
+                "RecFlow.handle: No product identified, requesting clarification and setting status to in_progress"
+            )
             return "__done__"
         
         # Check if recommendation is already complete for this product
@@ -561,35 +597,55 @@ class RecFlowHelper:
         validation_failed_slot = None
         validation_failed_question = None
         
-        for slot_name in slots_to_validate:
-            # Check if this slot is already validated
-            if cls._is_slot_valid(updated_slots, slot_name):
-                logger.info("RecFlow.handle: Slot validation skipped - %s (already valid)", slot_name)
-                continue
-            
-            # Validate the slot
-            slot_value = cls._get_slot_value(updated_slots, slot_name)
-            logger.info("RecFlow.handle: Starting slot validation - %s=%s", slot_name, slot_value)
-            validation_result = cls._validate_slot(slot_name, slot_value, product, state, logger)
-            
-            if validation_result.get("valid") and validation_result.get("normalized_value"):
-                # Valid: update with normalized value and mark as validated
-                cls._set_slot_value(updated_slots, slot_name, validation_result["normalized_value"], True)
-                logger.info("RecFlow.handle: Slot validated successfully - %s=%s", slot_name, validation_result["normalized_value"])
-            else:
-                # Invalid: remove from slots and ask for clarification
-                updated_slots.pop(slot_name)
-                logger.info("RecFlow.handle: Slot validation failed - %s (removed from slots)", slot_name)
-                validation_failed_slot = slot_name
-                
-                # Strictly use the bot's question for travel_duration, as requested
-                if slot_name == "travel_duration":
-                    validation_failed_question = validation_result.get("question")
+        # Build validation targets (skip already validated)
+        validate_targets = [s for s in slots_to_validate if not cls._is_slot_valid(updated_slots, s)]
+        if validate_targets:
+            # Run validations sequentially and stop at first invalid to preserve behavior
+            for slot_name in validate_targets:
+                slot_val = cls._get_slot_value(updated_slots, slot_name)
+                logger.info("RecFlow.handle: Starting slot validation (sequential) - %s=%s", slot_name, slot_val)
+                validation_result = cls._validate_slot(slot_name, slot_val, product, state, logger) or {}
+                if validation_result.get("valid") and validation_result.get("normalized_value"):
+                    # Valid: update with normalized value and mark as validated
+                    cls._set_slot_value(updated_slots, slot_name, validation_result["normalized_value"], True)
+                    logger.info("RecFlow.handle: Slot validated successfully - %s=%s", slot_name, validation_result["normalized_value"])
                 else:
-                    validation_failed_question = validation_result.get("question") or f"I'm sorry, I didn't understand that. Could you please provide a valid value for {slot_name.replace('_', ' ')}?"
-                
-                logger.info("RecFlow.handle: Generated validation failure question: '%s'", validation_failed_question)
-                break  # Stop processing other slots to focus on the invalid one
+                    # Invalid: remove from slots and ask for clarification
+                    updated_slots.pop(slot_name, None)
+                    logger.info("RecFlow.handle: Slot validation failed - %s (removed from slots)", slot_name)
+                    validation_failed_slot = slot_name
+                    
+                    # Build a user-facing message that always includes the reason when available
+                    reason_text = (validation_result.get("reason") or "").strip()
+                    question_text = (validation_result.get("question") or "").strip()
+                    # Use original user input for this slot
+                    slot_value = cls._get_slot_value(updated_slots, slot_name) or ""
+                    user_input = cls._get_slot_value({slot_name: slot_value}, slot_name)
+
+                    if not question_text:
+                        # Fallback: construct a helpful question with constraints
+                        if slot_name == "destination":
+                            question_text = "Please provide a country name (not a city). Which country will you be travelling to?"
+                        elif slot_name == "travel_duration":
+                            question_text = "Travel duration must be 1-365 days or future dates. How many days will your trip last?"
+                        elif slot_name == "pre_existing_medical_condition":
+                            question_text = "Please answer Yes or No. Do you have any pre-existing medical conditions?"
+                        elif slot_name == "plan_preference":
+                            question_text = "Please choose 'budget' or 'comprehensive'. Which coverage would you prefer?"
+                        else:
+                            question_text = f"Please provide a valid {slot_name.replace('_', ' ')}."
+
+                    # If we have a reason but it's not in the question, prepend it
+                    if reason_text and reason_text.lower() not in question_text.lower():
+                        validation_failed_question = f"{reason_text}. {question_text}"
+                    elif question_text:
+                        validation_failed_question = question_text
+                    else:
+                        # Final fallback with user input context
+                        validation_failed_question = f"'{user_input}' is not valid. Please provide a valid {slot_name.replace('_', ' ')}."
+                    
+                    logger.info("RecFlow.handle: Generated validation failure question: '%s'", validation_failed_question)
+                    break  # Stop after first invalid to match existing behavior
         
         # Update session with processed slots
         state.session["slots"] = updated_slots
@@ -624,6 +680,11 @@ class RecFlowHelper:
             
             # Mark recommendation as complete
             state.session["recommendation_status"] = "done"
+            # Mark last completed flow to help downstream logic (e.g., follow-up context suppression)
+            try:
+                state.session["last_completed"] = "recommendation"
+            except Exception:
+                pass
 
             # Clear comparison/summary states to avoid unintended bypass
             state.session.pop("compare_pending", None)

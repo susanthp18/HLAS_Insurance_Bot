@@ -15,3 +15,6 @@ PyYAML==6.0.2
 Requests==2.32.5
 uvicorn==0.37.0
 weaviate_client==4.16.10
+redis==5.0.8
+prometheus-client==0.20.0
+orjson==3.10.7

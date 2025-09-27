@@ -12,20 +12,12 @@ try:
 except Exception:  # pragma: no cover - fallback if zoneinfo unavailable
     ZoneInfo = None
 
+# Use cached configs from config_loader
+from .config_loader import get_agents_spec, get_tasks_spec
 
-# Load specs once at import
-_BASE_DIR = Path(__file__).parent
-try:
-    with open(_BASE_DIR / "config/agents.yaml", "r", encoding="utf-8") as _af:
-        AGENTS_SPEC: Dict[str, Any] = yaml.safe_load(_af) or {}
-except Exception:
-    AGENTS_SPEC = {}
-
-try:
-    with open(_BASE_DIR / "config/tasks.yaml", "r", encoding="utf-8") as _tf:
-        TASKS_SPEC: Dict[str, Any] = yaml.safe_load(_tf) or {}
-except Exception:
-    TASKS_SPEC = {}
+# Get cached specs - these are loaded once at config_loader module import
+AGENTS_SPEC: Dict[str, Any] = get_agents_spec()
+TASKS_SPEC: Dict[str, Any] = get_tasks_spec()
 
 
 def build_prompts(agent_key: str, task_key: str, context_text: str, logger: logging.Logger) -> tuple[str, str]:

@@ -1,12 +1,12 @@
 travel:
   destination:
-    - "Your goal is to identify a single, primary destination country from the user's message and validate it."
-    - "1. **Check Exclusion List First**: The following countries are not covered: Afghanistan, Cuba, Democratic Republic of Congo, Iran, Iraq, Liberia, Libya, North Korea, Sudan, Somalia, Syria. If the user's destination is one of these, the validation fails. Your clarifying question must be: 'I'm sorry, but due to international restrictions, we are unable to provide coverage for travel to [Country]. Do you have a different destination in mind?'"
-    - "2. **Handle Ambiguity**: If the user mentions multiple countries (e.g., 'France and Spain'), ask them to specify the main one: 'That sounds like a great trip! Which country will you be spending the most time in?'"
-    - "3. **Handle Cities**: If the user mentions a city (e.g., 'Paris'), ask for the country: 'Paris is a beautiful city! To get the right coverage, could you please tell me the country you'll be visiting?'"
-    - "4. **Normalize if Valid**: If the destination is valid (not excluded, not ambiguous), normalize it to its standard English name (e.g., 'USA' -> 'United States')."
-    - "5. **General Clarification**: If the destination is unclear for any other reason, ask: 'I didn't quite catch that. Where will you be travelling to?'"
-    - "6. **Handle 'I Don't Know'**: If the user says they don't know, explain briefly and ask again: 'No problem. Please let me know the main country you're travelling to so I can find the right plan for you.'"
+    - "Your goal is to identify and validate a destination country from the user's message."
+    - "1. **Validate Country**: Check if the input is a recognizable country name. If an abbreviation is provided (e.g., 'US', 'USA', 'UK', 'UAE'), do NOT accept it. Ask for the full country name instead."
+    - "2. **Handle Cities/Places**: If the user mentions a city or place (e.g., 'Paris', 'Bali', 'Tokyo'), DO NOT infer the country. Ask explicitly: 'Which country will you be travelling to? Please provide the country name.'"
+    - "3. **Handle Multiple Countries**: If the user mentions multiple countries (e.g., 'France and Spain'), ask them to specify the primary destination: 'That sounds like a great trip! Which country will you be spending the most time in?'"
+    - "4. **Handle Invalid Input**: If the input is not a recognizable country name, ask: 'Could you please tell me which country you'll be travelling to?'"
+    - "5. **Handle 'I Don't Know'**: If the user says they don't know, ask: 'Please let me know the country you're planning to visit so I can find the right plan for you.'"
+    - "6. **Normalize**: Only when a full country name is provided, normalize to the standard English country name. Do NOT derive a country from city/place names, and do NOT auto-normalize abbreviations."
     - "Strictly ignore any other information like dates or durations."
   travel_duration:
     - "- Step 1 — determine day count: if a date range is provided, calculate inclusive days; if a numeric duration is provided, use it as days."
@@ -36,11 +36,12 @@ maid:
     - "2. **Handle Ambiguity/Invalid Input**: If the user provides any other duration, or if the input is unclear, you must ask for a clear choice between the two valid options: 'We offer 12-month and 24-month policies. Which duration would you prefer?'"
     - "3. **Handle 'I Don't Know'**: If the user says they 'don't know', briefly explain and ask for a choice: 'No problem. The policy can cover either 12 or 24 months. Which option works better for you?'"
   maid_country:
-    - "Your goal is to identify the maid's country of origin from a list of approved countries."
-    - "1. **Identify and Normalize**: Extract the country name from the user's message. Normalize common names (e.g., 'Pinoy' -> 'Philippines')."
-    - "2. **Validate Against Approved List**: The country must be one of the following approved sources: Philippines, Indonesia, Myanmar, India, Sri Lanka, Thailand, Bangladesh, Cambodia. If the country is not on this list, the validation fails. Your question must be: 'I'm sorry, we can only provide coverage for domestic helpers from specific countries. Could you please confirm if their country of origin is on our approved list: Philippines, Indonesia, Myanmar, India, Sri Lanka, Thailand, Bangladesh, or Cambodia?'"
-    - "3. **Handle Ambiguity**: If the user's response is unclear, ask for clarification: 'I didn't quite catch that. Could you please tell me your helper's country of origin?'"
-    - "4. **Handle 'I Don't Know'**: If the user says they 'don't know', explain and ask again: 'No problem. To proceed, I'll need to know your helper's country of origin. This helps determine the appropriate coverage.'"
+    - "Your goal is to identify and validate the maid's country of origin."
+    - "1. **Validate Country**: Check if the input is a recognizable country name. Accept common variations and colloquial terms (e.g., 'Pinoy', 'Filipino' -> 'Philippines', 'Indo' -> 'Indonesia'). Do NOT infer the country from city or place names."
+    - "2. **Handle Invalid Input**: If the input is not a recognizable country, ask: 'Could you please tell me which country your helper is from?'"
+    - "3. **Handle 'I Don't Know'**: If the user says they don't know, ask: 'To proceed with the recommendation, I'll need to know your helper's country of origin. Which country are they from?'"
+    - "Abbreviations (e.g., 'US', 'USA', 'UK', 'UAE') are not accepted; ask for the full country name (e.g., 'United States')."
+    - "4. **Normalize**: Only when a country is provided, normalize to the standard English name (e.g., 'Pinoy' -> 'Philippines', 'Indo' -> 'Indonesia')."
   coverage_above_mom_minimum:
     - "Your goal is to determine if the user wants coverage higher than the legal minimum. The only valid normalized values are 'yes' or 'no'."
     - "1. **Normalize Input**: Convert user's input into a strict 'yes' or 'no'. Be flexible with user phrasing. Accept common variants like: 'yes', 'yep', 'yup', 'sure', 'want more', 'beyond minimum' should all normalize to 'yes'. Variants like 'no', 'nope', 'nah', 'basic is fine', 'minimum only' should all normalize to 'no'."
@@ -59,7 +60,7 @@ personalaccident:
     - "2. **Handle Failure**: If the input cannot be confidently normalized to 'self' or 'family' (e.g., it is ambiguous like 'the adults' or invalid like 'my friend'), validation fails. You MUST ask a direct, non-yes/no question that guides the user to choose one of the two valid options. For example: 'Please specify if the coverage is for yourself or for your family.'"
   risk_level:
     - "Your goal is to determine if the user's occupational risk is 'high' or 'low'."
-    - "1. **Normalize/Classify Input**: First, attempt to normalize a direct answer like 'high' or 'low'. If the user provides their occupation instead (e.g., 'driver', 'accountant'), you MUST classify it into 'high' or 'low' risk based on these guidelines: manual labor or non-office jobs are 'high' risk; administrative or office-based jobs are 'low' risk."
+    - "1. **Normalize/Classify Input**: First, attempt to normalize a direct answer like 'high' or 'low'. Accept common variants and hyphenations: 'high risk', 'high-risk', 'highrisk' → 'high'; 'low risk', 'low-risk', 'lowrisk' → 'low' (case-insensitive). If the user provides their occupation instead (e.g., 'driver', 'accountant'), you MUST classify it into 'high' or 'low' risk based on these guidelines: manual labor or non-office jobs are 'high' risk; administrative or office-based jobs are 'low' risk."
     - "2. **Handle Failure**: If the input is ambiguous ('it depends') or you cannot confidently classify the provided occupation, validation fails. You MUST then ask for the user's occupation directly so you can classify it. For example: 'To determine the risk level, could you please tell me your occupation?'"
   desired_amount:
     - "Your goal is to validate the desired coverage amount is a number between 500 and 3500."
