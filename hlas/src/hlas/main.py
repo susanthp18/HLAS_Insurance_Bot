@@ -97,9 +97,16 @@ async def chat(payload: ChatInput):
 
             # Trim long assistant replies in history to 100 characters for all responses
             assistant_reply_full = str(flow.state.reply)
+            # Only truncate history entries for recommendation/comparison/summary flows
             assistant_reply_hist = assistant_reply_full
             try:
-                if isinstance(assistant_reply_full, str) and len(assistant_reply_full) > 100:
+                s = flow.state.session or {}
+                should_truncate = False
+                if s.get("recommendation_status") is not None or s.get("comparison_status") is not None or s.get("summary_status") is not None:
+                    should_truncate = True
+                if s.get("last_completed") in ("recommendation", "comparison", "summary"):
+                    should_truncate = True
+                if should_truncate and isinstance(assistant_reply_full, str) and len(assistant_reply_full) > 100:
                     assistant_reply_hist = assistant_reply_full[:100]
             except Exception:
                 assistant_reply_hist = assistant_reply_full

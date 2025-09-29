@@ -290,10 +290,19 @@ class WhatsAppMessageHandler:
             # Get the response
             response = str(flow.state.reply or "")
             
-            # Trim assistant reply for history storage
+            # Decide whether to trim assistant reply for history storage (only for rec/summary/comparison)
             assistant_reply_hist = response
-            if len(response) > 100:
-                assistant_reply_hist = response[:100]
+            try:
+                s = flow.state.session or {}
+                should_truncate = False
+                if s.get("recommendation_status") is not None or s.get("comparison_status") is not None or s.get("summary_status") is not None:
+                    should_truncate = True
+                if s.get("last_completed") in ("recommendation", "comparison", "summary"):
+                    should_truncate = True
+                if should_truncate and isinstance(response, str) and len(response) > 100:
+                    assistant_reply_hist = response[:100]
+            except Exception:
+                assistant_reply_hist = response
 
             # Add to history and save session
             self._mongo_session_manager.add_history_entry(session_id, message, assistant_reply_hist)
