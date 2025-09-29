@@ -288,13 +288,16 @@ class WhatsAppMessageHandler:
 
             # Add to history and save session
             self._mongo_session_manager.add_history_entry(session_id, message, assistant_reply_hist)
-            
-            # Update session state
-            new_session = dict(session)
+
+            # Re-fetch the latest session from Redis to preserve the updated history
+            cached_after_hist = self._mongo_session_manager.get_session(session_id)
+
+            # Update session state based on latest cached snapshot (preserves history)
+            new_session = dict(cached_after_hist)
             new_session.update({
-                "product": flow.state.product or session.get("product"),
+                "product": flow.state.product or cached_after_hist.get("product"),
             })
-            
+
             # Persist session state (similar to main.py logic)
             if "slots" in flow.state.session:
                 new_session["slots"] = flow.state.session["slots"]
@@ -309,7 +312,7 @@ class WhatsAppMessageHandler:
             # New: persist live agent status if flow set it
             if flow.state.session.get("live_agent_status") is not None:
                 new_session["live_agent_status"] = flow.state.session.get("live_agent_status")
-            
+
             # Save session
             self._mongo_session_manager.save_session(session_id, new_session)
             
