@@ -26,6 +26,7 @@ from ..metrics import WA_MESSAGES_PROCESSED_TOTAL, REDIS_LOCK_TIMEOUTS
 
 # Import HLAS components at module level to avoid circular imports and runtime overhead
 try:
+    # Backwards-compatible alias: MongoSessionManager now maps to Redis-only SessionManager
     from ..session import MongoSessionManager
     from ..flow import HlasFlow
     from ..utils.greeting import get_time_based_greeting
@@ -61,7 +62,7 @@ class WhatsAppMessageHandler:
         self.deduper = Deduplicator()
         self.order_guard = OrderGuard()
         
-        # Initialize shared MongoDB session manager (reuse connection pool)
+        # Initialize shared Redis-backed session manager
         self._mongo_session_manager = None
         if HLAS_IMPORTS_AVAILABLE and MongoSessionManager:
             try:
@@ -70,11 +71,11 @@ class WhatsAppMessageHandler:
                     from ..redis_utils import get_redis
                     r = get_redis()
                     if r.set("log_once:wa_handler_init", "1", nx=True, ex=3600):
-                        logger.info("WhatsApp handler initialized with MongoDB connection pool")
+                        logger.info("WhatsApp handler initialized with Redis-only session manager")
                 except Exception:
-                    logger.info("WhatsApp handler initialized with MongoDB connection pool")
+                    logger.info("WhatsApp handler initialized with Redis-only session manager")
             except Exception as e:
-                logger.error(f"Failed to initialize MongoDB session manager: {e}")
+                logger.error(f"Failed to initialize session manager: {e}")
                 self._mongo_session_manager = None
         
     def verify_webhook(self, request: Request) -> Response:
@@ -262,8 +263,13 @@ class WhatsAppMessageHandler:
                 logger.info("WhatsApp handler: Responding with time-based greeting")
                 return greeting
             
-            # Get session from MongoDB (reuse connection pool)
+            # Get session
             session = self._mongo_session_manager.get_session(session_id)
+
+            # If live agent is active, short-circuit without calling orchestrator
+            if session.get("live_agent_status") in (True, "on", "ON", 1):
+                logger.info("WhatsApp handler: live_agent_status active for %s - short-circuiting reply", session_id)
+                return "Can't you wait?"
             
             # Process through HLAS Flow
             flow = HlasFlow()
@@ -280,7 +286,7 @@ class WhatsAppMessageHandler:
             if len(response) > 100:
                 assistant_reply_hist = response[:100]
 
-            # Add to history and save session (reuse connection pool)
+            # Add to history and save session
             self._mongo_session_manager.add_history_entry(session_id, message, assistant_reply_hist)
             
             # Update session state
@@ -292,7 +298,7 @@ class WhatsAppMessageHandler:
             # Persist session state (similar to main.py logic)
             if "slots" in flow.state.session:
                 new_session["slots"] = flow.state.session["slots"]
-            if flow.state.session.get("recommendation_status"):
+            if flow.state.session.get("recommendation_status") is not None:
                 new_session["recommendation_status"] = flow.state.session.get("recommendation_status")
             if flow.state.session.get("last_question"):
                 new_session["last_question"] = flow.state.session.get("last_question")
@@ -300,8 +306,11 @@ class WhatsAppMessageHandler:
                 new_session["_last_info_prod_q"] = flow.state.session.get("_last_info_prod_q")
             if flow.state.session.get("_last_info_user_msg"):
                 new_session["_last_info_user_msg"] = flow.state.session.get("_last_info_user_msg")
+            # New: persist live agent status if flow set it
+            if flow.state.session.get("live_agent_status") is not None:
+                new_session["live_agent_status"] = flow.state.session.get("live_agent_status")
             
-            # Save session (reuse connection pool)
+            # Save session
             self._mongo_session_manager.save_session(session_id, new_session)
             
             # Validate response
@@ -464,7 +473,7 @@ class WhatsAppMessageHandler:
         Get health status for monitoring.
         """
         try:
-            # Note: Session cleanup is handled by MongoDB TTL; per-user rate limiting stats are tracked in Prometheus
+            # Session is persisted in Redis; per-user rate limiting stats are tracked in Prometheus
             return {
                 "status": "healthy",
                 "timestamp": datetime.now(ZoneInfo("Asia/Singapore")).isoformat(),

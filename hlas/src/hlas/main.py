@@ -45,6 +45,7 @@ async def lifespan(app: FastAPI):
     await close_whatsapp_handler_http_client()
 
 app = FastAPI(lifespan=lifespan)
+# Redis-only session manager (backwards alias retained)
 mongo_session_manager = MongoSessionManager()
 logger = logging.getLogger(__name__)
 # Log only once across workers to avoid duplicate startup logs
@@ -139,16 +140,11 @@ def health_check():
 
 @app.get("/ready")
 def readiness_check():
-    """Readiness: verify Mongo and Redis connectivity."""
-    details = {"mongo": "unknown", "redis": "unknown"}
+    """
+    Readiness: verify Redis connectivity. MongoDB is not used for sessions anymore.
+    """
+    details = {"mongo": "disabled", "redis": "unknown"}
     ok = True
-    try:
-        # Mongo ping
-        mongo_session_manager._client.admin.command('ping')
-        details["mongo"] = "ok"
-    except Exception as e:
-        details["mongo"] = f"error: {e}"
-        ok = False
     try:
         r = get_redis()
         r.ping()
@@ -158,8 +154,6 @@ def readiness_check():
         ok = False
     status = "ok" if ok else "error"
     return {"status": status, **details}
-
-@app.get("/metrics")
 def metrics():
     data = generate_latest()
     return Response(content=data, media_type=CONTENT_TYPE_LATEST)

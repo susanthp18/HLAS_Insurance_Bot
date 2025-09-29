@@ -122,10 +122,15 @@ class SessionCache:
         if not self._client:
             raise RuntimeError("SessionCache requires Redis client")
         try:
-            ttl = ttl_seconds or self._ttl
+            # Determine TTL: if <= 0, persist without expiry (as requested)
+            ttl = self._ttl if ttl_seconds is None else ttl_seconds
             # orjson.dumps returns bytes; convert to str for redis with decode_responses=True
             payload = orjson.dumps(data, default=str).decode("utf-8")
-            self._client.set(self._key(session_id), payload, ex=ttl)
+            if ttl is not None and ttl > 0:
+                self._client.set(self._key(session_id), payload, ex=ttl)
+            else:
+                # Persist indefinitely (no expiry)
+                self._client.set(self._key(session_id), payload)
         except Exception as e:
             logger.critical("REDIS_FAILURE: SessionCache.set error: %s", e)
             raise

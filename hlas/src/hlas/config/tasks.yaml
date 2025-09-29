@@ -110,7 +110,7 @@ route_decision:
       - recent_conversation: [ { user?: string, assistant?: string } ] (most recent first, up to 1 pair)
   agent: "orchestrator"
   expected_output: |
-    { "directive": "greet" | "handle_recommendation" | "handle_information" | "handle_follow_up" | "plan_only_comparison" | "handle_summary" | "handle_capabilities" | "handle_other" }
+    { "directive": "greet" | "handle_recommendation" | "handle_information" | "handle_follow_up" | "plan_only_comparison" | "handle_summary" | "handle_capabilities" | "live_agent" | "handle_other" }
 
 construct_follow_up_query:
   description: |

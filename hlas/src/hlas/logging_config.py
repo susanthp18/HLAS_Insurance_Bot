@@ -62,23 +62,11 @@ def setup_logging():
     console_handler.setFormatter(formatter)
     hlas_logger.addHandler(console_handler)
 
-    # --- Rotating File Handler ---
-    try:
-        log_dir = os.path.dirname(log_file)
-        if log_dir and not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-        
-        file_handler = logging.handlers.TimedRotatingFileHandler(
-            log_file, when="midnight", interval=1, backupCount=7, encoding='utf-8'
-        )
-        file_handler.setFormatter(formatter)
-        hlas_logger.addHandler(file_handler)
-    except Exception as e:
-        hlas_logger.error(f"Failed to set up file logging for '{log_file}': {e}", exc_info=True)
+    # File-level logging intentionally disabled per requirements; console-only.
 
     # Gate this info message so only one worker prints it
     _log_once_global(
         key="logging_initialized",
         level=logging.INFO,
-        message=f"Logging for 'hlas' package initialized. Level: {log_level_name}. Log file: {log_file}",
+        message=f"Logging for 'hlas' package initialized (console-only). Level: {log_level_name}",
     )

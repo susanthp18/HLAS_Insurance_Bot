@@ -141,6 +141,22 @@ class HlasFlow(Flow[HlasState]):
 
     @router(ingest)
     def decide(self, payload: Dict[str, Any]) -> str:
+        # Live-agent short-circuit: if a human handover is active, skip orchestration entirely
+        try:
+            las = self.state.session.get("live_agent_status")
+            is_live = False
+            if isinstance(las, str):
+                is_live = las.strip().lower() in ("on", "true", "yes", "1")
+            else:
+                is_live = bool(las)
+            if is_live:
+                self.state.reply = "You're now connected to a live agent. I'll pause automated replies until you're done."
+                logger.info("HlasFlow.decide: live_agent_status active - short-circuiting flow.")
+                return "__done__"
+        except Exception:
+            # If anything goes wrong in detection, continue with normal routing (fail-open)
+            pass
+
         # Debug session state at entry
         recommendation_status = self.state.session.get("recommendation_status")
         comparison_status = self.state.session.get("comparison_status")
@@ -242,6 +258,17 @@ class HlasFlow(Flow[HlasState]):
         # Log the orchestrator's raw output for debugging/traceability
         directive = d.get("directive", "handle_capabilities")
         logger.info("HlasFlow.decide: Orchestrator output - directive=%s, keys=%s", directive, list(d.keys()))
+
+        # Handle live agent intent immediately
+        if directive == "live_agent":
+            try:
+                # Set session flag for downstream handlers
+                self.state.session["live_agent_status"] = True
+            except Exception:
+                pass
+            self.state.reply = "Please wait a minute i will connect you to live agent."
+            logger.info("HlasFlow.decide: live_agent intent detected - session flag set and reply prepared")
+            return "__done__"
 
         # --- Safety guard for first-turn follow-up misclassification ---
         try:

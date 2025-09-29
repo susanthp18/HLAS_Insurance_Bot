@@ -31,6 +31,7 @@ orchestrator:
     3) Secondary intents:
        - greet: simple greetings (hi, hello).
        - handle_capabilities: user explicitly asks what you can do.
+       - live_agent: when the user requests a human/live agent/real person (e.g., "connect me to an agent", "talk to a human", "live agent", "human support").
        - handle_other: non-meaningful or out-of-scope content.
 
     Positive examples:
