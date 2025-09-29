@@ -78,6 +78,15 @@ class WhatsAppMessageHandler:
                 logger.error(f"Failed to initialize session manager: {e}")
                 self._mongo_session_manager = None
         
+    def _is_live_agent_on(self, val: Any) -> bool:
+        """Normalize various truthy representations of 'on'."""
+        try:
+            if isinstance(val, str):
+                return val.strip().lower() in ("on", "true", "yes", "1")
+            return bool(val)
+        except Exception:
+            return False
+        
     def verify_webhook(self, request: Request) -> Response:
         """
         Verifies the webhook subscription with Meta with enhanced validation.
@@ -267,7 +276,7 @@ class WhatsAppMessageHandler:
             session = self._mongo_session_manager.get_session(session_id)
 
             # If live agent is active, short-circuit without calling orchestrator
-            if session.get("live_agent_status") in (True, "on", "ON", 1):
+            if self._is_live_agent_on(session.get("live_agent_status")):
                 logger.info("WhatsApp handler: live_agent_status active for %s - short-circuiting reply", session_id)
                 return "Can't you wait?"
             
