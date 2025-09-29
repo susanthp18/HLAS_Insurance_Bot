@@ -298,19 +298,42 @@ class WhatsAppMessageHandler:
                 "product": flow.state.product or cached_after_hist.get("product"),
             })
 
-            # Persist session state (similar to main.py logic)
+            # Persist session state (similar to main.py logic), but preserve updates and propagate removals
+            # 1) Core fields
             if "slots" in flow.state.session:
                 new_session["slots"] = flow.state.session["slots"]
-            if flow.state.session.get("recommendation_status") is not None:
-                new_session["recommendation_status"] = flow.state.session.get("recommendation_status")
-            if flow.state.session.get("last_question"):
-                new_session["last_question"] = flow.state.session.get("last_question")
-            if flow.state.session.get("_last_info_prod_q"):
-                new_session["_last_info_prod_q"] = flow.state.session.get("_last_info_prod_q")
-            if flow.state.session.get("_last_info_user_msg"):
-                new_session["_last_info_user_msg"] = flow.state.session.get("_last_info_user_msg")
-            # New: persist live agent status if flow set it
-            if flow.state.session.get("live_agent_status") is not None:
+            if flow.state.product or flow.state.session.get("product"):
+                new_session["product"] = flow.state.product or flow.state.session.get("product") or new_session.get("product")
+
+            # 2) Flow statuses: persist when present; remove when cleared by flow
+            for key in ("recommendation_status", "comparison_status", "summary_status"):
+                if key in flow.state.session:
+                    new_session[key] = flow.state.session.get(key)
+                else:
+                    if key in new_session:
+                        new_session.pop(key, None)
+
+            # 3) Working slots for multi-turn flows: keep when present; remove when flow cleared them
+            for key in ("comparison_slot", "summary_slot"):
+                if key in flow.state.session:
+                    new_session[key] = flow.state.session.get(key)
+                else:
+                    new_session.pop(key, None)
+
+            # 4) Ephemeral guidance flags: copy if present; otherwise ensure they are removed
+            for key in ("last_question", "_last_info_prod_q", "_last_info_user_msg", "pending_slot", "_fu_query"):
+                if key in flow.state.session and flow.state.session.get(key) not in (None, ""):
+                    new_session[key] = flow.state.session.get(key)
+                else:
+                    new_session.pop(key, None)
+
+            # 5) Histories and markers: copy if present
+            for key in ("comparison_history", "summary_history", "last_completed"):
+                if key in flow.state.session:
+                    new_session[key] = flow.state.session.get(key)
+
+            # 6) Live agent flag: only set when explicitly present in flow session
+            if "live_agent_status" in flow.state.session:
                 new_session["live_agent_status"] = flow.state.session.get("live_agent_status")
 
             # Save session
