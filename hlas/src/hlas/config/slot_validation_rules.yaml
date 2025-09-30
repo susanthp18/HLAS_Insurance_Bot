@@ -1,4 +1,8 @@
 travel:
+  coverage_scope:
+    - "Your goal is to determine if the policy should cover just the individual ('self') or their family."
+    - "1. **Normalize Input**: Attempt to normalize the user's input to either 'self' or 'family'. Synonyms for 'self' include 'just me', 'myself', 'for me'. Synonyms for 'family' include 'my whole family', 'for us', 'family trip'."
+    - "2. **Handle Failure**: If the input cannot be confidently normalized to 'self' or 'family', validation fails. Ask directly: 'Please specify if the coverage is for yourself or for your family.'"
   destination:
     - "Your goal is to identify and validate a destination country from the user's message."
     - "1. **Validate Country**: Check if the input is a recognizable country name. If an abbreviation is provided (e.g., 'US', 'USA', 'UK', 'UAE'), do NOT accept it. Ask for the full country name instead."
@@ -8,26 +12,6 @@ travel:
     - "5. **Handle 'I Don't Know'**: If the user says they don't know, ask: 'Please let me know the country you're planning to visit so I can find the right plan for you.'"
     - "6. **Normalize**: Only when a full country name is provided, normalize to the standard English country name. Do NOT derive a country from city/place names, and do NOT auto-normalize abbreviations."
     - "Strictly ignore any other information like dates or durations."
-  travel_duration:
-    - "- Step 1 — determine day count: if a date range is provided, calculate inclusive days; if a numeric duration is provided, use it as days."
-    - "- If day count is NOT between 1 and 365 (inclusive): return valid:false with a short question indicating the allowed range."
-    - "- Step 2 — validate dates (if dates are present) in Asia/Singapore timezone: start date must be on/after the Current date; end date must be on/after start date."
-    - "- If start date is before the Current date: return valid:false with a short question indicating dates must be future-dated."
-    - "- If end date is before start date: return valid:false with a short question indicating end must be on/after start."
-    - "- Only if both steps pass: return valid:true and set normalized_value to the day count as a string."
-    - "- If the user says 'don't know' or similar: briefly explain that 'travel duration' is the total number of days for the trip (max 365) and that dates must be in the future; then ask for either a day count or a date range."
-  pre_existing_medical_condition:
-    - "Your goal is to determine if the user has a pre-existing medical condition. The only valid normalized values are 'yes' or 'no'."
-    - "1. **Normalize Input**: Convert user's input into a strict 'yes' or 'no'. Be flexible with user phrasing. Accept common variants like: 'y', 'yep', 'yup', 'yeah', 'sure', 'I do', 'have one', 'affirmative' should all normalize to 'yes'. Variants like 'n', 'nope', 'nah', 'not really', 'none', 'negative' should all normalize to 'no'."
-    - "2. **Handle Ambiguity**: If the user's response is ambiguous (e.g., 'I have a cold'), do not infer. Ask for a clear confirmation using the official definition: 'To be sure, does the condition fit the official definition? A pre-existing condition is one that she knew about, received treatment for, or was advised to get treatment for before the policy started. Please answer with just Yes or No.'"
-    - "3. **Handle 'I Don't Know'**: If the user says they 'don't know', explain briefly and ask for a clear yes/no answer: 'A pre-existing condition is any illness or injury that your maid knew about, received treatment for, or was advised to get treatment for before the policy's start date. Based on this, should I proceed assuming she has one? (Yes/No)'"
-    - "Strictly ignore any other information in the user's message."
-  plan_preference:
-    - "Your goal is to determine the user's plan preference. The only valid normalized values are 'budget' or 'comprehensive'."
-    - "1. **Normalize Input**: Convert the user's preference into either 'budget' or 'comprehensive'. Accept synonyms: 'cheap', 'basic', 'starter', 'affordable' should normalize to 'budget'. 'premium', 'full', 'best', 'extensive', 'all-in' should normalize to 'comprehensive'."
-    - "2. **Handle Ambiguity**: If the user's preference is unclear (e.g., 'a good one', 'something in the middle'), ask for a clear choice: 'To help me choose, do you generally prefer a more budget-friendly option or a more comprehensive one?'"
-    - "3. **Handle 'I Don't Know'**: If the user says they 'don't know', explain the trade-off and ask for a choice: 'No problem. A budget-friendly plan covers the essentials at a lower cost, while a comprehensive plan offers broader protection with higher limits. Which of these sounds closer to what you're looking for?'"
-    - "Strictly ignore any other information in the user's message."
 
 maid:
   duration_of_insurance:

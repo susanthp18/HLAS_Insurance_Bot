@@ -93,7 +93,12 @@ def call_direct_json(agent_obj: Any, system_prompt: str, user_prompt: str, logge
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
-        raw = agent_obj.llm.call(messages=messages)
+        try:
+            raw = agent_obj.llm.call(messages=messages)
+            logger.info("LLM API call successful [%s]", label)
+        except Exception as api_err:
+            logger.error("LLM API call failed [%s]: %s", label, str(api_err))
+            raise
         txt = str(raw).strip()
         try:
             return json.loads(txt)
@@ -113,7 +118,8 @@ def call_direct_json(agent_obj: Any, system_prompt: str, user_prompt: str, logge
                     pass
                 return {"response": txt}
             return {}
-    except Exception:
+    except Exception as e:
+        logger.error("LLM Direct [%s]: Unexpected error - %s", label, str(e))
         return {}
 
 

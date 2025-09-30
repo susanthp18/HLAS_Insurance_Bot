@@ -63,7 +63,7 @@ class RAGTool(BaseTool):
             target_vector="average(['content_vector', 'questions_vector'])",
             limit=limit or 15,
             filters=filters,
-            properties=["content", "product_name", "doc_type", "source_file"],
+            return_properties=["content", "product_name", "doc_type", "source_file"],
         )
 
         objects = getattr(response, "objects", []) or []

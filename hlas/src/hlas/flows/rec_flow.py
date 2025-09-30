@@ -8,6 +8,7 @@ import json
 
 from ..prompt_runner import run_direct_task
 from ..tools.benefits_tool import benefits_tool
+from ..tools.rag_tool import retrieval_tool
 from ..agents import recommendation_responder
 
 
@@ -28,10 +29,8 @@ class RecFlowHelper:
         p = (product or "").lower()
         if p == "travel":
             return [
+                "coverage_scope",
                 "destination",
-                "travel_duration", 
-                "pre_existing_medical_condition",
-                "plan_preference",
             ]
         if p == "maid":
             return [
@@ -51,10 +50,8 @@ class RecFlowHelper:
         """Get descriptions for each slot to help extraction."""
         descriptions = {
             "travel": {
+                "coverage_scope": "Coverage for yourself or your family",
                 "destination": "Country the user is travelling to (country name only)",
-                "travel_duration": "Trip length in days (1-365)",
-                "pre_existing_medical_condition": "Whether user has any pre-existing medical conditions (yes/no)",
-                "plan_preference": "User's coverage preference (budget/comprehensive)"
             },
             "maid": {
                 "duration_of_insurance": "Policy duration (12 or 24 months)",
@@ -116,10 +113,8 @@ class RecFlowHelper:
         p = (product or "").lower()
         if p == "travel":
             return {
+                "coverage_scope": {"type": "choice", "options": ["self", "family"]},
                 "destination": {"type": "value", "format": "country"},
-                "travel_duration": {"type": "value", "format": "days:int"},
-                "pre_existing_medical_condition": {"type": "yesno"},
-                "plan_preference": {"type": "choice", "options": ["budget", "comprehensive"]},
             }
         if p == "maid":
             return {
@@ -316,11 +311,8 @@ class RecFlowHelper:
         # Determine tier based on slots
         tier = None
         if (product or "").lower() == "travel":
-            pref = (cls._get_slot_value(slots, "plan_preference") or "").strip().lower()
-            if pref == "budget":
-                tier = "Silver"
-            elif pref == "comprehensive":
-                tier = "Gold"
+            # Always start with Gold plan for Travel
+            tier = "Gold"
         elif (product or "").lower() == "maid":
             coverage_above_mom = (cls._get_slot_value(slots, "coverage_above_mom_minimum") or "").strip().lower()
             if coverage_above_mom == "yes":
@@ -367,6 +359,27 @@ class RecFlowHelper:
             add_ons_pref = cls._get_slot_value(slots, "add_ons") or "not_required"
             sys_t = (tpl.get("system") or "").format(tier=tier or "", add_ons=add_ons_pref)
             usr_t = (tpl.get("user") or "").format(tier=tier or "", add_ons=add_ons_pref, benefits=benefits_text or "")
+        elif product_key == "travel":
+            # Build travel advisory from knowledge base using destination
+            destination = (cls._get_slot_value(slots, "destination") or "").strip()
+            advisory = ""
+            try:
+                if destination:
+                    advisory_query = f"Travel medical costs and advisories for {destination}."
+                else:
+                    advisory_query = "Travel medical costs and advisories."
+                advisory = retrieval_tool.run(query=advisory_query, product="Travel") or ""
+            except Exception as e:
+                logger.error("RecFlow.generate_recommendation: Travel advisory retrieval failed - %s", str(e))
+                advisory = ""
+            # Fallback advisory if retrieval is empty
+            if not advisory and destination:
+                advisory = (
+                    f"Medical treatment in {destination} is very good, but can be very expensive. "
+                    f"Some foreign visitors who cannot cover their medical costs may face restrictions in the future."
+                )
+            sys_t = (tpl.get("system") or "").format(tier=tier or "", destination=destination or "")
+            usr_t = (tpl.get("user") or "").format(tier=tier or "", benefits=benefits_text or "", advisory=advisory or "", destination=destination or "")
         else:
             sys_t = (tpl.get("system") or "").format(tier=tier or "")
             usr_t = (tpl.get("user") or "").format(tier=tier or "", benefits=benefits_text or "")
@@ -388,10 +401,6 @@ class RecFlowHelper:
                 logger.info("RecFlow.generate_recommendation: LLM response generated - length=%d", len(response))
             except Exception as e:
                 logger.error("RecFlow.generate_recommendation: LLM call failed - %s", str(e))
-        
-        if not response:
-            response = f"We recommend {tier}.\n\nHere are key benefits:\n{benefits_text[:1500]}"
-            logger.info("RecFlow.generate_recommendation: Used fallback response - tier=%s", tier)
         
         logger.info("RecFlow.generate_recommendation: Completed - tier=%s, response_len=%d", tier, len(response))
         return response
@@ -542,10 +551,6 @@ class RecFlowHelper:
                 except Exception as e:
                     logger.error("RecFlow.handle: Car LLM call failed - %s", str(e))
             
-            if not car_response:
-                car_response = f"Here are the key benefits for Car insurance:\n\n{benefits_text[:4096]}"
-                logger.info("RecFlow.handle: Using car fallback response")
-                
             state.reply = car_response
                 
             # Mark as complete
@@ -626,12 +631,8 @@ class RecFlowHelper:
                         # Fallback: construct a helpful question with constraints
                         if slot_name == "destination":
                             question_text = "Please provide a country name (not a city). Which country will you be travelling to?"
-                        elif slot_name == "travel_duration":
-                            question_text = "Travel duration must be 1-365 days or future dates. How many days will your trip last?"
-                        elif slot_name == "pre_existing_medical_condition":
-                            question_text = "Please answer Yes or No. Do you have any pre-existing medical conditions?"
-                        elif slot_name == "plan_preference":
-                            question_text = "Please choose 'budget' or 'comprehensive'. Which coverage would you prefer?"
+                        elif slot_name == "coverage_scope":
+                            question_text = "Please specify if the coverage is for yourself or for your family."
                         else:
                             question_text = f"Please provide a valid {slot_name.replace('_', ' ')}."
 

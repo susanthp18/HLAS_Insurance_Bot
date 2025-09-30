@@ -104,10 +104,8 @@ class HlasFlow(Flow[HlasState]):
         p = (product or "").lower()
         if p == "travel":
             return [
+                "coverage_scope",
                 "destination",
-                "travel_duration",
-                "pre_existing_medical_condition",
-                "plan_preference",
             ]
         if p == "maid":
             return [
@@ -297,23 +295,12 @@ class HlasFlow(Flow[HlasState]):
         # --- End of Smart Cleanup ---
 
         if directive == "greet":
-            # Time-aware greeting (Singapore)
-            salutation = "Hello"
-            try:
-                now_sg = datetime.now(ZoneInfo("Asia/Singapore"))
-                hour = now_sg.hour
-                if hour < 12:
-                    salutation = "Good morning"
-                elif hour < 18:
-                    salutation = "Good afternoon"
-                else:
-                    salutation = "Good evening"
-                logger.debug("HlasFlow.decide: Generated time-aware greeting - hour=%d, salutation=%s", hour, salutation)
-            except Exception as e:
-                logger.warning("HlasFlow.decide: Time-aware greeting failed - %s, using default", str(e))
-                
-            self.state.reply = f"{salutation}! I'm HLAS Assistant. I can help you with insurance plans, questions, comparisons, and summaries."
-            logger.info("HlasFlow.decide: Greeting generated")
+            # Standardized greeting
+            self.state.reply = (
+                "Hello! 👋 I’m the HLAS Smart Bot. I’m here to guide you through our insurance products and services, "
+                "answer your questions instantly, and make things easier for you. How can I help you today?"
+            )
+            logger.info("HlasFlow.decide: Greeting generated (standardized)")
             return "__done__"
 
         if directive == "handle_capabilities":

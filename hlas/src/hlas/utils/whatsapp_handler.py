@@ -278,7 +278,7 @@ class WhatsAppMessageHandler:
             # If live agent is active, short-circuit without calling orchestrator
             if self._is_live_agent_on(session.get("live_agent_status")):
                 logger.info("WhatsApp handler: live_agent_status active for %s - short-circuiting reply", session_id)
-                return "Can't you wait?"
+                return "Live agent integration is under development. It will be coming soon. Please say 'hi' exactly to reset the session."
             
             # Process through HLAS Flow
             flow = HlasFlow()

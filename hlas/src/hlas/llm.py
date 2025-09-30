@@ -8,6 +8,9 @@ from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv(), override=True)
 logger = logging.getLogger(__name__)
 
+# Provider toggle (default: gpt)
+LLM_PROVIDER = (os.environ.get("LLM_PROVIDER", "gpt") or "gpt").strip().lower()
+
 # Strict, centralized Azure OpenAI config (no fallbacks)
 AZURE_OPENAI_ENDPOINT = os.environ.get("AZURE_OPENAI_ENDPOINT")
 AZURE_OPENAI_API_KEY = os.environ.get("AZURE_OPENAI_API_KEY")
@@ -19,6 +22,23 @@ AZURE_OPENAI_TEMPERATURE_STR = os.environ.get("AZURE_OPENAI_TEMPERATURE", "0.2")
 # Response generation model configuration (can be set to different deployment)
 AZURE_OPENAI_RESPONSE_DEPLOYMENT_NAME = os.environ.get("AZURE_OPENAI_RESPONSE_DEPLOYMENT_NAME", "gpt-4o-mini")
 AZURE_OPENAI_RESPONSE_TEMPERATURE_STR = os.environ.get("AZURE_OPENAI_RESPONSE_TEMPERATURE", "0.3")
+
+# Grok (OpenAI-compatible) config
+GROK_OPENAI_ENDPOINT = os.environ.get(
+    "GROK_OPENAI_ENDPOINT",
+    "https://grokmodl-resource.services.ai.azure.com/openai/v1/",
+)
+GROK_OPENAI_API_KEY = os.environ.get("GROK_OPENAI_API_KEY")
+GROK_OPENAI_DEPLOYMENT_NAME = os.environ.get(
+    "GROK_OPENAI_DEPLOYMENT_NAME",
+    "grok-4-fast-non-reasoning",
+)
+GROK_OPENAI_RESPONSE_DEPLOYMENT_NAME = os.environ.get(
+    "GROK_OPENAI_RESPONSE_DEPLOYMENT_NAME",
+    GROK_OPENAI_DEPLOYMENT_NAME,
+)
+GROK_OPENAI_TEMPERATURE_STR = os.environ.get("GROK_OPENAI_TEMPERATURE", "0.2")
+GROK_OPENAI_RESPONSE_TEMPERATURE_STR = os.environ.get("GROK_OPENAI_RESPONSE_TEMPERATURE", "0.3")
 
 
 # Initialize as None at the module level
@@ -46,79 +66,148 @@ def initialize_models():
     except (ImportError, Exception):
         logger.info("Initializing LLM and embedding models...")
 
-    # Check required environment variables
+    # Check required environment variables depending on provider
     missing_vars = []
-    if not AZURE_OPENAI_ENDPOINT:
-        missing_vars.append("AZURE_OPENAI_ENDPOINT")
-    if not AZURE_OPENAI_API_KEY:
-        missing_vars.append("AZURE_OPENAI_API_KEY")
-    if not AZURE_OPENAI_CHAT_DEPLOYMENT_NAME:
-        missing_vars.append("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME")
-    if not AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME:
-        missing_vars.append("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME")
+    if LLM_PROVIDER == "grok":
+        # Grok chat LLM requirements
+        if not GROK_OPENAI_ENDPOINT:
+            missing_vars.append("GROK_OPENAI_ENDPOINT")
+        if not GROK_OPENAI_API_KEY:
+            missing_vars.append("GROK_OPENAI_API_KEY")
+        if not GROK_OPENAI_DEPLOYMENT_NAME:
+            missing_vars.append("GROK_OPENAI_DEPLOYMENT_NAME")
+        # We still initialize Azure embeddings for retrieval; require Azure embedding env too
+        if not AZURE_OPENAI_ENDPOINT:
+            missing_vars.append("AZURE_OPENAI_ENDPOINT")
+        if not AZURE_OPENAI_API_KEY:
+            missing_vars.append("AZURE_OPENAI_API_KEY")
+        if not AZURE_OPENAI_API_VERSION:
+            missing_vars.append("AZURE_OPENAI_API_VERSION")
+        if not AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME:
+            missing_vars.append("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME")
+    else:
+        # Default GPT/Azure requirements (chat + embeddings)
+        if not AZURE_OPENAI_ENDPOINT:
+            missing_vars.append("AZURE_OPENAI_ENDPOINT")
+        if not AZURE_OPENAI_API_KEY:
+            missing_vars.append("AZURE_OPENAI_API_KEY")
+        if not AZURE_OPENAI_API_VERSION:
+            missing_vars.append("AZURE_OPENAI_API_VERSION")
+        if not AZURE_OPENAI_CHAT_DEPLOYMENT_NAME:
+            missing_vars.append("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME")
+        if not AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME:
+            missing_vars.append("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME")
     
     if missing_vars:
-        error_msg = f"Missing required environment variables: {missing_vars}"
+        error_msg = f"Missing required environment variables ({LLM_PROVIDER}): {missing_vars}"
         logger.error(error_msg)
         raise ValueError(error_msg)
 
     try:
-        # Resolve temperature
-        try:
-            _temperature = float(AZURE_OPENAI_TEMPERATURE_STR)
-        except (ValueError, TypeError):
-            _temperature = 0.2
-            logger.warning("Invalid or missing AZURE_OPENAI_TEMPERATURE, defaulting to %.1f", _temperature)
+        if LLM_PROVIDER == "grok":
+            # Resolve temperatures
+            try:
+                _temperature = float(GROK_OPENAI_TEMPERATURE_STR)
+            except (ValueError, TypeError):
+                _temperature = 0.2
+                logger.warning("Invalid or missing GROK_OPENAI_TEMPERATURE, defaulting to %.1f", _temperature)
+            try:
+                _response_temperature = float(GROK_OPENAI_RESPONSE_TEMPERATURE_STR)
+            except (ValueError, TypeError):
+                _response_temperature = 0.3
+                logger.warning("Invalid or missing GROK_OPENAI_RESPONSE_TEMPERATURE, defaulting to %.1f", _response_temperature)
 
-        # Create LLM instance
-        globals()["azure_llm"] = LLM(
-            model=f"azure/{AZURE_OPENAI_CHAT_DEPLOYMENT_NAME}",
-            api_key=AZURE_OPENAI_API_KEY,
-            base_url=AZURE_OPENAI_ENDPOINT.rstrip("/"),
-            api_version=AZURE_OPENAI_API_VERSION,
-            temperature=_temperature,
-        )
-        # Use log_once to prevent duplicate logs across workers
-        try:
-            from .log_once import log_once_info
-            log_once_info(logger, "llm_init_success", "Azure LLM initialized successfully.")
-        except (ImportError, Exception):
-            logger.info("Azure LLM initialized successfully.")
+            # Initialize chat LLMs using Grok/OpenAI-compatible endpoint
+            globals()["azure_llm"] = LLM(
+                model=f"openai/{GROK_OPENAI_DEPLOYMENT_NAME}",
+                api_key=GROK_OPENAI_API_KEY,
+                base_url=GROK_OPENAI_ENDPOINT.rstrip("/"),
+                temperature=_temperature,
+            )
+            try:
+                from .log_once import log_once_info
+                log_once_info(logger, "llm_init_success", f"Grok LLM initialized: {GROK_OPENAI_DEPLOYMENT_NAME}")
+            except (ImportError, Exception):
+                logger.info("Grok LLM initialized: %s", GROK_OPENAI_DEPLOYMENT_NAME)
 
-        # Create Response Generation LLM instance (GPT-4-mini)
-        try:
-            _response_temperature = float(AZURE_OPENAI_RESPONSE_TEMPERATURE_STR)
-        except (ValueError, TypeError):
-            _response_temperature = 0.3
-            logger.warning("Invalid or missing AZURE_OPENAI_RESPONSE_TEMPERATURE, defaulting to %.1f", _response_temperature)
-        
-        globals()["azure_response_llm"] = LLM(
-            model=f"azure/{AZURE_OPENAI_RESPONSE_DEPLOYMENT_NAME}",
-            api_key=AZURE_OPENAI_API_KEY,
-            base_url=AZURE_OPENAI_ENDPOINT.rstrip("/"),
-            api_version=AZURE_OPENAI_API_VERSION,
-            temperature=_response_temperature,
-        )
-        # Use log_once to prevent duplicate logs across workers
-        try:
-            from .log_once import log_once_info
-            log_once_info(logger, "response_llm_init_success", f"Azure Response LLM ({AZURE_OPENAI_RESPONSE_DEPLOYMENT_NAME}) initialized successfully.")
-        except (ImportError, Exception):
-            logger.info(f"Azure Response LLM ({AZURE_OPENAI_RESPONSE_DEPLOYMENT_NAME}) initialized successfully.")
+            globals()["azure_response_llm"] = LLM(
+                model=f"openai/{GROK_OPENAI_RESPONSE_DEPLOYMENT_NAME}",
+                api_key=GROK_OPENAI_API_KEY,
+                base_url=GROK_OPENAI_ENDPOINT.rstrip("/"),
+                temperature=_response_temperature,
+            )
+            try:
+                from .log_once import log_once_info
+                log_once_info(logger, "response_llm_init_success", f"Grok Response LLM initialized: {GROK_OPENAI_RESPONSE_DEPLOYMENT_NAME}")
+            except (ImportError, Exception):
+                logger.info("Grok Response LLM initialized: %s", GROK_OPENAI_RESPONSE_DEPLOYMENT_NAME)
 
-        # Create Embeddings instance
-        globals()["azure_embeddings"] = AzureOpenAIEmbeddings(
-            azure_endpoint=AZURE_OPENAI_ENDPOINT,
-            api_key=AZURE_OPENAI_API_KEY,
-            azure_deployment=AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME,
-            openai_api_version=AZURE_OPENAI_API_VERSION,
-        )
-        # Use log_once to prevent duplicate logs across workers
-        try:
-            from .log_once import log_once_info
-            log_once_info(logger, "embeddings_init_success", "Azure Embeddings initialized successfully.")
-        except (ImportError, Exception):
-            logger.info("Azure Embeddings initialized successfully.")
+            # Always initialize Azure embeddings (used by retrieval)
+            globals()["azure_embeddings"] = AzureOpenAIEmbeddings(
+                azure_endpoint=AZURE_OPENAI_ENDPOINT,
+                api_key=AZURE_OPENAI_API_KEY,
+                azure_deployment=AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME,
+                openai_api_version=AZURE_OPENAI_API_VERSION,
+            )
+            try:
+                from .log_once import log_once_info
+                log_once_info(logger, "embeddings_init_success", "Azure Embeddings initialized successfully (Grok provider).")
+            except (ImportError, Exception):
+                logger.info("Azure Embeddings initialized successfully (Grok provider).")
+        else:
+            # Resolve temperature
+            try:
+                _temperature = float(AZURE_OPENAI_TEMPERATURE_STR)
+            except (ValueError, TypeError):
+                _temperature = 0.2
+                logger.warning("Invalid or missing AZURE_OPENAI_TEMPERATURE, defaulting to %.1f", _temperature)
+
+            # Create LLM instance (Azure GPT)
+            globals()["azure_llm"] = LLM(
+                model=f"azure/{AZURE_OPENAI_CHAT_DEPLOYMENT_NAME}",
+                api_key=AZURE_OPENAI_API_KEY,
+                base_url=AZURE_OPENAI_ENDPOINT.rstrip("/"),
+                api_version=AZURE_OPENAI_API_VERSION,
+                temperature=_temperature,
+            )
+            try:
+                from .log_once import log_once_info
+                log_once_info(logger, "llm_init_success", "Azure LLM initialized successfully.")
+            except (ImportError, Exception):
+                logger.info("Azure LLM initialized successfully.")
+
+            # Create Response Generation LLM instance
+            try:
+                _response_temperature = float(AZURE_OPENAI_RESPONSE_TEMPERATURE_STR)
+            except (ValueError, TypeError):
+                _response_temperature = 0.3
+                logger.warning("Invalid or missing AZURE_OPENAI_RESPONSE_TEMPERATURE, defaulting to %.1f", _response_temperature)
+            
+            globals()["azure_response_llm"] = LLM(
+                model=f"azure/{AZURE_OPENAI_RESPONSE_DEPLOYMENT_NAME}",
+                api_key=AZURE_OPENAI_API_KEY,
+                base_url=AZURE_OPENAI_ENDPOINT.rstrip("/"),
+                api_version=AZURE_OPENAI_API_VERSION,
+                temperature=_response_temperature,
+            )
+            try:
+                from .log_once import log_once_info
+                log_once_info(logger, "response_llm_init_success", f"Azure Response LLM ({AZURE_OPENAI_RESPONSE_DEPLOYMENT_NAME}) initialized successfully.")
+            except (ImportError, Exception):
+                logger.info(f"Azure Response LLM ({AZURE_OPENAI_RESPONSE_DEPLOYMENT_NAME}) initialized successfully.")
+
+            # Create Embeddings instance (Azure)
+            globals()["azure_embeddings"] = AzureOpenAIEmbeddings(
+                azure_endpoint=AZURE_OPENAI_ENDPOINT,
+                api_key=AZURE_OPENAI_API_KEY,
+                azure_deployment=AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME,
+                openai_api_version=AZURE_OPENAI_API_VERSION,
+            )
+            try:
+                from .log_once import log_once_info
+                log_once_info(logger, "embeddings_init_success", "Azure Embeddings initialized successfully.")
+            except (ImportError, Exception):
+                logger.info("Azure Embeddings initialized successfully.")
 
     except Exception as e:
         logger.error("Failed to initialize models: %s", e, exc_info=True)
