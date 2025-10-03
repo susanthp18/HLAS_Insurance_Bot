@@ -76,7 +76,7 @@ class InfoFlowHelper:
                     state.session["_last_info_user_msg"] = state.message
                     logger.info("InfoFlow.product_clarification: Requesting product clarification, saved user message")
                     
-                    q = prod.get("question") or "Which product would you like to ask about: Travel, Maid, or Car?"
+                    q = prod.get("question") or "Which product would you like to ask about: Travel, Maid, Car, Personal Accident, Home, or Early?"
                     state.reply = q
                     return "__done__"
     

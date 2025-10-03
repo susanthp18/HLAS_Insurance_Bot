@@ -60,6 +60,10 @@ class SummaryFlowHelper:
                         ctx_lines.append("available_tiers=Basic, Enhanced, Premier, Exclusive")
                     elif pl == "personalaccident":
                         ctx_lines.append("available_tiers=Bronze, Silver, Premier, Platinum")
+                    elif pl == "home":
+                        ctx_lines.append("available_tiers=Silver, Gold, Platinum")
+                    elif pl == "early":
+                        ctx_lines.append("available_tiers=None (Early has no tiers)")
                     elif pl == "car":
                         ctx_lines.append("available_tiers=None (Car has no tiers)")
                 # Include brief history window to resolve "above plan(s)"
@@ -100,13 +104,17 @@ class SummaryFlowHelper:
                 pass
             # Fallbacks
             if await_key == "product":
-                return "Which product would you like summarized: Travel, Maid, or Car?"
+                return "Which product would you like summarized: Travel, Maid, Car, Personal Accident, or Home?"
             if await_key == "tiers":
                 prod = (product_hint or "").lower()
                 if prod == "travel":
                     return "Which Travel tier(s) should I summarize? Available: Basic, Silver, Gold, Platinum"
                 if prod == "maid":
                     return "Which Maid tier(s) should I summarize? Available: Basic, Enhanced, Premier, Exclusive"
+                if prod == "personalaccident":
+                    return "Which Personal Accident tier(s) should I summarize? Available: Bronze, Silver, Premier, Platinum"
+                if prod == "home":
+                    return "Which Home tier(s) should I summarize? Available: Silver, Gold, Platinum"
                 if prod == "car":
                     return "Car has no tiers. Which aspects should I summarize?"
                 return "Which tier(s) should I summarize?"
@@ -224,8 +232,8 @@ class SummaryFlowHelper:
             logger.info("SummaryFlow.clarify_question: %s", q)
             return "__done__"
 
-        # Car: ignore tiers and proceed
-        if product.lower() == "car":
+        # Car/Early: ignore tiers and proceed
+        if product.lower() in ("car", "early"):
             pass
         else:
             # Need at least 1 tier for summary
@@ -263,7 +271,7 @@ class SummaryFlowHelper:
 
         tpl = sum_templates.get(product.lower(), {})
         sys_t = tpl.get("system") or "You are an insurance summary responder. Summarize succinctly using only the provided context."
-        tiers_txt = ", ".join(tiers_list) if tiers_list else ("N/A" if product.lower()=="car" else "")
+        tiers_txt = ", ".join(tiers_list) if tiers_list else ("N/A" if product.lower() in ("car", "early") else "")
         usr_t = (tpl.get("user") or "Product: {product}\nTiers: {tiers}\nQuestion: {question}\n\n[Context]\n{context}").format(
             product=product,
             tiers=tiers_txt,

@@ -7,7 +7,7 @@ identify_product:
     Return a JSON object.
   agent: "product_identifier"
   expected_output: |
-    { "product": "Travel" | "Maid" | "Car" | "PersonalAccident" | "", "confidence": 0.0-1.0, "question"?: string }
+    { "product": "Travel" | "Maid" | "Car" | "PersonalAccident" | "Home" | "Early" | "", "confidence": 0.0-1.0, "question"?: string }
 
 
 
@@ -17,6 +17,7 @@ identify_tiers:
     - Inputs (via context): Product, User message, Recent history window (optional)
     - Output 2+ tiers when available for Travel/Maid; for Car, indicate that tiers do not apply.
     - If the message indicates an aggregate request (e.g., "across plans", "all plans", "across all plans", "any plan", "all of them"), return the full set of valid tiers for the product.
+    - For products with no tiers (Car, Early), respond with a concise clarification noting there are no tiers and ask which aspects to compare.
     If ambiguous or insufficient, return a short clarification question.
   agent: "tier_identifier"
   expected_output: |

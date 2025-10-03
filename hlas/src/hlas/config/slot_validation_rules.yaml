@@ -51,3 +51,27 @@ personalaccident:
     - "1. **Validate Input**: Check if the user's input is a number and if it falls within the range of 500 to 3500, inclusive."
     - "2. **Handle Failure**: If the input is not a number or is outside the valid range, validation fails. Your question MUST explain the error and state the valid range. For example: 'The amount you provided is not valid. Please provide an amount between $500 and $3,500.'"
     - "If valid, the `normalized_value` must be the number as a string."
+
+home:
+  risk_concerns:
+    - "Your goal is to identify and normalize the user's specific home risk concerns. Valid concerns are: 'fire', 'water damage', 'theft'."
+    - "1. **Normalize Input**: Accept single or multiple concerns. Normalize synonyms: 'burglary', 'break-in', 'stolen' → 'theft'; 'flood', 'leak', 'water', 'pipe burst' → 'water damage'; 'fire', 'fires' → 'fire'."
+    - "2. **Handle 'All'**: If the user says 'all', 'everything', 'both', or similar, normalize to 'fire, water damage, theft'."
+    - "3. **Format**: The normalized_value MUST be a single comma-separated string of concerns in this order when present: 'fire, water damage, theft'. Do not include duplicates."
+    - "4. **Handle Invalid/Ambiguous**: If none of the valid concerns can be identified, ask: 'Do you have any specific worries such as fire, water damage or theft? You can mention more than one.'"
+  coverage_amount:
+    - "Your goal is to validate the estimated total value of renovations, home contents and valuables."
+    - "1. **Normalize Input**: Extract digits; accept formats with $, commas, spaces (e.g., '$150,000' → '150000')."
+    - "2. **Validate**: The value must be a positive integer (> 0)."
+    - "3. **Handle Failure**: If not a positive integer, ask: 'Could you share an estimated total value for renovations, contents and valuables (e.g., 150000)?'"
+    - "If valid, the `normalized_value` must be the number as a string (e.g., '200000')."
+
+early:
+  existing_cover:
+    - "Your goal is to determine if the user already has any insurance that pays a lump sum on diagnosis of a critical illness. Normalize to 'yes' or 'no'."
+    - "1. **Normalize Input**: Accept variants like 'yes', 'y', 'yep', 'sure' → 'yes'; 'no', 'nope', 'nah' → 'no'."
+    - "2. **Handle Ambiguity**: If unclear, ask: 'Do you already have any insurance that pays a lump sum if you’re diagnosed with a critical illness? (Yes/No)'"
+  dependants:
+    - "Your goal is to determine if the user has family members who rely on their income or care. Normalize to 'yes' or 'no'."
+    - "1. **Normalize Input**: Accept variants like 'yes', 'y', 'yep', 'sure' → 'yes'; 'no', 'nope', 'nah' → 'no'."
+    - "2. **Handle Ambiguity**: If unclear, ask: 'Do you have family members who rely on your income or care? (Yes/No)'"

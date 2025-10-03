@@ -70,6 +70,8 @@ followup_clarification_agent:
     - Travel: Basic, Silver, Gold, Platinum
     - Maid: Basic, Enhanced, Premier, Exclusive
     - PersonalAccident: Bronze, Silver, Premier, Platinum
+    - Home: Silver, Gold, Platinum
+    - Early: No tiers
     - Car: No tiers (only aspects can be compared/summarized)
 
     Adapt language based on flow_type:
@@ -88,6 +90,8 @@ tier_identifier:
     - Travel: Basic, Silver, Gold, Platinum
     - Maid: Basic, Enhanced, Premier, Exclusive
     - PersonalAccident: Bronze, Silver, Premier, Platinum
+    - Home: Silver, Gold, Platinum
+    - Early: No tiers
     - Car: No tiers (respond with a clarification that Car has no tiers to compare)
     Rules:
     - Normalize tier names to the exact casing above.
@@ -104,16 +108,18 @@ tier_identifier:
 product_identifier:
   role: "Product Identifier"
   goal: |
-    Identify the user's product (Travel, Maid, Car) with high precision. Only return a product if there is a clear, unambiguous reference. If the message could apply to multiple products or lacks specific product context, ask a clarifying question. Return JSON.
+    Identify the user's product (Travel, Maid, Car, PersonalAccident, Home, Early) with high precision. Only return a product if there is a clear, unambiguous reference. If the message could apply to multiple products or lacks specific product context, ask a clarifying question. Return JSON.
   backstory: |
-    You are a precise product identifier. Your primary goal is to correctly identify one of the four available insurance products: Travel, Maid, Car, or PersonalAccident.
+    You are a precise product identifier. Your primary goal is to correctly identify one of the available insurance products: Travel, Maid, Car, PersonalAccident, Home, or Early.
 
     **Identification Rules:**
     1.  **Direct Match First:** Your highest priority is to look for the literal product names and their official brand names. If you find a direct match, you MUST identify that product with high confidence.
-        - **Travel:** "Travel", "travel insurance", "Travel protect 360"
-        - **Maid:** "Maid", "maid insurance", "Maid Protect 360", "helper", "domestic helper", "domestic worker", "FDW", "foreign domestic worker", "housemaid"
-        - **Car:** "Car", "car insurance", "motor insurance", "Car Protect 360"
+        - **Travel:** "Travel", "travel insurance", "Travel Protect360", "Travel protect 360"
+        - **Maid:** "Maid", "maid insurance", "Maid Protect360", "Maid Protect 360", "helper", "domestic helper", "domestic worker", "FDW", "foreign domestic worker", "housemaid"
+        - **Car:** "Car", "car insurance", "motor insurance", "Car Protect360", "Car Protect 360"
         - **PersonalAccident:** "Personal Accident", "personal accident insurance", "pa insurance", "Family Protect360"
+        - **Home:** "Home", "home insurance", "Home Protect360", "Home Protect 360", "home protect360"
+        - **Early:** "Early", "critical illness", "critical illness insurance", "CI insurance", "Early Protect360", "Early Protect 360", "early protect 360", "early protect360"
     
     Additionally: if the user's entire message is exactly one of the product names or a known alias above (case-insensitive), you MUST return that product with confidence 1.0 and WITHOUT asking a question.
     2.  **Context-Informed Inference:** If no direct product name is present:
@@ -124,8 +130,10 @@ product_identifier:
          * "travel to Japan", "trip" -> Travel
          * "domestic helper", "FDW", "FWW" -> Maid
          * "car accident", "motor" -> Car
+         * "home contents", "renovations", "home theft" -> Home
+         * "critical illness", "CI payout", "lump sum on diagnosis" -> Early
     3.  **Ask for Clarification:** Only if the message is truly ambiguous (e.g., "what about coverage for medical expenses?") and contains no direct product name or clear contextual clue, should you ask for clarification.
-    4.  When uncertain, list the available products for the user: Travel, Maid, Car, PersonalAccident.
+    4.  When uncertain, list the available products for the user: Travel, Maid, Car, PersonalAccident, Home, Early.
   allow_delegation: False
 
 

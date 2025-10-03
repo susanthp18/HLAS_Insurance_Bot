@@ -62,6 +62,10 @@ class CompareFlowHelper:
                         ctx_lines.append("available_tiers=Basic, Enhanced, Premier, Exclusive")
                     elif prod_lower == "personalaccident":
                         ctx_lines.append("available_tiers=Bronze, Silver, Premier, Platinum")
+                    elif prod_lower == "home":
+                        ctx_lines.append("available_tiers=Silver, Gold, Platinum")
+                    elif prod_lower == "early":
+                        ctx_lines.append("available_tiers=None (Early has no tiers)")
                     elif prod_lower == "car":
                         ctx_lines.append("available_tiers=None (Car has no tiers)")
                 
@@ -120,7 +124,7 @@ class CompareFlowHelper:
                 pass
             # Fallbacks
             if await_key == "product":
-                return "Which product would you like to compare: Travel, Maid, or Car?"
+                return "Which product would you like to compare: Travel, Maid, Car, Personal Accident, Home, or Early?"
             if await_key == "tiers":
                 prod = (product_hint or "").lower()
                 if prod == "travel":
@@ -129,8 +133,12 @@ class CompareFlowHelper:
                     return "Which Maid tiers would you like to compare? Available: Basic, Enhanced, Premier, Exclusive"
                 if prod == "personalaccident":
                     return "Which Personal Accident tiers would you like to compare? Available: Bronze, Silver, Premier, Platinum"
+                if prod == "home":
+                    return "Which Home tiers would you like to compare? Available: Silver, Gold, Platinum"
                 if prod == "car":
                     return "Car has no tiers to compare. Which aspects would you like me to compare?"
+                if prod == "early":
+                    return "Early CI has no tiers to compare. Which aspects would you like me to compare?"
                 return "Which two tiers should I compare?"
             return "Could you clarify what you want me to compare?"
 
@@ -172,7 +180,7 @@ class CompareFlowHelper:
 
         # Helper: identify tiers until at least two (do not emit identifier question)
         def ensure_tiers() -> None:
-            if (comparison_slot.get("product") or "").lower() == "car":
+            if (comparison_slot.get("product") or "").lower() in ("car", "early"):
                 return
             tiers = comparison_slot.get("tiers") or []
             if len(tiers) >= 2:
@@ -256,6 +264,10 @@ class CompareFlowHelper:
             if tiers_list:
                 logger.info("CompareFlow: Car has no tiers; ignoring tiers=%s", tiers_list)
             # Proceed to synthesis directly for Car
+        elif product.lower() == "early":
+            if tiers_list:
+                logger.info("CompareFlow: Early has no tiers; ignoring tiers=%s", tiers_list)
+            # Proceed to synthesis directly for Early
         else:
             # Need at least two tiers
             if len(tiers_list) < 2:
@@ -293,7 +305,7 @@ class CompareFlowHelper:
 
         tpl = cmp_templates.get(product.lower(), {})
         sys_t = tpl.get("system") or "You are an insurance comparison responder. Compare tiers succinctly using only the provided context."
-        tiers_txt = ", ".join(tiers_list) if tiers_list else ("N/A" if product.lower()=="car" else "")
+        tiers_txt = ", ".join(tiers_list) if tiers_list else ("N/A" if product.lower() in ("car", "early") else "")
         usr_t = (tpl.get("user") or "Product: {product}\nTiers: {tiers}\nQuestion: {question}\n\n[Context]\n{context}").format(
             product=product,
             tiers=tiers_txt,

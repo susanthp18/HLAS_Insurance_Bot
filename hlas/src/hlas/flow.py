@@ -116,6 +116,10 @@ class HlasFlow(Flow[HlasState]):
             ]
         if p == "personalaccident":
             return ["coverage_scope", "risk_level", "desired_amount"]
+        if p == "home" or p == "homeprotect360":
+            return ["risk_concerns", "coverage_amount"]
+        if p == "early":
+            return ["existing_cover", "dependants"]
         return []
 
     def _first_missing_slot(self) -> Optional[str]:

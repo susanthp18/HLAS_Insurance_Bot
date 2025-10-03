@@ -41,6 +41,10 @@ class RecFlowHelper:
             ]
         if p == "personalaccident":
             return ["coverage_scope", "risk_level", "desired_amount"]
+        if p == "home" or p == "homeprotect360":
+            return ["risk_concerns", "coverage_amount"]
+        if p == "early":
+            return ["existing_cover", "dependants"]
         if p == "car":
             return []  # Car insurance has no slots to collect
         return []
@@ -63,6 +67,14 @@ class RecFlowHelper:
                 "coverage_scope": "Coverage for yourself or your family",
                 "risk_level": "Occupational risk level: high or low",
                 "desired_amount": "Desired coverage amount between $500 and $3,500"
+            },
+            "home": {
+                "risk_concerns": "Specific worries such as fire, water damage, or theft (single or multiple)",
+                "coverage_amount": "Estimated total value of renovations, home contents, and valuables (numeric amount)"
+            },
+            "early": {
+                "existing_cover": "Whether the user already has CI insurance that pays a lump sum (yes/no)",
+                "dependants": "Whether family members rely on the user's income or care (yes/no)"
             },
             "car": {}  # Car insurance has no slots
         }
@@ -128,6 +140,16 @@ class RecFlowHelper:
                 "coverage_scope": {"type": "choice", "options": ["self", "family"]},
                 "risk_level": {"type": "choice", "options": ["high", "low"]},
                 "desired_amount": {"type": "value", "format": "amount:int"},
+            }
+        if p == "home":
+            return {
+                "risk_concerns": {"type": "value", "options": ["fire", "water damage", "theft"]},
+                "coverage_amount": {"type": "value", "format": "amount:int"},
+            }
+        if p == "early":
+            return {
+                "existing_cover": {"type": "yesno"},
+                "dependants": {"type": "yesno"},
             }
         return {}
 
@@ -330,6 +352,20 @@ class RecFlowHelper:
                     tier = "Platinum"
             except (ValueError, TypeError):
                 tier = None # Should not happen if validation is correct
+        elif (product or "").lower() == "home":
+            try:
+                amount = int(cls._get_slot_value(slots, "coverage_amount"))
+                if amount <= 100000:
+                    tier = "Silver"
+                elif amount <= 200000:
+                    tier = "Gold"
+                else:
+                    tier = "Platinum"
+            except (ValueError, TypeError):
+                tier = None
+        elif (product or "").lower() == "early":
+            # No tiers for Early CI product
+            tier = None
         
         logger.info("RecFlow.generate_recommendation: Determined tier=%s for product=%s", tier, product)
         
@@ -385,7 +421,31 @@ class RecFlowHelper:
             usr_t = (tpl.get("user") or "").format(tier=tier or "", benefits=benefits_text or "")
 
         response = ""
-        if sys_t and usr_t:
+        if (product or "").lower() == "early":
+            # Special handling: Early has no tiers and a fixed coverage suggestion
+            try:
+                base_dir = Path(__file__).resolve().parent.parent
+                with open(base_dir / "config" / "recommendation_response.yaml", "r", encoding="utf-8") as rf:
+                    rec_templates = yaml.safe_load(rf) or {}
+            except Exception:
+                rec_templates = {}
+            tpl_e = rec_templates.get("early") or {}
+            sys_e = (tpl_e.get("system") or "")
+            usr_e = (tpl_e.get("user") or "").format(benefits=benefits_text or "")
+            if sys_e and usr_e:
+                try:
+                    final = run_direct_task(
+                        agent_obj=recommendation_responder,
+                        agent_key="recommendation_responder", 
+                        task_key="synthesize_response",
+                        context_text=f"[System]\n{sys_e}\n\n[User]\n{usr_e}",
+                        logger=logger,
+                        label="recommendation.response_synthesis.early",
+                    ) or {}
+                    response = final.get("response") if isinstance(final, dict) else str(final)
+                except Exception as e:
+                    logger.error("RecFlow.generate_recommendation: Early LLM call failed - %s", str(e))
+        elif sys_t and usr_t:
             logger.info("RecFlow.generate_recommendation: Calling LLM with templates - system_len=%d, user_len=%d", 
                        len(sys_t), len(usr_t))
             try:
@@ -458,7 +518,7 @@ class RecFlowHelper:
         elif current_product:
             product = current_product
         else:
-            question = "What type of insurance are you interested in for the recommendation: Travel or Maid?"
+            question = "What type of insurance are you interested in for the recommendation: Travel, Maid, Car, Personal Accident, Home, or Early?"
             if prod_result and "question" in prod_result:
                 question = prod_result["question"]
             state.reply = question
@@ -563,6 +623,22 @@ class RecFlowHelper:
             logger.info("RecFlow.handle: Car recommendation completed - response_len=%d", len(str(state.reply or "")))
             return "__done__"
         
+        # Handle Early FAQs that can appear anytime
+        if (product or "").lower() == "early":
+            msg_low = (state.message or "").lower()
+            if ("young" in msg_low and "healthy" in msg_low) or ("do i really need" in msg_low and "this" in msg_low):
+                state.reply = (
+                    "Serious illnesses can occur at any age. Buying CI protection earlier often means lower premiums and getting covered before any health issues arise"
+                )
+                logger.info("RecFlow.handle: Early FAQ answered - young/healthy question")
+                return "__done__"
+            if "never claim" in msg_low:
+                state.reply = (
+                    "The main value is peace of mind — that you and your family are protected from unexpected financial stress. Some plans also offer partial refunds or conversion options at maturity if you’d like to consider them."
+                )
+                logger.info("RecFlow.handle: Early FAQ answered - never claim question")
+                return "__done__"
+        
         # Extract/update slots from current message
         extracted_slots = cls._extract_slots(state, product, logger)
         
@@ -614,6 +690,12 @@ class RecFlowHelper:
                     # Valid: update with normalized value and mark as validated
                     cls._set_slot_value(updated_slots, slot_name, validation_result["normalized_value"], True)
                     logger.info("RecFlow.handle: Slot validated successfully - %s=%s", slot_name, validation_result["normalized_value"])
+                    # Early-specific educational message when existing_cover is yes
+                    if (product or "").lower() == "early" and slot_name == "existing_cover" and str(validation_result.get("normalized_value")).lower() == "yes":
+                        state.session["_early_existing_cover_notice"] = (
+                            "That’s excellent — medical insurance helps pay your hospital and treatment bills.\n"
+                            "Critical Illness insurance complements it by giving you a cash payout, which you can use for income replacement, rehabilitation, or other expenses that aren’t covered by hospital plans"
+                        )
                 else:
                     # Invalid: remove from slots and ask for clarification
                     updated_slots.pop(slot_name, None)
@@ -668,10 +750,17 @@ class RecFlowHelper:
             logger.info("RecFlow.handle: Missing slots detected - missing=%s, asking_for=%s", missing_slots, next_slot)
             
             question = cls._ask_next_question(product, next_slot, updated_slots, user_wants_details, state, logger)
-
+            
+            # Prefix Early notice if present
+            prefix = state.session.pop("_early_existing_cover_notice", None) if (product or "").lower() == "early" else None
+            if prefix:
+                combined = f"{prefix}\n\n{question}"
+            else:
+                combined = question
+            
             # Save the question for context in next turn
-            state.session["last_question"] = question
-            state.reply = question
+            state.session["last_question"] = combined
+            state.reply = combined
             logger.info("RecFlow.handle: Asked question for missing slot - slot=%s, question_len=%d", next_slot, len(question))
             return "__done__"
         else:
