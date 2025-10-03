@@ -14,3 +14,5 @@ Admin/debug_chunks/
 
 # VSCode settings
 .vscode/
+
+**/venv
