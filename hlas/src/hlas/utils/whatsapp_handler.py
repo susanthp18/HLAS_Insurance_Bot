@@ -9,7 +9,9 @@ error recovery, validation, and production-grade features.
 import os
 import re
 import logging
+import uuid
 from typing import Dict, Any, Optional, Tuple
+from functools import partial
 from datetime import datetime
 import asyncio
 from fastapi import Request, Response
@@ -38,7 +40,11 @@ except ImportError as e:
     get_time_based_greeting = None
     HLAS_IMPORTS_AVAILABLE = False
 
+from .zoom.engagement import EngagementManager
+
 logger = logging.getLogger(__name__)
+
+BASE_URL = os.getenv("ZOOM_BASE_URL", "https://us01cciapi.zoom.us")
 
 class WhatsAppMessageHandler:
     """
@@ -441,12 +447,46 @@ class WhatsAppMessageHandler:
         # Acquire per-session lock to avoid concurrent processing for same user
         session_id = f"whatsapp_{user_phone}"
         with RedisLock(session_lock_key(session_id), ttl_seconds=15.0, wait_timeout=5.0):
-            # Process message
-            response = await self.handle_message(message, user_phone, metadata)
-            
-            # Send response
-            await self._send_message_async(user_phone, response)
-            WA_MESSAGES_PROCESSED_TOTAL.labels(result="ok").inc()
+            # Check if the stage is "live_agent" before an intent is set by the incoming message
+            if self._mongo_session_manager.get_session(session_id).get("live_agent_status") == True:
+                manager = EngagementManager.get_by_session(user_phone)
+                if not manager:
+                    logger.error(f"Zoom Chat session for contact '{user_phone}' not found.")
+                    await self._send_message_async(user_phone, "Unfortunately the agent has disconnected. Please try again later.")
+
+                if not manager.is_agent_connected:
+                    logger.error("Agent has not connected yet.")
+                    await self._send_message_async(user_phone, "You're in a queue. Please wait while we are trying to connect you to an agent.")
+                else:
+                    await manager.send_message(message)
+
+            else:
+                # Process message
+                response = await self.handle_message(message, user_phone, metadata)
+                
+                # Send response
+                await self._send_message_async(user_phone, response)
+                WA_MESSAGES_PROCESSED_TOTAL.labels(result="ok").inc()
+
+                #Check if the stage is "live_agent" after the intent is set by the incoming message
+                if self._mongo_session_manager.get_session(session_id).get("live_agent_status") == True:
+                    if user_phone in EngagementManager._active_engagements:
+                        logger.error(f"Chat session '{session_id}' is already active.")
+
+                    logger.info(f"Creating and storing new engagement for session: {user_phone}")
+                    callback_with_session_context = partial(self.handle_agent_response, user_phone)
+                    
+                    temp_name = uuid.uuid4().hex[:6]
+                    temp_email = f"{temp_name}@hlastest.com"
+
+                    manager = EngagementManager.create_and_register(
+                        session_id=user_phone,
+                        nick_name=temp_name,
+                        email=temp_email,
+                        base_api_url=BASE_URL,
+                        on_agent_message_callback=callback_with_session_context
+                    )
+                    asyncio.create_task(manager.initiate_engagement())
 
     async def process_webhook(self, request: Request) -> Response:
         """
@@ -531,6 +571,36 @@ class WhatsAppMessageHandler:
                 "timestamp": datetime.now(ZoneInfo("Asia/Singapore")).isoformat(),
                 "error": str(e)
             }
+
+    # Handlers for Zoom Engagement setup
+    async def handle_agent_response(self, user_phone: str, message: dict | str):
+        """Callback triggered by EngagementManager for agent messages."""
+        logger.info(f"Callback for number '{user_phone}': Received message from agent: {message}")
+        # --- FORWARD MESSAGE TO CUSTOMER THROUGH WHATSAPP ---
+        await self._send_message_async(user_phone, message)
+        if(message == "This chat has been closed."):
+            session = self._mongo_session_manager.get_session(f"whatsapp_{user_phone}")
+            session["live_agent_status"] = False
+            self._mongo_session_manager.save_session(f"whatsapp_{user_phone}", session)
+            await self.close_engagement_and_cleanup(user_phone)
+        
+        event = message.get("event") if isinstance(message, dict) else None
+        if event == "consumer_disconnected":
+            logger.info(f"Agent ended chat session for numebr '{user_phone}'. Cleaning up.")
+            session = self._mongo_session_manager.get_session(f"whatsapp_{user_phone}")
+            session["live_agent_status"] = False
+            self._mongo_session_manager.save_session(f"whatsapp_{user_phone}", session)
+            await self.close_engagement_and_cleanup(user_phone)
+
+
+    async def close_engagement_and_cleanup(self, session_id: str):
+        """Helper to gracefully close and remove an engagement from the session store."""
+        manager = EngagementManager.get_by_session(session_id)
+        if manager:
+            await manager.close()
+            manager.unregister(session_id)  # Remove from registry as well, if needed. del EngagementManager._active_engagements[session_id]
+            logger.info(f"Successfully closed and cleaned up session: {session_id}")
+
 
 # Global handler instance
 whatsapp_handler = WhatsAppMessageHandler()
