@@ -597,8 +597,8 @@ class WhatsAppMessageHandler:
         """Helper to gracefully close and remove an engagement from the session store."""
         manager = EngagementManager.get_by_session(session_id)
         if manager:
-            await manager.close()
             manager.unregister(session_id)  # Remove from registry as well, if needed. del EngagementManager._active_engagements[session_id]
+            await manager.close()
             logger.info(f"Successfully closed and cleaned up session: {session_id}")
 
 

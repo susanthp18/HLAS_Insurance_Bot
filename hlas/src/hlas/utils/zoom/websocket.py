@@ -111,7 +111,7 @@ class WebSocketManager:
             
         finally:
             logger.info("Message listener stopped.")
-            self.is_connected = False
+            # self.is_connected = False
 
 
     async def _send_pings(self):

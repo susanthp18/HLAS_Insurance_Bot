@@ -98,6 +98,7 @@ class EngagementManager:
         """Removes an engagement manager from the registry when it's done."""
         if session_id in cls._active_engagements:
             del cls._active_engagements[session_id]
+            logger.info(f"Unregistered egagement session: {session_id}")
 
     async def _handle_websocket_message(self, message: dict | str):
         """Internal callback to process messages from the WebSocketManager."""
