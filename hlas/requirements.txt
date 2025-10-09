@@ -9,3 +9,4 @@ pyyaml
 redis
 prometheus-client
 orjson
+pymongo
