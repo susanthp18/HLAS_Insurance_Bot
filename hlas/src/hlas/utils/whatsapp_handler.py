@@ -311,7 +311,7 @@ class WhatsAppMessageHandler:
                 assistant_reply_hist = response
 
             # Add to history and save session
-            self._mongo_session_manager.add_history_entry(session_id, message, assistant_reply_hist)
+            self._mongo_session_manager.add_history_entry(session_id, message, assistant_reply_hist, response)
 
             # Re-fetch the latest session from Redis to preserve the updated history
             cached_after_hist = self._mongo_session_manager.get_session(session_id)

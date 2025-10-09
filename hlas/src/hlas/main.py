@@ -112,7 +112,7 @@ async def chat(payload: ChatInput):
                 assistant_reply_hist = assistant_reply_full
             
             # Add the current turn to the history via the session manager
-            mongo_session_manager.add_history_entry(payload.session_id, payload.message, assistant_reply_hist)
+            mongo_session_manager.add_history_entry(payload.session_id, payload.message, assistant_reply_hist, assistant_reply_full)
             
             # Log the final session state before persisting
             logger.info("Chat.session_persist.final: rec_status='%s' cmp_status='%s' sum_status='%s' keys=%s",

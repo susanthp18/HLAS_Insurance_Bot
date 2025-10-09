@@ -197,29 +197,22 @@ def handle_reset_collections(db, logger):
         logger.error(f"Error during collection reset: {e}")
         raise
 
-def create_collection_index(collection, index_spec, index_name, unique=False, ttl_seconds=None, logger=None):
+def create_collection_index(collection, index_spec, index_name, unique=False, logger=None):
     """
-    Creates an index on a collection with proper error handling and logging.
+    Creates a non-TTL index on a collection with proper error handling and logging.
     
     Args:
         collection: MongoDB collection instance
         index_spec: Index specification (field name or complex spec)
         index_name: Human-readable name for logging
         unique: Whether the index should be unique
-        ttl_seconds: Optional TTL in seconds (Mongo TTL index). Cannot be used with unique.
         logger: Configured logger instance
         
     Returns:
         bool: True if index was created successfully, False otherwise
     """
     try:
-        if ttl_seconds is not None and unique:
-            logger.error(f"Cannot create TTL and unique index together on '{index_name}'")
-            return False
-        if ttl_seconds is not None:
-            result = collection.create_index(index_spec, expireAfterSeconds=int(ttl_seconds))
-            logger.info(f"Created TTL index on '{index_name}' (expireAfterSeconds={ttl_seconds}): {result}")
-        elif unique:
+        if unique:
             result = collection.create_index(index_spec, unique=True)
             logger.info(f"Created unique index on '{index_name}': {result}")
         else:
@@ -250,22 +243,32 @@ def initialize_collections(db, logger):
     sessions_collection = db["sessions"]
     conversation_history_collection = db["conversation_history"]
     
+    # Safety: drop any TTL indexes if present (enforce indefinite storage)
+    try:
+        # Drop TTL indexes on 'sessions'
+        for idx in sessions_collection.list_indexes():
+            if 'expireAfterSeconds' in idx:
+                idx_name = idx.get('name', '<unnamed>')
+                logger.info(f"Dropping TTL index on 'sessions': {idx_name}")
+                sessions_collection.drop_index(idx_name)
+        # Drop TTL indexes on 'conversation_history'
+        for idx in conversation_history_collection.list_indexes():
+            if 'expireAfterSeconds' in idx:
+                idx_name = idx.get('name', '<unnamed>')
+                logger.info(f"Dropping TTL index on 'conversation_history': {idx_name}")
+                conversation_history_collection.drop_index(idx_name)
+    except Exception as e:
+        logger.warning(f"TTL index cleanup failed: {e}")
+    
     # Initialize sessions collection
     logger.info("Initializing 'sessions' collection...")
     
-    # TTL configuration from environment (in days)
-    sessions_ttl_minutes_env = os.getenv("SESSIONS_TTL_MINUTES")
-    sessions_ttl_days = int(os.getenv("SESSIONS_TTL_DAYS", "30"))
-    history_ttl_days = int(os.getenv("HISTORY_TTL_DAYS", "90"))
-    sessions_ttl_seconds = int(sessions_ttl_minutes_env) * 60 if sessions_ttl_minutes_env else (sessions_ttl_days * 86400 if sessions_ttl_days > 0 else None)
-    history_ttl_seconds = history_ttl_days * 86400 if history_ttl_days > 0 else None
-
     sessions_success = 0
     sessions_success += create_collection_index(
         sessions_collection, "session_id", "session_id", unique=True, logger=logger
     )
     sessions_success += create_collection_index(
-        sessions_collection, "last_active", "last_active", ttl_seconds=sessions_ttl_seconds, logger=logger
+        sessions_collection, "last_active", "last_active", logger=logger
     )
     
     logger.info(f"'sessions' collection initialized ({sessions_success}/2 indexes created)")
@@ -278,7 +281,7 @@ def initialize_collections(db, logger):
         conversation_history_collection, "session_id", "session_id", logger=logger
     )
     history_success += create_collection_index(
-        conversation_history_collection, "timestamp", "timestamp", ttl_seconds=history_ttl_seconds, logger=logger
+        conversation_history_collection, "timestamp", "timestamp", logger=logger
     )
     
     logger.info(f"'conversation_history' collection initialized ({history_success}/2 indexes created)")

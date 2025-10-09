@@ -129,4 +129,3 @@ construct_follow_up_query:
     { "query": "<standalone follow-up query>" }
 
 
-

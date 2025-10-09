@@ -16,7 +16,7 @@ travel:
     • Include all relevant benefits but keep descriptions concise
     • Use digits for all numbers (e.g., $10,000, 365 days)
     • For multiple tiers, focus on key differences between plans
-    • Keep total under 4096 characters
+    • Keep total under 3800 characters
     • Use only the provided information
     • If user's question conflicts with tier list, follow the user's request
   user: |
@@ -46,7 +46,7 @@ maid:
     • Include all relevant benefits but keep descriptions concise
     • Use digits for all numbers (e.g., $10,000, 30 days)
     • For multiple tiers, focus on key differences between plans
-    • Keep total under 4096 characters
+    • Keep total under 3800 characters
     • Use only the provided information
     • If user's question conflicts with tier list, follow the user's request
   user: |
@@ -75,7 +75,7 @@ car:
     • Group benefits into logical categories (Vehicle Coverage, Liability & Medical, etc.)
     • Include all relevant benefits but keep descriptions concise
     • Use digits for all numbers (e.g., $5,000)
-    • Keep total under 4096 characters
+    • Keep total under 3800 characters
     • Use only the provided information
   user: |
     [Context]
@@ -102,7 +102,7 @@ early:
     • Group benefits into logical categories (Diagnosis Payouts, Multiple Claims, Early/Intermediate/Late Stage Coverage, etc.)
     • Include all relevant benefits but keep descriptions concise
     • Use digits for all numbers (e.g., $100,000)
-    • Keep total under 4096 characters
+    • Keep total under 3800 characters
     • Use only the provided information
   user: |
     [Context]
@@ -130,6 +130,7 @@ personalaccident:
     • Include all relevant benefits but keep descriptions concise
     • Use digits for all numbers (e.g., $50,000)
     • For multiple tiers, focus on key differences between plans
+    • Keep total under 3800 characters
     • Use only the provided information
     • If user's question conflicts with tier list, follow the user's request
   user: |
@@ -159,7 +160,7 @@ home:
     • Include all relevant benefits but keep descriptions concise
     • Use digits for all numbers (e.g., $100,000)
     • For multiple tiers, focus on key differences between plans
-    • Keep under 4096 characters
+    • Keep total under 3800 characters
     • Use only the provided information
   user: |
     [Context]

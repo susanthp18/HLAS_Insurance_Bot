@@ -1,7 +1,7 @@
 import os
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -129,9 +129,11 @@ class SessionManager:
         self._cache.set(session_id, session_state)
         logger.info("Saved session state for %s in Redis.", session_id)
 
-    def add_history_entry(self, session_id: str, user_message: str, bot_response: str):
+    def add_history_entry(self, session_id: str, user_message: str, bot_response_hist: str, bot_response_full: Optional[str] = None):
         """
         Adds a new user-bot interaction to the in-session history and updates cache (keep last 5).
+        Stores the truncated assistant reply in the session history, but writes the full
+        assistant reply to MongoDB when provided.
         """
         ts = datetime.now(SGT_TZ)
         cached = self._cache.get(session_id) or self._new_session(session_id, ts)
@@ -140,7 +142,7 @@ class SessionManager:
             "session_id": session_id,
             "timestamp": ts.isoformat(),
             "user": user_message,
-            "assistant": bot_response,
+            "assistant": bot_response_hist,
         })
         if len(hist) > 5:
             hist = hist[-5:]
@@ -149,7 +151,8 @@ class SessionManager:
         self._cache.set(session_id, cached)
         # Append this turn to MongoDB (no-op if Mongo not configured)
         try:
-            log_history(session_id=session_id, user_message=user_message, assistant_message=bot_response, ts=ts)
+            to_mongo = bot_response_full if bot_response_full is not None else bot_response_hist
+            log_history(session_id=session_id, user_message=user_message, assistant_message=to_mongo, ts=ts)
         except Exception as e:
             logger.warning("Mongo history logging failed for session %s: %s", session_id, e)
         logger.info("Added history entry for session %s.", session_id)
