@@ -17,7 +17,7 @@ travel:
     • Exactly and only include the four USPs listed below as bullets. Each USP MUST be followed by "up to $[amount]" extracted from the knowledge base context. Search the benefit information carefully for the specific coverage amounts for each USP.
     • Format each USP as: "• [USP name] up to $[amount]"
     • If an amount is genuinely not found in the context after thorough search, write "— amount not specified"
-    • Upsell rules: Check the tier order provided in user context. If the recommended tier is the HIGHEST tier (last in the order), add one sentence like "This gives the best coverage for your needs." If NOT the highest tier, optionally mention the next tier up in ONE short sentence if it meaningfully adds value. NEVER invent tier names not in the tier order.
+    • Upsell rules: Check the tier order provided in user context. If the recommended tier is the HIGHEST tier (last in the order), add one sentence like "This gives the best coverage for your needs." Otherwise, you MUST mention the next tier up in ONE short sentence, using the exact next tier name from the tier order, and highlight one concrete added value based on the provided benefits context. NEVER invent tier names or amounts.
     • Keep total response under 4096 characters
   user: |
     [User Inputs]
@@ -60,7 +60,7 @@ maid:
     • Exactly and only include the five USPs listed below as bullets. Each USP MUST be followed by "up to $[amount]" extracted from the knowledge base context. Search the benefit information carefully for the specific coverage amounts for each USP.
     • Format each USP as: "• [USP name] up to $[amount]"
     • If an amount is genuinely not found in the context after thorough search, write "— amount not specified"
-    • Upsell rules: Check the tier order provided in user context. If the recommended tier is the HIGHEST tier (last in the order), add one sentence like "This gives the best coverage for your needs." If NOT the highest tier, optionally mention the next tier up in ONE short sentence if it meaningfully adds value. NEVER invent tier names not in the tier order.
+    • Upsell rules: Check the tier order provided in user context. If the recommended tier is the HIGHEST tier (last in the order), add one sentence like "This gives the best coverage for your needs." Otherwise, you MUST mention the next tier up in ONE short sentence, using the exact next tier name from the tier order, and highlight one concrete added value based on the provided benefits context. NEVER invent tier names or amounts.
     • Keep total response under 4096 characters
   user: |
     [User Inputs]
@@ -96,7 +96,7 @@ car:
     • Give one reason why this coverage fits their needs
     • Include exactly four key benefit bullets selected from the knowledge base context below (no more, no less), each followed by its amount; do not invent amounts
     • If an amount is not present in the provided context, write "— amount not specified"
-    • Optional: Upsell only — one short sentence mentioning the next tier up if it meaningfully adds value; do not downsell
+    • There are no tiers for Car plans; do not upsell or mention tiers
     • Keep total response under 4096 characters
   user: |
     [User Inputs]
@@ -149,7 +149,7 @@ personalaccident:
     • Exactly and only include the four USPs listed below as bullets. Each USP MUST be followed by "up to $[amount]" extracted from the knowledge base context. Search the benefit information carefully for the specific coverage amounts for each USP.
     • Format each USP as: "• [USP name] up to $[amount]"
     • If an amount is genuinely not found in the context after thorough search, write "— amount not specified"
-    • Upsell rules: Check the tier order provided in user context. If the recommended tier is the HIGHEST tier (last in the order), add one sentence like "This gives the best coverage for your needs." If NOT the highest tier, optionally mention the next tier up in ONE short sentence if it meaningfully adds value. NEVER invent tier names not in the tier order.
+    • Upsell rules: Check the tier order provided in user context. If the recommended tier is the HIGHEST tier (last in the order), add one sentence like "This gives the best coverage for your needs." Otherwise, you MUST mention the next tier up in ONE short sentence, using the exact next tier name from the tier order, and highlight one concrete added value based on the provided benefits context. NEVER invent tier names or amounts.
     • Keep total response under 4096 characters
   user: |
     [User Inputs]
@@ -183,7 +183,7 @@ home:
     • Then list the three USPs below. Each USP MUST be followed by "up to $[amount]" extracted from the knowledge base context. Search the benefit information carefully for the specific coverage amounts for each USP.
     • Format each USP as: "• [USP name] up to $[amount]"
     • If an amount is genuinely not found in the context after thorough search, write "— amount not specified"
-    • Upsell rules: Check the tier order provided in user context. If the recommended tier is the HIGHEST tier (last in the order), add one sentence like "This gives the best coverage for your needs." If NOT the highest tier, optionally mention the next tier up in ONE short sentence if it meaningfully adds value. NEVER invent tier names not in the tier order.
+    • Upsell rules: Check the tier order provided in user context. If the recommended tier is the HIGHEST tier (last in the order), add one sentence like "This gives the best coverage for your needs." Otherwise, you MUST mention the next tier up in ONE short sentence, using the exact next tier name from the tier order, and highlight one concrete added value based on the provided benefits context. NEVER invent tier names or amounts.
     • Keep total response under 4096 characters.
   user: |
     [User Inputs]

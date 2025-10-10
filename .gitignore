@@ -16,3 +16,18 @@ Admin/debug_chunks/
 .vscode/
 
 **/venv
+
+.git
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.env
+.logs
+.idea
+.vscode
+dist
+build
+node_modules
+tests
+__tests__
