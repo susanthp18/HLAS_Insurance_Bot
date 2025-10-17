@@ -24,6 +24,8 @@ from .flows.info_flow import InfoFlowHelper
 from .flows.compare_flow import CompareFlowHelper
 from .flows.summary_flow import SummaryFlowHelper
 from .utils.greeting import get_time_based_greeting
+from .lc.history import get_last_n_pairs
+from .utils.product_lex import lexical_product_hint
 
 # Try to import RecFlow with error handling
 try:
@@ -176,12 +178,21 @@ class HlasFlow(Flow[HlasState]):
             else:
                 logger.error("HlasFlow.decide: RecFlow not available but recommendation_status='in_progress'")
                 self.state.session.pop("recommendation_status", None)
+        
+        # Fraud guided intro in progress should bypass orchestrator/constructor as well
+        try:
+            if (self.state.session.get("fraud_stage") or "").strip():
+                logger.info("HlasFlow.decide: Fraud guided intro stage active (%s), bypassing orchestrator to RecFlow", self.state.session.get("fraud_stage"))
+                if RECFLOW_AVAILABLE and RecFlowHelper:
+                    return RecFlowHelper.handle(self.state, {"directive": "continue_recommendation"}, self._logger)
+        except Exception:
+            pass
 
-        elif comparison_status == "in_progress":
+        if comparison_status == "in_progress":
             logger.info("HlasFlow.decide: Comparison in progress, bypassing orchestrator to CompareFlow")
             return CompareFlowHelper.handle(self.state, {}, self._logger)
 
-        elif summary_status == "in_progress":
+        if summary_status == "in_progress":
             logger.info("HlasFlow.decide: Summary in progress, bypassing orchestrator to SummaryFlow")
             return SummaryFlowHelper.handle(self.state, {}, self._logger)
 
@@ -201,58 +212,106 @@ class HlasFlow(Flow[HlasState]):
         # Fall through to orchestrator if no multi-turn flow is active
         logger.debug("HlasFlow.decide: No active multi-turn flow, proceeding to orchestrator")
 
-        # Create structured context for the orchestrator (compact JSON, explicit flags)
+        # Create compact, explicit context for orchestrator
         current_user_message = self.state.message
         product_in_session = self.state.session.get("product") or None
 
-        # Conversation stats and last assistant question flag
-        history = self.state.session.get("history", []) or []
-        history_len = len(history)
-        last_assistant_msg = ""
-        if history:
+        # Early lexical product switch detection with double confirmation
+        try:
+            lex_hint = lexical_product_hint(current_user_message)
+        except Exception:
+            lex_hint = None
+        if lex_hint and (lex_hint != (self.state.product or product_in_session)):
             try:
-                last_assistant_msg = history[-1].get("assistant", "") or ""
-            except Exception:
-                last_assistant_msg = ""
-        has_prior_assistant_question = bool((last_assistant_msg or "").strip().endswith("?"))
-        has_session_pending_flag = bool(self.state.session.get("last_question") or self.state.session.get("_last_info_prod_q"))
+                # Double-confirm via product identifier; instruct conservatively in context
+                probe_ctx = (
+                    f"Message: {current_user_message}\n"
+                    f"Session product: {self.state.product or product_in_session}\n"
+                    f"Proposed switch: {lex_hint}\n\n"
+                    f"Instruction: Confirm only if the message unambiguously refers to 'Proposed switch'. "
+                    f"Prefer explicit product names/brands. Do not infer from generic benefits. "
+                    f"If unsure, return empty product."
+                )
+                prod_probe = run_direct_task(
+                    agent_obj=identify_product_task.agent,
+                    agent_key="product_identifier",
+                    task_key="identify_product",
+                    context_text=probe_ctx,
+                    logger=self._logger,
+                    label="product_identifier.double_confirm.on_decide",
+                ) or {}
+                confirmed = (prod_probe.get("product") or "").strip()
+                conf = float(prod_probe.get("confidence") or 0.0)
+                if confirmed and confirmed.lower() == lex_hint.lower() and conf >= 0.8:
+                    self.state.product = confirmed
+                    self.state.session["product"] = confirmed
+                    # Mark switch for downstream handlers; flows will clean per-flow state
+                    self.state.session["__product_switch_confirmed__"] = True
+                    logger.info("HlasFlow.decide: Product switch confirmed via lexical+LLM - %s", confirmed)
+            except Exception as e:
+                logger.warning("HlasFlow.decide: Double-confirmation failed - %s", str(e))
 
-        # Prepare a short recent conversation window (most recent first) as structured pairs
-        recent_pairs = []
-        if history:
-            recent_turns = history[-1:]
-            recent_turns.reverse()
-            for turn in recent_turns:
-                pair = {}
-                u = turn.get("user", "")
-                a = turn.get("assistant", "")
-                if u:
-                    pair["user"] = u
-                if a:
-                    pair["assistant"] = a
-                if pair:
-                    recent_pairs.append(pair)
+        # Refresh session product after any potential switch before routing
+        product_in_session = self.state.session.get("product") or self.state.product or None
 
-        # Explicit flow flags in a single JSON object
+        history: list = self.state.session.get("history", []) or []
+        history_len = len(history)
+
+        # Pending when a bot question or info-flow clarification is outstanding
+        pending_flag = bool(self.state.session.get("last_question") or self.state.session.get("_last_info_prod_q"))
+
+        # Turn classification: treat pending_flag or last_completed as follow-up candidate
+        last_completed = self.state.session.get("last_completed")
+        
+        if pending_flag:
+            turn = "follow_up_candidate"
+        elif last_completed in ("recommendation", "comparison", "summary"):
+            # After a long bot response, short follow-ups are common; let the orchestrator decide
+            turn = "follow_up_candidate"
+        elif history_len == 0:
+            turn = "first"
+        else:
+            turn = "normal"
+
+        # Compact recent context (most recent first), at most 2 pairs as strings
+        recent_pairs = get_last_n_pairs(self.state.session, n=2)
+        recent_context: list[str] = []
+        for p in recent_pairs:
+            u = p.get("user") or ""
+            a = p.get("assistant") or ""
+            if a:
+                recent_context.append(f"Assistant: {a}")
+            if u:
+                recent_context.append(f"User: {u}")
+
         context_rd_obj = {
-            "current_user_message": current_user_message,
+            "message": current_user_message,
             "session_product": product_in_session,
-            "first_turn": (history_len == 0),
-            "history_len": history_len,
-            "has_prior_assistant_question": has_prior_assistant_question,
-            "has_session_pending_flag": has_session_pending_flag,
-            "recent_conversation": recent_pairs,
+            "turn": turn,
+            "last_completed": self.state.session.get("last_completed") or "none",
+            "pending_flag": pending_flag,
+            "recent_context": recent_context,
         }
         context_rd = json_dumps(context_rd_obj)
 
-        
-        logger.info("HlasFlow.decide: Calling orchestrator - context_len=%d", len(context_rd))
+        # Emphasize the current message at the top for clearer intent detection
+        try:
+            header = (
+                f"CURRENT_MESSAGE: {current_user_message}\n"
+                f"SESSION_PRODUCT: {product_in_session or self.state.product or ''}\n\n"
+                f"[Context JSON]\n"
+            )
+            orchestrator_ctx = header + context_rd
+        except Exception:
+            orchestrator_ctx = context_rd
+
+        logger.info("HlasFlow.decide: Calling orchestrator - context_len=%d", len(orchestrator_ctx))
         
         d = run_direct_task(
             agent_obj=route_decision_task.agent,
             agent_key="orchestrator",
             task_key="route_decision",
-            context_text=context_rd,
+            context_text=orchestrator_ctx,
             logger=self._logger,
             label="orchestrator.route_decision",
         ) or {"directive": "handle_capabilities"}
@@ -272,14 +331,15 @@ class HlasFlow(Flow[HlasState]):
             logger.info("HlasFlow.decide: live_agent intent detected - session flag set and reply prepared")
             return "__done__"
 
-        # --- Safety guard for first-turn follow-up misclassification ---
+        # --- Safety guard (relaxed): only override when truly first turn with no pending flag ---
         try:
             hist_len = len(self.state.session.get("history", []) or [])
         except Exception:
             hist_len = 0
-        if directive == "handle_follow_up" and hist_len == 0:
-            logger.warning("HlasFlow.decide: Orchestrator returned 'handle_follow_up' but no prior conversation exists (hist_len=0). Overriding to 'handle_information'.")
-            directive = "handle_information"
+        if directive == "handle_follow_up":
+            if hist_len == 0 and not (pending_flag or turn == "follow_up_candidate"):
+                logger.warning("HlasFlow.decide: 'handle_follow_up' but no prior context and no pending flag; overriding to 'handle_information'.")
+                directive = "handle_information"
         # --- End guard ---
 
         # --- Observability for follow-up ---
@@ -314,11 +374,18 @@ class HlasFlow(Flow[HlasState]):
 
         if directive == "handle_information":
             logger.info("HlasFlow.decide: Routing to InfoFlow")
+            # Clear any leftover question flag when a fresh info request is detected
+            try:
+                if "last_question" in self.state.session and self.state.message:
+                    self.state.session.pop("last_question", None)
+            except Exception:
+                pass
             return InfoFlowHelper.handle(self.state, {}, self._logger)
 
         if directive == "handle_follow_up":
             # Check if this is a follow-up to a product clarification question
-            if self.state.session.get("_last_info_prod_q"):
+            clarification_follow_up = self.state.session.get("_last_info_prod_q")
+            if clarification_follow_up:
                 self._logger.info("HlasFlow.decide: Handling product clarification follow-up.")
                 
                 # The user's message is the product
@@ -349,9 +416,16 @@ class HlasFlow(Flow[HlasState]):
                     self.state.session.pop("_last_info_prod_q", None)
                     self.state.session.pop("_last_info_user_msg", None)
                     self.state.session.pop("last_question", None)
-                    
-                    self._logger.info("HlasFlow.decide: Re-routing to InfoFlow with original question and clarified product ('%s').", clarified_product)
-                    return InfoFlowHelper.handle(self.state, {}, self._logger)
+                    self._logger.info(
+                        "HlasFlow.decide: Clarified product='%s' for stored question; delegating to follow-up classifier.",
+                        clarified_product,
+                    )
+                else:
+                    self._logger.warning(
+                        "HlasFlow.decide: Product clarification follow-up lacked original question; continuing with current message.")
+                    self.state.session.pop("_last_info_prod_q", None)
+                    self.state.session.pop("_last_info_user_msg", None)
+                    self.state.session.pop("last_question", None)
 
             self._logger.info("HlasFlow.decide: Handling generic follow-up query (pronoun resolution, etc.).")
             
@@ -388,12 +462,12 @@ class HlasFlow(Flow[HlasState]):
                 self.state.session.pop("pending_slot", None)
                 self.state.last_question = None
 
-                # Keep only the immediately previous turn (most recent first)
-                use_history_pairs = list(reversed(history[-1:]))
-                logger.debug("HlasFlow.decide: Follow-up using %d history pairs (no product switch)", len(use_history_pairs))
+                # Keep last 3 pairs (most recent first)
+                use_history_pairs = get_last_n_pairs(self.state.session, n=3)
+                logger.debug("HlasFlow.decide: Follow-up using %d history pairs (product switch)", len(use_history_pairs))
             else:
                 # Prepare recent history window (most recent first)
-                use_history_pairs = list(reversed(history[-1:]))
+                use_history_pairs = get_last_n_pairs(self.state.session, n=3)
                 logger.debug("HlasFlow.decide: Follow-up using %d history pairs (no product switch)", len(use_history_pairs))
 
             context_lines = []
@@ -407,20 +481,23 @@ class HlasFlow(Flow[HlasState]):
                     continue
             convo_context = "\n".join(context_lines)
 
-            # If the last bot response was a recommendation, skip adding prior conversation context
-            skip_context = self.state.session.get("last_completed") == "recommendation"
-            if skip_context:
-                fu_context = (
-                    f"Product: {self.state.session.get('product') or ''}\n"
-                    f"Latest: {self.state.message}\n"
-                )
-                logger.info("HlasFlow.decide: Skipping conversation context for follow-up after recommendation message.")
-            else:
-                fu_context = (
-                    f"Product: {self.state.session.get('product') or ''}\n"
-                    f"Latest: {self.state.message}\n"
-                    f"Recent conversation (most recent first):\n{convo_context}"
-                )
+            # Include available tiers dynamically (avoid hardcoding in prompts)
+            available_tiers_line = ""
+            try:
+                prod_for_tiers = self.state.session.get('product') or self.state.product or ""
+                canon_tiers = CompareFlowHelper._canonical_tiers(prod_for_tiers) if prod_for_tiers else []
+                if canon_tiers:
+                    available_tiers_line = f"Available tiers: {', '.join(canon_tiers)}\n"
+            except Exception:
+                available_tiers_line = ""
+
+            # Always include a small recent conversation window to aid pronoun/tier resolution
+            fu_context = (
+                f"Product: {self.state.session.get('product') or ''}\n"
+                f"{available_tiers_line}"
+                f"Latest: {self.state.message}\n"
+                f"Recent conversation (most recent first):\n{convo_context}"
+            )
 
             logger.info("HlasFlow.decide: Constructing follow-up query - context_len=%d", len(fu_context))
 
@@ -437,21 +514,118 @@ class HlasFlow(Flow[HlasState]):
                        bool(follow_up.get("query")), list(follow_up.keys()))
 
             query = (follow_up.get("query") or self.state.message).strip()
-            # Save constructed query into state for InfoFlow to use
+            constructor_query_type = (follow_up.get("query_type") or "").strip().lower() or "handle_information"
+            constructor_confidence = follow_up.get("routing_confidence", 0.0)
+            constructor_evidence = (follow_up.get("evidence") or "").strip()
+
+            logger.info(
+                "HlasFlow.decide: Constructor output - query_len=%d, type=%s, confidence=%.2f, evidence='%s'",
+                len(query),
+                constructor_query_type,
+                constructor_confidence,
+                constructor_evidence[:100] if constructor_evidence else "(none)",
+            )
+
+            # --- ROUTING COORDINATION: Compare constructor vs orchestrator ---
+            # The orchestrator already decided handle_follow_up, but the constructor provides
+            # a more informed routing suggestion based on query analysis.
+            
+            # Map constructor query_type to orchestrator directives
+            constructor_directive = constructor_query_type
+            
+            # Prefer constructor if:
+            # 1. Confidence >= 0.7 AND
+            # 2. Evidence is present (indicating grounded decision)
+            prefer_constructor = (constructor_confidence >= 0.7 and len(constructor_evidence) > 0)
+            
+            # Check for disagreement: constructor suggests info/summary but orchestrator chose follow_up
+            # (which can lead to comparison misrouting)
+            orchestrator_would_route_comparison = (directive == "handle_follow_up")  # We're in this block
+            
+            final_query_type = constructor_query_type
+            routing_source = "constructor"
+            
+            if prefer_constructor:
+                logger.info(
+                    "HlasFlow.decide: Preferring constructor routing - confidence=%.2f >= 0.7, evidence present",
+                    constructor_confidence
+                )
+                final_query_type = constructor_query_type
+                routing_source = "constructor"
+            else:
+                # Low confidence or missing evidence - evaluate if query is self-contained
+                # If constructor suggests info/summary but confidence is low, still prefer info as safe default
+                if constructor_query_type in ("handle_information", "handle_summary"):
+                    logger.info(
+                        "HlasFlow.decide: Constructor suggests info/summary with low confidence (%.2f), using as safe default",
+                        constructor_confidence
+                    )
+                    final_query_type = constructor_query_type
+                    routing_source = "constructor_safe_default"
+                else:
+                    logger.info(
+                        "HlasFlow.decide: Constructor confidence low (%.2f) and not info/summary, using constructor suggestion anyway",
+                        constructor_confidence
+                    )
+                    final_query_type = constructor_query_type
+                    routing_source = "constructor_fallback"
+            
+            logger.info(
+                "HlasFlow.decide: Final routing decision - type=%s, source=%s, product=%s",
+                final_query_type,
+                routing_source,
+                self.state.session.get("product"),
+            )
+
+            # Clear any lingering clarification flag
+            try:
+                self.state.session.pop("last_question", None)
+            except Exception:
+                pass
+
+            if final_query_type == "plan_only_comparison":
+                self.state.session.pop("_fu_query", None)
+                self.state.message = query
+                logger.info("HlasFlow.decide: Routing follow-up to CompareFlow (source=%s)", routing_source)
+                return CompareFlowHelper.handle(self.state, {"from_follow_up": True}, self._logger)
+
+            if final_query_type == "handle_summary":
+                self.state.session.pop("_fu_query", None)
+                self.state.message = query
+                logger.info("HlasFlow.decide: Routing follow-up to SummaryFlow (source=%s)", routing_source)
+                return SummaryFlowHelper.handle(self.state, {"from_follow_up": True}, self._logger)
+
+            if final_query_type == "handle_recommendation":
+                self.state.session.pop("_fu_query", None)
+                self.state.message = query
+                logger.info("HlasFlow.decide: Routing follow-up to RecFlow (source=%s)", routing_source)
+                if RECFLOW_AVAILABLE and RecFlowHelper:
+                    return RecFlowHelper.handle(self.state, {"directive": "handle_recommendation", "from_follow_up": True}, self._logger)
+                logger.error("HlasFlow.decide: RecFlow not available for follow-up recommendation request.")
+                self.state.reply = "I'm sorry, the recommendation service is temporarily unavailable. Please try again later."
+                return "__done__"
+
+            # Default to information handling
             self.state.session["_fu_query"] = query
-            
-            logger.info("HlasFlow.decide: Follow-up constructed query - length=%d, product=%s, history_pairs=%d",
-                       len(query), self.state.session.get("product"), len(use_history_pairs))
-            
-            # Delegate to InfoFlow for retrieval/synthesis
+            logger.info("HlasFlow.decide: Routing follow-up to InfoFlow (type=%s, source=%s)", final_query_type, routing_source)
             return InfoFlowHelper.handle(self.state, {"use_follow_up_query": True}, self._logger)
 
         if directive == "handle_summary":
             logger.info("HlasFlow.decide: Routing to SummaryFlow")
+            # Clear any stale slot question; summary is a new flow context
+            try:
+                self.state.session.pop("last_question", None)
+            except Exception:
+                pass
             return SummaryFlowHelper.handle(self.state, {}, self._logger)
 
         if directive == "plan_only_comparison":
             logger.info("HlasFlow.decide: Routing to CompareFlow")
+            # Clear any stale slot question; comparison is a new flow context
+            try:
+                self.state.session.pop("last_question", None)
+            except Exception:
+                pass
             return CompareFlowHelper.handle(self.state, {}, self._logger)
 
         if directive == "handle_recommendation":

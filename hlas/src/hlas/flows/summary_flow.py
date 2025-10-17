@@ -7,6 +7,7 @@ from ..tasks import identify_product_task, identify_tiers_task
 from ..prompt_runner import run_direct_task
 from ..tools.benefits_tool import benefits_tool
 from ..llm import azure_llm, azure_response_llm
+from ..utils.product_lex import lexical_product_hint
 
 
 class SummaryFlowHelper:
@@ -29,6 +30,48 @@ class SummaryFlowHelper:
         # ---- Entry & state bootstrap ----
         summary_slot = session.get("summary_slot")
         first_msg = summary_slot is None
+
+        # Early lexical product switch detection with double confirmation
+        try:
+            lex_hint = lexical_product_hint(message or "")
+        except Exception:
+            lex_hint = None
+        session_product = session.get("product") or state.product
+        # Do not switch while rec/compare in-progress
+        if session.get("recommendation_status") == "in_progress" or session.get("comparison_status") == "in_progress":
+            lex_hint = None
+        if lex_hint and session_product and lex_hint != session_product:
+            try:
+                from ..prompt_runner import run_direct_task as _rdt
+                from ..tasks import identify_product_task as _ipt
+                probe_ctx = (
+                    f"Message: {message}\n"
+                    f"Session product: {session_product}\n"
+                    f"Proposed switch: {lex_hint}\n\n"
+                    f"Instruction: Confirm only if the message unambiguously refers to 'Proposed switch'. "
+                    f"Prefer explicit product names/brands. Do not infer from generic benefits. "
+                    f"If unsure, return empty product."
+                )
+                probe = _rdt(
+                    agent_obj=_ipt.agent,
+                    agent_key="product_identifier",
+                    task_key="identify_product",
+                    context_text=probe_ctx,
+                    logger=logger,
+                    label="product_identifier.double_confirm.on_summary",
+                ) or {}
+                confirmed = (probe.get("product") or "").strip()
+                conf = float(probe.get("confidence") or 0.0)
+                if confirmed and confirmed.lower() == lex_hint.lower() and conf >= 0.8:
+                    # Commit switch and clear summary-specific state
+                    state.product = confirmed
+                    session["product"] = confirmed
+                    session.pop("summary_slot", None)
+                    session.pop("summary_status", None)
+                    logger.info("SummaryFlow: Product switch confirmed via lexical+LLM - %s (state cleared)", confirmed)
+            except Exception:
+                pass
+
         if first_msg:
             summary_slot = {"product": None, "tiers": []}
             session["summary_slot"] = summary_slot
@@ -62,6 +105,10 @@ class SummaryFlowHelper:
                         ctx_lines.append("available_tiers=Bronze, Silver, Premier, Platinum")
                     elif pl == "home":
                         ctx_lines.append("available_tiers=Silver, Gold, Platinum")
+                    elif pl == "fraud":
+                        ctx_lines.append("available_tiers=Gold, Platinum")
+                    elif pl == "hospital":
+                        ctx_lines.append("available_tiers=Silver, Premier, Titanium")
                     elif pl == "early":
                         ctx_lines.append("available_tiers=None (Early has no tiers)")
                     elif pl == "car":
@@ -104,7 +151,7 @@ class SummaryFlowHelper:
                 pass
             # Fallbacks
             if await_key == "product":
-                return "Which product would you like summarized: Travel, Maid, Car, Personal Accident, or Home?"
+                return "Which product would you like summarized: Travel, Maid, Car, Personal Accident, Home, Fraud, Hospital, or Early?"
             if await_key == "tiers":
                 prod = (product_hint or "").lower()
                 if prod == "travel":
@@ -115,6 +162,8 @@ class SummaryFlowHelper:
                     return "Which Personal Accident tier(s) should I summarize? Available: Bronze, Silver, Premier, Platinum"
                 if prod == "home":
                     return "Which Home tier(s) should I summarize? Available: Silver, Gold, Platinum"
+                if prod == "fraud":
+                    return "Which Fraud tier(s) should I summarize? Available: Gold, Platinum"
                 if prod == "car":
                     return "Car has no tiers. Which aspects should I summarize?"
                 return "Which tier(s) should I summarize?"

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 import yaml
 import logging
+import os
 from threading import Lock
 
 logger = logging.getLogger(__name__)
@@ -17,8 +18,14 @@ try:
 except Exception:
     get_redis = None  # type: ignore
 
+VERBOSE_STARTUP = (os.environ.get("HLAS_LOG_STARTUP_ALWAYS", "").strip().lower() in ("1", "true", "yes"))
+
+
 def _log_once(key: str, level: int, message: str):
     try:
+        if VERBOSE_STARTUP:
+            logger.log(level, message)
+            return
         if get_redis is None:
             logger.log(level, message)
             return
@@ -64,11 +71,7 @@ class ConfigLoader:
             agents_path = self._config_dir / "agents.yaml"
             with open(agents_path, "r", encoding="utf-8") as f:
                 self._agents_spec = yaml.safe_load(f) or {}
-            _log_once(
-                key="config_agents_loaded",
-                level=logging.INFO,
-                message=f"ConfigLoader: Loaded agents.yaml - {len(self._agents_spec)} agents defined",
-            )
+            logger.info("ConfigLoader: Loaded agents.yaml - %d agents defined", len(self._agents_spec))
         except Exception as e:
             logger.error("ConfigLoader: Failed to load agents.yaml - %s", str(e))
             self._agents_spec = {}
@@ -78,11 +81,7 @@ class ConfigLoader:
             tasks_path = self._config_dir / "tasks.yaml"
             with open(tasks_path, "r", encoding="utf-8") as f:
                 self._tasks_spec = yaml.safe_load(f) or {}
-            _log_once(
-                key="config_tasks_loaded",
-                level=logging.INFO,
-                message=f"ConfigLoader: Loaded tasks.yaml - {len(self._tasks_spec)} tasks defined",
-            )
+            logger.info("ConfigLoader: Loaded tasks.yaml - %d tasks defined", len(self._tasks_spec))
         except Exception as e:
             logger.error("ConfigLoader: Failed to load tasks.yaml - %s", str(e))
             self._tasks_spec = {}

@@ -4,10 +4,10 @@ identify_product:
     If the user's message is exactly one product name or a known alias (case-insensitive) and contains no conflicting references, return that product with confidence 1.0 and do not include a question.
     For non-unique tier names ("Basic", "Silver", "Gold", "Premier", "Platinum"), require additional product cues; otherwise, ask a short clarification question.
     If ambiguous, provide a short clarification question.
-    Return a JSON object.
+    Return only a single JSON object. No extra text.
   agent: "product_identifier"
   expected_output: |
-    { "product": "Travel" | "Maid" | "Car" | "PersonalAccident" | "Home" | "Early" | "", "confidence": 0.0-1.0, "question"?: string }
+    { "product": "Travel" | "Maid" | "Car" | "PersonalAccident" | "Home" | "Early" | "Fraud" | "Hospital" | "", "confidence": 0.0-1.0, "question"?: string }
 
 
 
@@ -15,10 +15,11 @@ identify_tiers:
   description: |
     Identify which tiers to compare for a given product from the user's message and recent session context.
     - Inputs (via context): Product, User message, Recent history window (optional)
-    - Output 2+ tiers when available for Travel/Maid; for Car, indicate that tiers do not apply.
+    - Output 2+ tiers when available for Travel/Maid/PersonalAccident/Home/Fraud/Hospital; for Car and Early, indicate that tiers do not apply.
     - If the message indicates an aggregate request (e.g., "across plans", "all plans", "across all plans", "any plan", "all of them"), return the full set of valid tiers for the product.
     - For products with no tiers (Car, Early), respond with a concise clarification noting there are no tiers and ask which aspects to compare.
     If ambiguous or insufficient, return a short clarification question.
+    Return only a single JSON object. No extra text.
   agent: "tier_identifier"
   expected_output: |
     { "product": "<product>", "tiers": ["<tier>", "<tier>", ...], "question"?: "<short>" }
@@ -32,6 +33,7 @@ followup_clarification:
     - known tiers (optional)
     - recent history (optional)
     - flow_type: comparison|summary (optional, defaults to comparison)
+    Return only a single JSON object. No extra text.
   agent: "followup_clarification_agent"
   expected_output: |
     { "question": "<short question>", "options"?: ["<opt>"] }
@@ -61,6 +63,7 @@ extract_slots:
       * Yes/No slots → ask a clear (Yes/No) question
       * Choice-based slots → ask the user to choose one of the listed options
       * Value slots → ask for the specific value in the expected format/range (NEVER Yes/No)
+    Return only a single JSON object. No extra text.
   agent: "slot_extractor"
   expected_output: |
     {
@@ -93,6 +96,7 @@ validate_slot:
     - Reference the user's input when helpful (e.g., "'Karur' appears to be a city" or "Sep 2020 is in the past").
     - Keep questions short and actionable (<25 words when possible).
     - Pattern: "<Brief reason>. <Clear instruction for what to provide>."
+    Return only a single JSON object. No extra text.
   agent: "slot_validator"
   expected_output: |
     { "valid": true|false, "slot_name": string, "normalized_value"?: string, "question"?: string, "reason"?: string }
@@ -100,32 +104,66 @@ validate_slot:
  
 route_decision:
   description: |
-    Decide a single high-level directive for the current turn using a compact JSON context.
-    The user content you receive is a JSON object with fields:
-      - current_user_message: string
-      - session_product: string|null
-      - first_turn: boolean
-      - history_len: integer
-      - has_prior_assistant_question: boolean
-      - has_session_pending_flag: boolean (e.g., last_question or a pending info-flow flag)
-      - recent_conversation: [ { user?: string, assistant?: string } ] (most recent first, up to 1 pair)
+    Context JSON fields:
+      - message
+      - session_product
+      - turn (first | follow_up_candidate | normal)
+      - last_completed (recommendation | comparison | summary | none)
+      - pending_flag (boolean)
+      - recent_context (string[]; most recent first, up to 2 short lines)
+    
+    Output Requirements:
+    - Return directive with optional evidence field citing words/entities from message or recent_context
+    - Evidence is required for plan_only_comparison (must cite tier names or comparison verbs)
+    - When in doubt between plan_only_comparison and handle_information, prefer handle_information
+    
+    Return only a single JSON object. No extra text.
   agent: "orchestrator"
   expected_output: |
-    { "directive": "greet" | "handle_recommendation" | "handle_information" | "handle_follow_up" | "plan_only_comparison" | "handle_summary" | "handle_capabilities" | "live_agent" | "handle_other" }
+    { "directive": "greet" | "handle_recommendation" | "handle_information" | "handle_follow_up" | "plan_only_comparison" | "handle_summary" | "handle_capabilities" | "live_agent" | "handle_other", "evidence"?: "<optional: tokens/entities from message or context>" }
 
 construct_follow_up_query:
   description: |
-    Build a standalone, precise question/query for retrieval from a follow-up message.
+    Intelligently analyze if the user message needs context reconstruction, and only construct a follow-up query if necessary. Classify the resulting query with confidence and explicit evidence so the orchestrator can route it reliably.
+
     Inputs (via context):
     - Product
     - Latest user message
-    - Recent conversation window (up to 5 turns with user/assistant pairs)
-    Goals:
-    - Resolve pronouns/deixis ("that", "those", "what about limits?") using the window
-    - Avoid adding assumptions; prefer quoting exact entities/benefits from the context when possible
-    - Output exactly one concise question that can be answered directly by the knowledge base
+    - Recent conversation window (up to 3 most recent turns)
+
+    Analysis Steps:
+    1. Check if the message is already self-contained and clear
+    2. If yes, return the original message as-is in the query field
+    3. If no (contains pronouns, vague references, or incomplete context):
+       • Resolve pronouns and references using recent conversation
+       • Include product name and specific benefit/tier being discussed
+       • Create a precise, self-contained question
+       • Do NOT add assumptions or invent facts
+
+    Query Classification with Evidence:
+    • Set `query_type` using orchestrator directives
+    • Provide `routing_confidence` (0.0-1.0) based on clarity of intent
+    • Provide `evidence` citing only tokens/entities from user message or conversation:
+      - plan_only_comparison → ONLY when comparing plans/tiers as a whole (not specific aspects like benefits/conditions/exclusions)
+      - handle_summary → ONLY when summarizing plan/tier as a whole (not specific aspects like conditions/eligibility/exclusions)
+      - handle_recommendation → user asks for a recommendation/quote/plan suggestion
+      - handle_information → default for ALL aspect-specific queries (conditions, eligibility, exclusions, benefits, claims) even with "summarize"/"compare" verbs
+
+    Evidence Rules:
+    • Cite only words/entities present in user message or recent conversation
+    • DO NOT introduce tiers, benefits, or entities not mentioned by user
+    • If user asks about exclusions, policy details, coverage specifics → route to handle_information with confidence >= 0.8
+    • If fewer than two tiers mentioned and no explicit comparison verb → route to handle_information
+
+    Examples:
+    - "compare all plans" → {query: "compare all Travel insurance plans", query_type: "plan_only_comparison", routing_confidence: 0.9, evidence: "compare plans"}
+    - "summarise that plan for me" → {query: "summarise the Travel insurance Silver plan", query_type: "handle_summary", routing_confidence: 0.85, evidence: "summarise + plan"}
+    - "summarize eligibility conditions" → {query: "summarize eligibility conditions for Fraud insurance", query_type: "handle_information", routing_confidence: 0.9, evidence: "eligibility conditions"}
+    - "what are the exclusions" → {query: "what are the exclusions for Travel insurance", query_type: "handle_information", routing_confidence: 0.95, evidence: "exclusions"}
+
+    Return only a single JSON object. No extra text.
   agent: "follow_up_agent"
   expected_output: |
-    { "query": "<standalone follow-up query>" }
+    { "query": "<standalone query or original message>", "query_type": "plan_only_comparison" | "handle_summary" | "handle_recommendation" | "handle_information", "routing_confidence": 0.0-1.0, "evidence": "<tokens/entities cited from user message or conversation>" }
 
 

@@ -17,6 +17,10 @@ AZURE_OPENAI_API_KEY = os.environ.get("AZURE_OPENAI_API_KEY")
 AZURE_OPENAI_API_VERSION = os.environ.get("AZURE_OPENAI_API_VERSION")
 AZURE_OPENAI_CHAT_DEPLOYMENT_NAME = os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME")
 AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME = os.environ.get("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME")
+# Allow embeddings to use a separate Azure resource if provided; otherwise fall back to chat resource
+AZURE_OPENAI_EMBEDDING_ENDPOINT = os.environ.get("AZURE_OPENAI_EMBEDDING_ENDPOINT") or AZURE_OPENAI_ENDPOINT
+AZURE_OPENAI_EMBEDDING_API_KEY = os.environ.get("AZURE_OPENAI_EMBEDDING_API_KEY") or AZURE_OPENAI_API_KEY
+AZURE_OPENAI_EMBEDDING_API_VERSION = os.environ.get("AZURE_OPENAI_EMBEDDING_API_VERSION") or AZURE_OPENAI_API_VERSION
 # Optional model behavior tuning
 AZURE_OPENAI_TEMPERATURE_STR = os.environ.get("AZURE_OPENAI_TEMPERATURE", "0.2")
 # Response generation model configuration (can be set to different deployment)
@@ -144,10 +148,10 @@ def initialize_models():
 
             # Always initialize Azure embeddings (used by retrieval)
             globals()["azure_embeddings"] = AzureOpenAIEmbeddings(
-                azure_endpoint=AZURE_OPENAI_ENDPOINT,
-                api_key=AZURE_OPENAI_API_KEY,
+                azure_endpoint=AZURE_OPENAI_EMBEDDING_ENDPOINT,
+                api_key=AZURE_OPENAI_EMBEDDING_API_KEY,
                 azure_deployment=AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME,
-                openai_api_version=AZURE_OPENAI_API_VERSION,
+                openai_api_version=AZURE_OPENAI_EMBEDDING_API_VERSION,
             )
             try:
                 from .log_once import log_once_info
@@ -198,10 +202,10 @@ def initialize_models():
 
             # Create Embeddings instance (Azure)
             globals()["azure_embeddings"] = AzureOpenAIEmbeddings(
-                azure_endpoint=AZURE_OPENAI_ENDPOINT,
-                api_key=AZURE_OPENAI_API_KEY,
+                azure_endpoint=AZURE_OPENAI_EMBEDDING_ENDPOINT,
+                api_key=AZURE_OPENAI_EMBEDDING_API_KEY,
                 azure_deployment=AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME,
-                openai_api_version=AZURE_OPENAI_API_VERSION,
+                openai_api_version=AZURE_OPENAI_EMBEDDING_API_VERSION,
             )
             try:
                 from .log_once import log_once_info

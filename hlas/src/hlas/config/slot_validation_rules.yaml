@@ -1,3 +1,15 @@
+
+fraud:
+  purchase_frequency:
+    - "Your goal is to normalize how often the user shops online. Accept and normalize to one of: 'daily', 'weekly', 'monthly', 'rarely'."
+    - "1. Recognize common phrases: 'every day', 'everyday', '7 days a week' → 'daily'; 'once a week', 'twice a week' → 'weekly'; 'once a month', 'twice a month' → 'monthly'; 'rarely', 'occasionally', 'few times a year', 'seldom' → 'rarely'."
+    - "2. If ambiguous or not a frequency, validation fails. Ask: 'How often do you shop online? (daily, weekly, monthly)'."
+    - "3. Normalized value must be the lowercase keyword (e.g., 'daily')."
+  scam_exp:
+    - "Your goal is to determine if the user has experienced or almost fallen for an online scam. Normalize to one of: 'yes', 'almost', 'no'."
+    - "1. Accept common variants: 'yes', 'y', 'yep', 'scammed' → 'yes'; 'almost', 'nearly', 'close call' → 'almost'; 'no', 'nope', 'never' → 'no'."
+    - "2. If unclear, ask: 'Have you ever experienced or almost fallen for an online scam? (Yes/Almost/No)'."
+
 travel:
   coverage_scope:
     - "Your goal is to determine if the policy should cover just the individual ('self') or their family."
@@ -5,12 +17,12 @@ travel:
     - "2. **Handle Failure**: If the input cannot be confidently normalized to 'self' or 'family', validation fails. Ask directly: 'Please specify if the coverage is for yourself or for your family.'"
   destination:
     - "Your goal is to identify and validate a destination country from the user's message."
-    - "1. **Validate Country**: Check if the input is a recognizable country name. If an abbreviation is provided (e.g., 'US', 'USA', 'UK', 'UAE'), do NOT accept it. Ask for the full country name instead."
+    - "1. **Validate Country**: Check if the input is a recognizable country name. Accept only full country names, with the exception of the following standard abbreviations which MUST be auto-normalized: US/USA → 'United States', UK → 'United Kingdom', UAE → 'United Arab Emirates'."
     - "2. **Handle Cities/Places**: If the user mentions a city or place (e.g., 'Paris', 'Bali', 'Tokyo'), DO NOT infer the country. Ask explicitly: 'Which country will you be travelling to? Please provide the country name.'"
     - "3. **Handle Multiple Countries**: If the user mentions multiple countries (e.g., 'France and Spain'), ask them to specify the primary destination: 'That sounds like a great trip! Which country will you be spending the most time in?'"
     - "4. **Handle Invalid Input**: If the input is not a recognizable country name, ask: 'Could you please tell me which country you'll be travelling to?'"
     - "5. **Handle 'I Don't Know'**: If the user says they don't know, ask: 'Please let me know the country you're planning to visit so I can find the right plan for you.'"
-    - "6. **Normalize**: Only when a full country name is provided, normalize to the standard English country name. Do NOT derive a country from city/place names, and do NOT auto-normalize abbreviations."
+    - "6. **Normalize**: Normalize to the standard English country name (e.g., 'United States' not 'USA'). For abbreviations, only normalize the explicit whitelist: US/USA, UK, UAE. Do NOT derive a country from city/place names, and do NOT auto-normalize other abbreviations."
     - "Strictly ignore any other information like dates or durations."
 
 maid:
@@ -48,9 +60,10 @@ personalaccident:
     - "2. **Handle Failure**: If the input is ambiguous ('it depends') or you cannot confidently classify the provided occupation, validation fails. You MUST then ask for the user's occupation directly so you can classify it. For example: 'To determine the risk level, could you please tell me your occupation?'"
   desired_amount:
     - "Your goal is to validate the desired coverage amount is a number between 500 and 3500."
-    - "1. **Validate Input**: Check if the user's input is a number and if it falls within the range of 500 to 3500, inclusive."
-    - "2. **Handle Failure**: If the input is not a number or is outside the valid range, validation fails. Your question MUST explain the error and state the valid range. For example: 'The amount you provided is not valid. Please provide an amount between $500 and $3,500.'"
-    - "If valid, the `normalized_value` must be the number as a string."
+    - "1. **Normalize Input**: Extract digits from the user's input; accept currency symbols and commas (e.g., '$2,500' → '2500')."
+    - "2. **Validate Range**: After normalization, check the number falls within 500 to 3500, inclusive."
+    - "3. **Handle Failure**: If the input is not numeric after normalization or is outside the valid range, validation fails. Your question MUST explain the error and state the valid range. For example: 'The amount you provided is not valid. Please provide an amount between $500 and $3,500.'"
+    - "If valid, the `normalized_value` must be the number as a string (e.g., '1500')."
 
 home:
   risk_concerns:
@@ -75,3 +88,24 @@ early:
     - "Your goal is to determine if the user has family members who rely on their income or care. Normalize to 'yes' or 'no'."
     - "1. **Normalize Input**: Accept variants like 'yes', 'y', 'yep', 'sure' → 'yes'; 'no', 'nope', 'nah' → 'no'."
     - "2. **Handle Ambiguity**: If unclear, ask: 'Do you have family members who rely on your income or care? (Yes/No)'"
+
+hospital:
+  age:
+    - "Your goal is to capture the user's age or age range. Accept a reasonable age (e.g., 18–100) or one of: 'below 25', '25-35', '36-45', 'above 45'."
+    - "1. **Normalize Input**: If a number is provided, extract digits (e.g., 'I'm 28' → '28'). If a range/label is provided, keep the label as-is."
+    - "2. **Validate**: If numeric age is < 15 or > 110, treat as invalid."
+    - "3. **Handle Failure**: Ask: 'May I know how old you are? (below 25, 25-35, 36-45, above 45 or a number)'"
+  occupation:
+    - "Your goal is to record a short free-text occupation description."
+    - "1. **Validate**: Accept any non-empty job-like phrase (e.g., 'teacher', 'software engineer', 'driver')."
+    - "2. **Handle Failure**: Ask: 'What best describes your occupation?'"
+  support:
+    - "Your goal is to determine if the user is supporting anyone financially. Normalize to 'yes' or 'no'."
+    - "1. **Normalize Input**: Accept variants like 'yes', 'y', 'yep', 'sure' → 'yes'; 'no', 'nope', 'nah' → 'no'."
+    - "2. **Handle Ambiguity**: Ask: 'Are you currently supporting anyone financially (e.g., Spouse, Children, Parents)? (Yes/No)'"
+  coverage:
+    - "Your goal is to validate the desired daily hospital cash coverage. Normalize to one of: '100', '200', '300'."
+    - "1. **Normalize Input**: Extract digits from input; accept formats like '$200/day', '200 per day' (→ '200')."
+    - "2. **Validate**: If the number is not 100, 200, or 300, validation fails."
+    - "3. **Handle Failure**: Ask: 'How much daily coverage are you comfortable with? Please choose $100/day, $200/day, or $300/day.'"
+    - "If valid, the `normalized_value` must be the number as a string (e.g., '200')."

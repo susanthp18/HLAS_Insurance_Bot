@@ -7,6 +7,7 @@ from ..tasks import identify_product_task, identify_tiers_task
 from ..prompt_runner import run_direct_task
 from ..llm import azure_llm, azure_response_llm
 from ..tools.benefits_tool import benefits_tool
+from ..utils.product_lex import lexical_product_hint
 
 
 class CompareFlowHelper:
@@ -22,12 +23,69 @@ class CompareFlowHelper:
     """
 
     @staticmethod
+    def _canonical_tiers(product: str) -> list[str]:
+        p = (product or "").lower()
+        if p == "travel":
+            return ["Basic", "Silver", "Gold", "Platinum"]
+        if p == "maid":
+            return ["Basic", "Enhanced", "Premier", "Exclusive"]
+        if p == "personalaccident":
+            return ["Bronze", "Silver", "Premier", "Platinum"]
+        if p == "home":
+            return ["Silver", "Gold", "Platinum"]
+        if p == "fraud":
+            return ["Gold", "Platinum"]
+        if p == "hospital":
+            return ["Silver", "Premier", "Titanium"]
+        return []
+
+    @staticmethod
     def handle(state: Any, decision: Dict[str, Any], logger: logging.Logger) -> str:
         # ---- Entry & state bootstrap ----
         session = state.session if isinstance(getattr(state, "session", None), dict) else {}
         message = state.message or ""
         comparison_slot = session.get("comparison_slot")
         first_msg = comparison_slot is None
+
+        # Early lexical product switch detection with double confirmation
+        comparison_status = session.get("comparison_status")
+        if comparison_status == "done":
+            try:
+                lex_hint = lexical_product_hint(message or "")
+            except Exception:
+                lex_hint = None
+            session_product = session.get("product") or state.product
+            if lex_hint and session_product and lex_hint != session_product:
+                try:
+                    from ..prompt_runner import run_direct_task as _rdt
+                    from ..tasks import identify_product_task as _ipt
+                    probe_ctx = (
+                        f"Message: {message}\n"
+                        f"Session product: {session_product}\n"
+                        f"Proposed switch: {lex_hint}\n\n"
+                        f"Instruction: Confirm only if the message unambiguously refers to 'Proposed switch'. "
+                        f"Prefer explicit product names/brands. Do not infer from generic benefits. "
+                        f"If unsure, return empty product."
+                    )
+                    probe = _rdt(
+                        agent_obj=_ipt.agent,
+                        agent_key="product_identifier",
+                        task_key="identify_product",
+                        context_text=probe_ctx,
+                        logger=logger,
+                        label="product_identifier.double_confirm.on_compare",
+                    ) or {}
+                    confirmed = (probe.get("product") or "").strip()
+                    conf = float(probe.get("confidence") or 0.0)
+                    if confirmed and confirmed.lower() == lex_hint.lower() and conf >= 0.8:
+                        # Commit switch and clear compare-specific state
+                        state.product = confirmed
+                        session["product"] = confirmed
+                        session.pop("comparison_slot", None)
+                        session.pop("comparison_status", None)
+                        logger.info("CompareFlow: Product switch confirmed via lexical+LLM - %s (state cleared)", confirmed)
+                except Exception:
+                    pass
 
         # Initialize comparison_slot on first message
         if first_msg:
@@ -64,6 +122,10 @@ class CompareFlowHelper:
                         ctx_lines.append("available_tiers=Bronze, Silver, Premier, Platinum")
                     elif prod_lower == "home":
                         ctx_lines.append("available_tiers=Silver, Gold, Platinum")
+                    elif prod_lower == "fraud":
+                        ctx_lines.append("available_tiers=Gold, Platinum")
+                    elif prod_lower == "hospital":
+                        ctx_lines.append("available_tiers=Silver, Premier, Titanium")
                     elif prod_lower == "early":
                         ctx_lines.append("available_tiers=None (Early has no tiers)")
                     elif prod_lower == "car":
@@ -124,7 +186,7 @@ class CompareFlowHelper:
                 pass
             # Fallbacks
             if await_key == "product":
-                return "Which product would you like to compare: Travel, Maid, Car, Personal Accident, Home, or Early?"
+                return "Which product would you like to compare: Travel, Maid, Car, Personal Accident, Home, Fraud, Hospital, or Early?"
             if await_key == "tiers":
                 prod = (product_hint or "").lower()
                 if prod == "travel":
@@ -135,6 +197,8 @@ class CompareFlowHelper:
                     return "Which Personal Accident tiers would you like to compare? Available: Bronze, Silver, Premier, Platinum"
                 if prod == "home":
                     return "Which Home tiers would you like to compare? Available: Silver, Gold, Platinum"
+                if prod == "fraud":
+                    return "Which Fraud tiers would you like to compare? Available: Gold, Platinum"
                 if prod == "car":
                     return "Car has no tiers to compare. Which aspects would you like me to compare?"
                 if prod == "early":
@@ -248,6 +312,22 @@ class CompareFlowHelper:
 
         product = (comparison_slot.get("product") or "").strip()
         tiers_list = comparison_slot.get("tiers") or []
+
+        # Normalize tiers to canonical names and order for the product
+        if product:
+            canonical = CompareFlowHelper._canonical_tiers(product)
+            if canonical:
+                # Map found tiers to canonical casing; drop duplicates, preserve user order then stabilize by canonical order
+                normalized: list[str] = []
+                for t in tiers_list:
+                    t_low = str(t or "").strip().lower()
+                    # find canonical match case-insensitively
+                    can_name = next((c for c in canonical if c.lower() == t_low), None)
+                    if can_name and can_name not in normalized:
+                        normalized.append(can_name)
+                # Reorder by canonical sequence while keeping only those requested
+                if normalized:
+                    tiers_list = sorted(normalized, key=lambda x: canonical.index(x))
 
         # Handle missing product
         if not product:

@@ -29,20 +29,34 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Hardcoded Azure OpenAI configuration (per request)
+# Chat/completion endpoint
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
 AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
 AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
 AZURE_OPENAI_CHAT_DEPLOYMENT_NAME = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME")
+
+# Separate embedding endpoint (different resource)
+AZURE_OPENAI_EMBEDDING_ENDPOINT = os.getenv("AZURE_OPENAI_EMBEDDING_ENDPOINT")
+AZURE_OPENAI_EMBEDDING_API_KEY = os.getenv("AZURE_OPENAI_EMBEDDING_API_KEY")
+AZURE_OPENAI_EMBEDDING_API_VERSION = os.getenv("AZURE_OPENAI_EMBEDDING_API_VERSION")
 AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME")
 
-_azure_client = AzureOpenAI(
+# Chat client (uses main endpoint)
+_azure_chat_client = AzureOpenAI(
     api_key=AZURE_OPENAI_API_KEY,
     api_version=AZURE_OPENAI_API_VERSION,
     azure_endpoint=AZURE_OPENAI_ENDPOINT.rstrip("/"),
 )
 
+# Embedding client (uses separate embedding endpoint)
+_azure_embed_client = AzureOpenAI(
+    api_key=AZURE_OPENAI_EMBEDDING_API_KEY,
+    api_version=AZURE_OPENAI_EMBEDDING_API_VERSION,
+    azure_endpoint=AZURE_OPENAI_EMBEDDING_ENDPOINT.rstrip("/"),
+)
+
 def azure_chat(system_text: str, user_text: str) -> str:
-    resp = _azure_client.chat.completions.create(
+    resp = _azure_chat_client.chat.completions.create(
         model=AZURE_OPENAI_CHAT_DEPLOYMENT_NAME,
         temperature=0.2,
         messages=[
@@ -53,7 +67,7 @@ def azure_chat(system_text: str, user_text: str) -> str:
     return (resp.choices[0].message.content or "").strip()
 
 def azure_embed(text: str) -> list:
-    emb = _azure_client.embeddings.create(
+    emb = _azure_embed_client.embeddings.create(
         model=AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME,
         input=text,
     )

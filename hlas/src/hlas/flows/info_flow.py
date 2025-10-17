@@ -9,6 +9,7 @@ from pathlib import Path
 import yaml
 # Import TargetVectors and Filter for the query
 from weaviate.classes.query import TargetVectors, Filter
+from ..utils.product_lex import lexical_product_hint
 
 
 class InfoFlowHelper:
@@ -25,6 +26,46 @@ class InfoFlowHelper:
                    bool(decision.get("use_follow_up_query") and state.session.get("_fu_query")), 
                    state.product, 
                    len(state.message or ""))
+
+        # Early lexical product switch detection with double confirmation (only if session/product exists and differs)
+        try:
+            lex_hint = lexical_product_hint(state.message or "")
+        except Exception:
+            lex_hint = None
+        session_product = state.session.get("product") or state.product
+        # Do not switch while rec/compare in-progress
+        if state.session.get("recommendation_status") == "in_progress" or state.session.get("comparison_status") == "in_progress":
+            lex_hint = None
+        if lex_hint and session_product and lex_hint != session_product:
+            try:
+                probe_ctx = (
+                    f"Message: {state.message}\n"
+                    f"Session product: {session_product}\n"
+                    f"Proposed switch: {lex_hint}\n\n"
+                    f"Instruction: Confirm only if the message unambiguously refers to 'Proposed switch'. "
+                    f"Prefer explicit product names/brands. Do not infer from generic benefits. "
+                    f"If unsure, return empty product."
+                )
+                prod_probe = run_direct_task(
+                    agent_obj=identify_product_task.agent,
+                    agent_key="product_identifier",
+                    task_key="identify_product",
+                    context_text=probe_ctx,
+                    logger=logger,
+                    label="product_identifier.double_confirm.on_info",
+                ) or {}
+                confirmed = (prod_probe.get("product") or "").strip()
+                conf = float(prod_probe.get("confidence") or 0.0)
+                if confirmed and confirmed.lower() == lex_hint.lower() and conf >= 0.8:
+                    state.product = confirmed
+                    state.session["product"] = confirmed
+                    # Clear any stale info clarification flags on switch
+                    state.session.pop("_last_info_prod_q", None)
+                    state.session.pop("_last_info_user_msg", None)
+                    state.session.pop("last_question", None)
+                    logger.info("InfoFlow: Product switch confirmed via lexical+LLM - %s", confirmed)
+            except Exception:
+                pass
 
         question = state.message
         use_fast_path = False
@@ -50,35 +91,42 @@ class InfoFlowHelper:
                     logger.info("InfoFlow.fast_path: constructed query available (len=%d) but missing product context; proceeding to product identification.", len(fu_q))
 
         if not use_fast_path:
-            # Ensure product
+            # Ensure product - prioritize session product to avoid unnecessary LLM calls
             if not state.product:
-                prod = run_direct_task(
-                    agent_obj=identify_product_task.agent,
-                    agent_key="product_identifier",
-                    task_key="identify_product",
-                    context_text=f"Message: {state.message}\nSession product: {state.session.get('product')}",
-                    logger=logger,
-                    label="product_identifier.identify_product",
-                ) or {}
-                
-                logger.info("InfoFlow.identify_product: product=%s, confidence=%s, has_question=%s",
-                           prod.get("product"),
-                           prod.get("confidence"),
-                           bool(prod.get("question")))
-                if prod.get("product"):
-                    state.product = prod.get("product")
-                    state.session["product"] = state.product
-                    logger.info("InfoFlow.product_resolved: %s", state.product)
+                # First check if session already has a product
+                session_product = state.session.get("product")
+                if session_product:
+                    state.product = session_product
+                    logger.info("InfoFlow.product_from_session: Using session product '%s', skipping LLM identification", state.product)
                 else:
-                    # Persist a hint that InfoFlow asked for product clarification,
-                    # and save the original user message to reconstruct query on the next turn
-                    state.session["_last_info_prod_q"] = True
-                    state.session["_last_info_user_msg"] = state.message
-                    logger.info("InfoFlow.product_clarification: Requesting product clarification, saved user message")
+                    # No session product, need to identify via LLM
+                    prod = run_direct_task(
+                        agent_obj=identify_product_task.agent,
+                        agent_key="product_identifier",
+                        task_key="identify_product",
+                        context_text=f"Message: {state.message}\nSession product: {state.session.get('product')}",
+                        logger=logger,
+                        label="product_identifier.identify_product",
+                    ) or {}
                     
-                    q = prod.get("question") or "Which product would you like to ask about: Travel, Maid, Car, Personal Accident, Home, or Early?"
-                    state.reply = q
-                    return "__done__"
+                    logger.info("InfoFlow.identify_product: product=%s, confidence=%s, has_question=%s",
+                               prod.get("product"),
+                               prod.get("confidence"),
+                               bool(prod.get("question")))
+                    if prod.get("product"):
+                        state.product = prod.get("product")
+                        state.session["product"] = state.product
+                        logger.info("InfoFlow.product_resolved: %s", state.product)
+                    else:
+                        # Persist a hint that InfoFlow asked for product clarification,
+                        # and save the original user message to reconstruct query on the next turn
+                        state.session["_last_info_prod_q"] = True
+                        state.session["_last_info_user_msg"] = state.message
+                        logger.info("InfoFlow.product_clarification: Requesting product clarification, saved user message")
+                        
+                        q = prod.get("question") or "Which product would you like to ask about: Travel, Maid, Car, Personal Accident, Home, or Early?"
+                        state.reply = q
+                        return "__done__"
     
             # Hybrid multi-vector search (BM25 + content_vector + questions_vector), filtered by product
 
@@ -139,7 +187,7 @@ class InfoFlowHelper:
             emb = azure_embeddings.embed_query(question)
             logger.info("InfoFlow.embedding: Successfully generated embeddings")
         except Exception as e:
-            logger.warning("InfoFlow.embedding: Failed to generate embeddings - %s, falling back to BM25", str(e))
+            logger.error("InfoFlow.embedding: Failed to generate embeddings - %s", str(e))
 
         # Perform hybrid search
         objects = []
@@ -168,21 +216,7 @@ class InfoFlowHelper:
                 objects = []
 
         if not objects:
-            try:
-                logger.info("InfoFlow.search: Falling back to BM25 search")
-                result = collection.query.bm25(
-                    query=question,
-                    filters=Filter.by_property("product_name").equal(product),
-                    limit=5,
-                    return_properties=["content", "product_name", "doc_type", "source_file"],
-                )
-                objects = getattr(result, "objects", []) or []
-                search_method = "bm25"
-                logger.info("InfoFlow.search: BM25 search completed - results=%d", len(objects))
-            except Exception as e:
-                logger.error("InfoFlow.search: BM25 search failed - %s", str(e))
-                objects = []
-                search_method = "failed"
+            logger.info("InfoFlow.search: No hybrid results and BM25 fallback is disabled (strict embeddings mode).")
 
         # Synthesize an answer from retrieved chunks
         if objects:
@@ -260,9 +294,11 @@ class InfoFlowHelper:
                 )
                 total_attached_chars += len(content)
             
-            # Keep response sources concise: list only source file names
+            # Keep response sources concise: de-duplicate, sort, and list only source file names
             source_files = [obj.properties.get("source_file", "") for obj in objects]
-            state.sources = "\n".join([s for s in source_files if s])
+            # De-duplicate and sort for clean presentation
+            unique_sources = sorted(set(s for s in source_files if s))
+            state.sources = "\n".join(unique_sources)
             
             logger.info(
                 "InfoFlow.complete: Logged %d full chunks (total_content_chars=%d); response sources list contains %d file names.",

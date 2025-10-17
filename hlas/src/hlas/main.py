@@ -48,14 +48,8 @@ app = FastAPI(lifespan=lifespan)
 # Redis-only session manager (backwards alias retained)
 mongo_session_manager = MongoSessionManager()
 logger = logging.getLogger(__name__)
-# Log only once across workers to avoid duplicate startup logs
-try:
-    from .redis_utils import get_redis as _get_r_for_log
-    _r = _get_r_for_log()
-    if _r.set("log_once:app_startup", "1", nx=True, ex=3600):
-        logger.info("Application startup: FastAPI app created. LLMs are pre-initialized via hlas.llm import.")
-except Exception:
-    logger.info("Application startup: FastAPI app created. LLMs are pre-initialized via hlas.llm import.")
+# Always log startup for visibility
+logger.info("Application startup: FastAPI app created. LLMs are pre-initialized via hlas.llm import.")
 
 class ChatInput(BaseModel):
     session_id: str
@@ -95,36 +89,24 @@ async def chat(payload: ChatInput):
             # The flow's final state contains the complete, updated session
             final_session = flow.state.session
 
-            # Trim long assistant replies in history to 100 characters for all responses
+            # Build assistant reply payloads for history and persistence (no trimming)
             assistant_reply_full = str(flow.state.reply)
-            # Only truncate history entries for recommendation/comparison/summary flows
             assistant_reply_hist = assistant_reply_full
-            try:
-                s = flow.state.session or {}
-                should_truncate = False
-                if s.get("recommendation_status") is not None or s.get("comparison_status") is not None or s.get("summary_status") is not None:
-                    should_truncate = True
-                if s.get("last_completed") in ("recommendation", "comparison", "summary"):
-                    should_truncate = True
-                if should_truncate and isinstance(assistant_reply_full, str) and len(assistant_reply_full) > 100:
-                    assistant_reply_hist = assistant_reply_full[:100]
-            except Exception:
-                assistant_reply_hist = assistant_reply_full
             
-            # Add the current turn to the history via the session manager
+            # Persist the entire updated session state from the flow FIRST (to keep flags/slots)
+            mongo_session_manager.save_session(payload.session_id, final_session)
+
+            # Add the current turn to the history via the session manager (ensures history is preserved)
             mongo_session_manager.add_history_entry(payload.session_id, payload.message, assistant_reply_hist, assistant_reply_full)
             
-            # Log the final session state before persisting
+            # Log the final session state
             logger.info("Chat.session_persist.final: rec_status='%s' cmp_status='%s' sum_status='%s' keys=%s",
                        final_session.get("recommendation_status"),
                        final_session.get("comparison_status"),
                        final_session.get("summary_status"),
                        list(final_session.keys()))
-            
-            # Persist the entire updated session state from the flow
-            mongo_session_manager.save_session(payload.session_id, final_session)
         logger.info("Chat.completed: product=%s reply_len=%d sources=%s",
-                   flow.state.product, len(str(flow.state.reply or "")), str(flow.state.sources))
+                   final_session.get("product"), len(str(flow.state.reply or "")), str(flow.state.sources))
         REQUESTS_TOTAL.labels(endpoint="/chat", status="200").inc()
         return {"response": str(flow.state.reply), "sources": flow.state.sources}
     except TimeoutError as e:
@@ -161,7 +143,9 @@ def readiness_check():
         ok = False
     status = "ok" if ok else "error"
     return {"status": status, **details}
+@app.get("/metrics")
 def metrics():
+    """Prometheus metrics endpoint."""
     data = generate_latest()
     return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 

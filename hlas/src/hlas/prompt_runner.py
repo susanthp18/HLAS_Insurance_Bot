@@ -7,6 +7,7 @@ import re
 import yaml
 import logging
 from datetime import datetime
+import os
 try:
     from zoneinfo import ZoneInfo  # Python 3.9+
 except Exception:  # pragma: no cover - fallback if zoneinfo unavailable
@@ -14,6 +15,7 @@ except Exception:  # pragma: no cover - fallback if zoneinfo unavailable
 
 # Use cached configs from config_loader
 from .config_loader import get_agents_spec, get_tasks_spec
+from .lc.structured import structured_invoke
 
 # Get cached specs - these are loaded once at config_loader module import
 AGENTS_SPEC: Dict[str, Any] = get_agents_spec()
@@ -93,6 +95,13 @@ def call_direct_json(agent_obj: Any, system_prompt: str, user_prompt: str, logge
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
+        # Optional LangSmith tracing (env-gated)
+        if os.getenv("LC_TRACING", "false").lower() in ("1", "true", "yes"):
+            try:
+                # Use standard OpenAI-compatible metadata in messages if supported by the LLM client
+                messages[0]["metadata"] = {"label": label, "agent": str(getattr(agent_obj, "role", ""))}
+            except Exception:
+                pass
         try:
             raw = agent_obj.llm.call(messages=messages)
             logger.info("LLM API call successful [%s]", label)
@@ -101,13 +110,27 @@ def call_direct_json(agent_obj: Any, system_prompt: str, user_prompt: str, logge
             raise
         txt = str(raw).strip()
         try:
-            return json.loads(txt)
+            result = json.loads(txt)
+            logger.info("LLM Direct [%s]: Output - %s", label, json.dumps(result, ensure_ascii=False))
+            return result
         except Exception as e:
             logger.warning("LLM Direct [%s]: JSON parsing failed. Error: %s. Raw text: '%s'", label, e, txt)
+            # Attempt minimal repair for over-escaped top-level string values (e.g., evidence)
+            try:
+                repaired = re.sub(r'("(?:query|query_type|evidence)"\s*:\s*)\\"', r'\1"', txt)
+                repaired = re.sub(r'\\"(\s*[},])', r'"\1', repaired)
+                if repaired != txt:
+                    result = json.loads(repaired)
+                    logger.info("LLM Direct [%s]: Output (repaired) - %s", label, json.dumps(result, ensure_ascii=False))
+                    return result
+            except Exception:
+                pass
             m = re.search(r"{[\s\S]*}", txt)
             if m:
                 try:
-                    return json.loads(m.group(0))
+                    result = json.loads(m.group(0))
+                    logger.info("LLM Direct [%s]: Output (extracted) - %s", label, json.dumps(result, ensure_ascii=False))
+                    return result
                 except Exception:
                     return {}
             # Optional fallback: wrap raw text as JSON for text-only tasks
@@ -126,4 +149,22 @@ def call_direct_json(agent_obj: Any, system_prompt: str, user_prompt: str, logge
 def run_direct_task(agent_obj: Any, agent_key: str, task_key: str, context_text: str, logger: Any, label: str) -> Dict[str, Any]:
     system_prompt, user_prompt = build_prompts(agent_key, task_key, context_text, logger)
     allow_text = task_key in ("synthesize_response", "followup_clarification")
+
+    # 1) Try LangChain structured output (feature-gated). Falls back if disabled or fails.
+    try:
+        maybe = structured_invoke(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            task_key=task_key,
+            logger=logger,
+            label=label,
+        )
+        if isinstance(maybe, dict) and maybe:
+            logger.info("Task [%s] completed with structured output - %s", label, json.dumps(maybe, ensure_ascii=False))
+            return maybe
+    except Exception:
+        # Non-fatal; proceed to existing path
+        pass
+
+    # 2) Existing direct JSON call with regex fallback
     return call_direct_json(agent_obj, system_prompt, user_prompt, logger, label, allow_text_fallback=allow_text)

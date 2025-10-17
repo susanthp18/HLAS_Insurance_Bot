@@ -163,6 +163,7 @@ def get_product_name_from_url(url):
         'car-insurance': 'Car',
         'critical-illness': 'Critical',
         'accident-protect360': 'Accident',
+        'fraud-protect360-plus': 'Fraud',
         'fire-insurance': 'Fire',
         'mobile-phone': 'Mobile'
     }
