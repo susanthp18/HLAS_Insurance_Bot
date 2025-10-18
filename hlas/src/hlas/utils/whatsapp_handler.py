@@ -345,7 +345,7 @@ class WhatsAppMessageHandler:
                     new_session.pop(key, None)
 
             # 4) Ephemeral guidance flags: copy if present; otherwise ensure they are removed
-            for key in ("last_question", "_last_info_prod_q", "_last_info_user_msg", "pending_slot", "_fu_query"):
+            for key in ("last_question", "_last_info_prod_q", "_last_info_user_msg", "pending_slot", "_fu_query", "fraud_stage"):
                 if key in flow.state.session and flow.state.session.get(key) not in (None, ""):
                     new_session[key] = flow.state.session.get(key)
                 else:

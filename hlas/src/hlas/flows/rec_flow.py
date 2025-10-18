@@ -531,6 +531,8 @@ class RecFlowHelper:
             if (state.session.get("recommendation_status") or "").strip().lower() == "in_progress":
                 return None
             state.session["fraud_stage"] = "await_learn_more"
+            # Mark recommendation as in-progress to guarantee orchestrator bypass on next turn
+            state.session["recommendation_status"] = "in_progress"
             q = "A great choice! Would you like to learn more about our Fraud Protect360 product?"
             state.session["last_question"] = q
             state.reply = q
@@ -590,7 +592,7 @@ class RecFlowHelper:
         if stage == "await_recommendation":
             ans = _yn(msg_low)
             if ans == "yes":
-                # Proceed into slot collection next; clear stage and set in_progress
+                # Proceed into slot collection next; clear stage and ensure in_progress
                 state.session.pop("fraud_stage", None)
                 state.session["recommendation_status"] = "in_progress"
                 return None
@@ -598,8 +600,10 @@ class RecFlowHelper:
                 promo = (
                     "No problem. Fraud Protect360 covers up to $10,000 for key fraud-related losses, with higher Accidental Death/PTD, medical reimbursement, hospital cash, and emergency transport benefits on the Platinum plan. If you'd like a personalized recommendation later, just come back anytime and I'll help you choose."
                 )
+                # Clean up intro state and recommendation flag when user declines
                 state.session.pop("fraud_stage", None)
                 state.session.pop("last_question", None)
+                state.session.pop("recommendation_status", None)
                 state.reply = promo
                 return "__done__"
             # Re-ask
