@@ -9,7 +9,7 @@ from pathlib import Path
 import yaml
 # Import TargetVectors and Filter for the query
 from weaviate.classes.query import TargetVectors, Filter
-from ..utils.product_lex import lexical_product_hint
+from ..utils.product_lex import lexical_product_hint, lexical_product_candidates
 
 
 class InfoFlowHelper:
@@ -28,24 +28,40 @@ class InfoFlowHelper:
                    len(state.message or ""))
 
         # Early lexical product switch detection with double confirmation (only if session/product exists and differs)
+        # Bypass if a product clarification is outstanding in any flow
+        clarifying_product = bool(
+            (state.session.get("_last_info_prod_q") or False)
+            or (state.session.get("_last_rec_prod_q") or False)
+        )
         try:
-            lex_hint = lexical_product_hint(state.message or "")
+            cand_list = [] if clarifying_product else lexical_product_candidates(state.message or "")
         except Exception:
-            lex_hint = None
+            cand_list = []
         session_product = state.session.get("product") or state.product
         # Do not switch while rec/compare in-progress
         if state.session.get("recommendation_status") == "in_progress" or state.session.get("comparison_status") == "in_progress":
-            lex_hint = None
-        if lex_hint and session_product and lex_hint != session_product:
+            cand_list = []
+        # Fully LLM-driven: probe whenever we have any candidates
+        should_probe = bool(cand_list)
+        if should_probe:
             try:
-                probe_ctx = (
-                    f"Message: {state.message}\n"
-                    f"Session product: {session_product}\n"
-                    f"Proposed switch: {lex_hint}\n\n"
-                    f"Instruction: Confirm only if the message unambiguously refers to 'Proposed switch'. "
-                    f"Prefer explicit product names/brands. Do not infer from generic benefits. "
-                    f"If unsure, return empty product."
+                lines = [
+                    f"Message: {state.message}",
+                    f"Session product: {session_product}",
+                    "Candidates:",
+                ]
+                for c in cand_list[:3]:
+                    reasons = ",".join(c.get("reasons", [])) if isinstance(c.get("reasons"), list) else ""
+                    lines.append(
+                        f"- product: {c.get('product')}, score: {c.get('score')}, polarity: {c.get('polarity')}, reasons: {reasons}"
+                    )
+                lines.append("")
+                lines.append(
+                    "Instruction: Choose the product explicitly requested by the CURRENT message. "
+                    "Prefer positive candidates; treat negated candidates as not requested. "
+                    "If ambiguous, return an empty product or a short clarifying question."
                 )
+                probe_ctx = "\n".join(lines)
                 prod_probe = run_direct_task(
                     agent_obj=identify_product_task.agent,
                     agent_key="product_identifier",
@@ -56,14 +72,20 @@ class InfoFlowHelper:
                 ) or {}
                 confirmed = (prod_probe.get("product") or "").strip()
                 conf = float(prod_probe.get("confidence") or 0.0)
-                if confirmed and confirmed.lower() == lex_hint.lower() and conf >= 0.8:
+                if confirmed and conf >= 0.8:
                     state.product = confirmed
                     state.session["product"] = confirmed
+                    # Clear per-product recommendation state to prevent cross-product leakage
+                    state.session.pop("slots", None)
+                    state.session.pop("recommendation_status", None)
+                    state.session.pop("_last_slot_name", None)
+                    state.session.pop("_last_slot_question", None)
+                    state.session.pop("recommended_tier", None)
                     # Clear any stale info clarification flags on switch
                     state.session.pop("_last_info_prod_q", None)
                     state.session.pop("_last_info_user_msg", None)
                     state.session.pop("last_question", None)
-                    logger.info("InfoFlow: Product switch confirmed via lexical+LLM - %s", confirmed)
+                    logger.info("InfoFlow: Product switch confirmed via lexical+LLM - %s (state cleared)", confirmed)
             except Exception:
                 pass
 
@@ -113,18 +135,33 @@ class InfoFlowHelper:
                                prod.get("product"),
                                prod.get("confidence"),
                                bool(prod.get("question")))
-                    if prod.get("product"):
-                        state.product = prod.get("product")
-                        state.session["product"] = state.product
-                        logger.info("InfoFlow.product_resolved: %s", state.product)
-                    else:
+
+                    # IMPORTANT: If there's a clarification question, ask it FIRST, even if a product was tentatively identified
+                    # This handles cases where confidence is low or the product identifier wants to confirm
+                    if prod.get("question"):
                         # Persist a hint that InfoFlow asked for product clarification,
                         # and save the original user message to reconstruct query on the next turn
                         state.session["_last_info_prod_q"] = True
                         state.session["_last_info_user_msg"] = state.message
-                        logger.info("InfoFlow.product_clarification: Requesting product clarification, saved user message")
-                        
-                        q = prod.get("question") or "Which product would you like to ask about: Travel, Maid, Car, Personal Accident, Home, or Early?"
+                        # Optionally save the tentative product for context
+                        if prod.get("product"):
+                            state.session["_tentative_product"] = prod.get("product")
+                        logger.info("InfoFlow.product_clarification: Requesting product clarification (has_question=True), saved user message")
+
+                        q = prod.get("question")
+                        state.reply = q
+                        return "__done__"
+                    elif prod.get("product"):
+                        state.product = prod.get("product")
+                        state.session["product"] = state.product
+                        logger.info("InfoFlow.product_resolved: %s", state.product)
+                    else:
+                        # No product and no question - ask default clarification
+                        state.session["_last_info_prod_q"] = True
+                        state.session["_last_info_user_msg"] = state.message
+                        logger.info("InfoFlow.product_clarification: No product identified, asking default question")
+
+                        q = "Which product would you like to ask about: Travel, Maid, Car, Personal Accident, Home, or Early?"
                         state.reply = q
                         return "__done__"
     

@@ -7,7 +7,7 @@ identify_product:
     Return only a single JSON object. No extra text.
   agent: "product_identifier"
   expected_output: |
-    { "product": "Travel" | "Maid" | "Car" | "PersonalAccident" | "Home" | "Early" | "Fraud" | "Hospital" | "", "confidence": 0.0-1.0, "question"?: string }
+    { "product": "Travel" | "Maid" | "Car" | "PersonalAccident" | "Home" | "Early" | "Fraud" | "Hospital" | "", "confidence": 0.0-1.0, "question"?: string, "product_switch_reason"?: "explicit_brand" | "explicit_name_with_insurance_cue" | "explicit_correction" | "synonym_with_insurance_cue" | "alias_acronym" | "typo_corrected" }
 
 
 
@@ -46,6 +46,15 @@ synthesize_response:
   expected_output: |
     { "response": "<final response>" }
 
+answer_capabilities:
+  description: |
+    Answer the user's question about the bot's capabilities, supported products, and available tiers.
+    Use ONLY the provided Knowledge Base text. If the requested detail is not present, state so briefly.
+    Keep the answer concise and user-friendly; use short bullets when listing items.
+  agent: "capabilities_responder"
+  expected_output: |
+    { "response": "<final response>" }
+
 extract_slots:
   description: |
     Extract and update slot values from the user's message using conversation context.
@@ -54,15 +63,18 @@ extract_slots:
     - Use "Last bot question" to disambiguate yes/no replies.
     - Do NOT validate ranges or reject values based on Slot meta; treat ranges/options as hints only. Always extract the raw value if you can identify it.
     - IMPORTANT: If the user message contains NO slot-related information (e.g., just a product name), return empty strings for all slots and DO NOT set user_needs_explanation.
-    - Only set user_needs_explanation if the user EXPLICITLY asks for an explanation about a specific slot (e.g., "what does that mean?", "explain destination").
-    - Common phrases that indicate choice preferences:
-      * "no budget constraints", "money is no issue", "best coverage" → extract as "comprehensive" for plan_preference
-      * "cheapest", "budget option", "basic" → extract as "budget" for plan_preference
+    - Set user_needs_explanation if the user EXPLICITLY asks for an explanation about a specific slot (e.g., "what does that mean?", "explain destination") OR if the user says they don't know (e.g., "I don't know", "not sure", "idk", "dunno").
+    - **Country Names**: For destination and maid_country slots, ACCEPT country abbreviations as valid input (e.g., "PH", "PHP" for Philippines, "US", "USA" for United States, "UK" for United Kingdom, "SG" for Singapore, "MY" for Malaysia, "ID" for Indonesia, etc.). Extract the abbreviation as-is; downstream validation will normalize it to the full country name.
+    - **Plan Preference ONLY** (if plan_preference slot exists in Valid slots): Common phrases that indicate budget/coverage preferences:
+      * "no budget constraints", "money is no issue", "best coverage" → extract as "comprehensive" for plan_preference slot ONLY
+      * "cheapest", "budget option", "basic" → extract as "budget" for plan_preference slot ONLY
+      * DO NOT apply these mappings to other slots like coverage_scope, coverage_amount, etc.
     - If a value appears out of range or malformed, still extract it; downstream validation will handle corrections.
-    - If the user asks for clarification about a specific slot, set user_needs_explanation to that slot and provide a SHORT explanation (under 50 words) that ends with the right type of request:
+    - If the user asks for clarification about a specific slot OR says they don't know, set user_needs_explanation to that slot and provide a SHORT explanation (under 50 words) that ends with the right type of request:
       * Yes/No slots → ask a clear (Yes/No) question
       * Choice-based slots → ask the user to choose one of the listed options
       * Value slots → ask for the specific value in the expected format/range (NEVER Yes/No)
+    - When the user says "I don't know" or similar uncertainty phrases, provide a brief explanation of what the slot is for, then ask them to provide the information.
     Return only a single JSON object. No extra text.
   agent: "slot_extractor"
   expected_output: |
@@ -70,7 +82,7 @@ extract_slots:
       "slot_name_1": "<extracted/updated value or empty string>",
       "slot_name_2": "<extracted/updated value or empty string>",
       "slot_name_3": "<extracted/updated value or empty string>",
-      "user_needs_explanation": "<slot_name if user asks for clarification about a slot, otherwise empty string>",
+      "user_needs_explanation": "<slot_name if user asks for clarification about a slot or says they don't know, otherwise empty string>",
       "explanation": "<short explanation (under 50 words) that ends with a slot-appropriate request if user_needs_explanation is not empty; otherwise empty>"
     }
 
@@ -105,12 +117,12 @@ validate_slot:
 route_decision:
   description: |
     Context JSON fields:
-      - message
-      - session_product
+      - CURRENT_MESSAGE
+      - SESSION_PRODUCT
       - turn (first | follow_up_candidate | normal)
-      - last_completed (recommendation | comparison | summary | none)
-      - pending_flag (boolean)
-      - recent_context (string[]; most recent first, up to 2 short lines)
+      - LAST_COMPLETED (recommendation | comparison | summary | none)
+      - PENDING_FLAG (boolean)
+      - RECENT_CONTEXT (string[]; most recent first, up to 2 short lines)
     
     Output Requirements:
     - Return directive with optional evidence field citing words/entities from message or recent_context

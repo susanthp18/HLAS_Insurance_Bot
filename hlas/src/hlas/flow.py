@@ -14,6 +14,7 @@ from .tasks import (
     identify_product_task,
     route_decision_task,
     construct_follow_up_query_task,
+    answer_capabilities_task,
 )
 from .tools.benefits_tool import benefits_tool
 from .agents import recommendation_responder
@@ -25,7 +26,7 @@ from .flows.compare_flow import CompareFlowHelper
 from .flows.summary_flow import SummaryFlowHelper
 from .utils.greeting import get_time_based_greeting
 from .lc.history import get_last_n_pairs
-from .utils.product_lex import lexical_product_hint
+from .utils.product_lex import lexical_product_hint, lexical_product_candidates
 
 # Try to import RecFlow with error handling
 try:
@@ -217,21 +218,38 @@ class HlasFlow(Flow[HlasState]):
         product_in_session = self.state.session.get("product") or None
 
         # Early lexical product switch detection with double confirmation
+        # Bypass if a product clarification is outstanding in any flow
+        clarifying_product = bool(
+            (self.state.session.get("_last_info_prod_q") or False)
+            or (self.state.session.get("_last_rec_prod_q") or False)
+        )
         try:
-            lex_hint = lexical_product_hint(current_user_message)
+            cand_list = [] if clarifying_product else lexical_product_candidates(current_user_message)
         except Exception:
-            lex_hint = None
-        if lex_hint and (lex_hint != (self.state.product or product_in_session)):
+            cand_list = []
+        # Fully LLM-driven: probe identifier whenever we have any candidates
+        should_probe = bool(cand_list)
+        session_or_state_prod = self.state.product or product_in_session
+        if should_probe:
             try:
                 # Double-confirm via product identifier; instruct conservatively in context
-                probe_ctx = (
-                    f"Message: {current_user_message}\n"
-                    f"Session product: {self.state.product or product_in_session}\n"
-                    f"Proposed switch: {lex_hint}\n\n"
-                    f"Instruction: Confirm only if the message unambiguously refers to 'Proposed switch'. "
-                    f"Prefer explicit product names/brands. Do not infer from generic benefits. "
-                    f"If unsure, return empty product."
+                lines = [
+                    f"Message: {current_user_message}",
+                    f"Session product: {session_or_state_prod}",
+                    "Candidates:",
+                ]
+                for c in cand_list[:3]:
+                    reasons = ",".join(c.get("reasons", [])) if isinstance(c.get("reasons"), list) else ""
+                    lines.append(
+                        f"- product: {c.get('product')}, score: {c.get('score')}, polarity: {c.get('polarity')}, reasons: {reasons}"
+                    )
+                lines.append("")
+                lines.append(
+                    "Instruction: Choose the product explicitly requested by the CURRENT message. "
+                    "Prefer positive candidates; treat negated candidates as not requested. "
+                    "If ambiguous, return an empty product or a short clarifying question."
                 )
+                probe_ctx = "\n".join(lines)
                 prod_probe = run_direct_task(
                     agent_obj=identify_product_task.agent,
                     agent_key="product_identifier",
@@ -242,12 +260,19 @@ class HlasFlow(Flow[HlasState]):
                 ) or {}
                 confirmed = (prod_probe.get("product") or "").strip()
                 conf = float(prod_probe.get("confidence") or 0.0)
-                if confirmed and confirmed.lower() == lex_hint.lower() and conf >= 0.8:
+                if confirmed and conf >= 0.8:
                     self.state.product = confirmed
                     self.state.session["product"] = confirmed
-                    # Mark switch for downstream handlers; flows will clean per-flow state
+                    # Clear per-product recommendation state to prevent cross-product leakage
+                    self.state.session.pop("slots", None)
+                    self.state.session.pop("recommendation_status", None)
+                    self.state.session.pop("_last_slot_name", None)
+                    self.state.session.pop("_last_slot_question", None)
+                    self.state.session.pop("recommended_tier", None)
+                    self.state.session.pop("last_question", None)
+                    # Mark switch for downstream handlers
                     self.state.session["__product_switch_confirmed__"] = True
-                    logger.info("HlasFlow.decide: Product switch confirmed via lexical+LLM - %s", confirmed)
+                    logger.info("HlasFlow.decide: Product switch confirmed via lexical+LLM - %s (state cleared)", confirmed)
             except Exception as e:
                 logger.warning("HlasFlow.decide: Double-confirmation failed - %s", str(e))
 
@@ -273,37 +298,49 @@ class HlasFlow(Flow[HlasState]):
         else:
             turn = "normal"
 
-        # Compact recent context (most recent first), at most 2 pairs as strings
+        # Compact recent context (most recent first), at most 2 pairs, User → Assistant with trimming
         recent_pairs = get_last_n_pairs(self.state.session, n=2)
-        recent_context: list[str] = []
-        for p in recent_pairs:
-            u = p.get("user") or ""
-            a = p.get("assistant") or ""
-            if a:
-                recent_context.append(f"Assistant: {a}")
-            if u:
-                recent_context.append(f"User: {u}")
 
-        context_rd_obj = {
-            "message": current_user_message,
-            "session_product": product_in_session,
-            "turn": turn,
-            "last_completed": self.state.session.get("last_completed") or "none",
-            "pending_flag": pending_flag,
-            "recent_context": recent_context,
-        }
-        context_rd = json_dumps(context_rd_obj)
+        def _shorten_text(val: str, max_len: int = 200) -> str:
+            s = (val or "").strip()
+            if len(s) <= max_len:
+                return s
+            return s[:max_len].rstrip() + "…"
 
-        # Emphasize the current message at the top for clearer intent detection
+        recent_context_lines: list[str] = []
+        for idx, p in enumerate(recent_pairs, start=1):
+            try:
+                u = p.get("user") or ""
+                a = p.get("assistant") or ""
+                turn_lines: list[str] = []
+                if u:
+                    turn_lines.append(f"User: {_shorten_text(u)}")
+                if a:
+                    turn_lines.append(f"Assistant: {_shorten_text(a)}")
+                if turn_lines:
+                    recent_context_lines.append(f"Turn -{idx}:")
+                    recent_context_lines.extend(turn_lines)
+            except Exception:
+                continue
+
+        # Build explicit, non-JSON context to avoid duplicating fields
         try:
-            header = (
-                f"CURRENT_MESSAGE: {current_user_message}\n"
-                f"SESSION_PRODUCT: {product_in_session or self.state.product or ''}\n\n"
-                f"[Context JSON]\n"
-            )
-            orchestrator_ctx = header + context_rd
+            last_completed_val = self.state.session.get("last_completed") or "none"
+            lines: list[str] = []
+            lines.append(f"CURRENT_MESSAGE: {current_user_message}")
+            lines.append(f"SESSION_PRODUCT: {product_in_session or self.state.product or ''}")
+            lines.append(f"TURN: {turn}")
+            lines.append(f"LAST_COMPLETED: {last_completed_val}")
+            lines.append(f"PENDING_FLAG: {str(pending_flag)}")
+            if recent_context_lines:
+                lines.append("RECENT_CONTEXT (most recent first):")
+                lines.extend(recent_context_lines)
+            orchestrator_ctx = "\n".join(lines)
         except Exception:
-            orchestrator_ctx = context_rd
+            orchestrator_ctx = (
+                f"CURRENT_MESSAGE: {current_user_message}\n"
+                f"SESSION_PRODUCT: {product_in_session or self.state.product or ''}"
+            )
 
         logger.info("HlasFlow.decide: Calling orchestrator - context_len=%d", len(orchestrator_ctx))
         
@@ -368,8 +405,36 @@ class HlasFlow(Flow[HlasState]):
             return "__done__"
 
         if directive == "handle_capabilities":
-            self.state.reply = "I can help you with insurance plans, providing information, summaries, and comparisons."
-            logger.info("HlasFlow.decide: Capabilities response generated")
+            # Answer capability/meta questions using the static knowledge base
+            try:
+                kb_path = Path(__file__).parent / "config" / "knowledge_base.txt"
+                kb_text = kb_path.read_text(encoding="utf-8")
+            except Exception:
+                kb_text = ""
+
+            ctx_lines: list[str] = []
+            ctx_lines.append(f"Question: {self.state.message}")
+            if kb_text:
+                ctx_lines.append("")
+                ctx_lines.append("Knowledge Base:")
+                ctx_lines.append(kb_text)
+            context_text = "\n".join(ctx_lines)
+
+            try:
+                out = run_direct_task(
+                    agent_obj=answer_capabilities_task.agent,
+                    agent_key="capabilities_responder",
+                    task_key="answer_capabilities",
+                    context_text=context_text,
+                    logger=self._logger,
+                    label="capabilities.answer",
+                ) or {}
+                reply = out.get("response") or "I can help with product information, summaries, comparisons, and recommendations. Ask me what you’d like to know."
+            except Exception:
+                reply = "I can help with product information, summaries, comparisons, and recommendations. Ask me what you’d like to know."
+
+            self.state.reply = reply
+            logger.info("HlasFlow.decide: Capabilities response generated via KB - len=%d", len(self.state.reply))
             return "__done__"
 
         if directive == "handle_information":
@@ -458,28 +523,45 @@ class HlasFlow(Flow[HlasState]):
                 
                 self.state.product = identified
                 self.state.session["product"] = identified
-                # Clear any pending recommendation state to prevent cross-product leakage
+                # Clear per-product recommendation state to prevent cross-product leakage
+                self.state.session.pop("slots", None)
+                self.state.session.pop("recommendation_status", None)
+                self.state.session.pop("_last_slot_name", None)
+                self.state.session.pop("_last_slot_question", None)
+                self.state.session.pop("recommended_tier", None)
                 self.state.session.pop("pending_slot", None)
                 self.state.last_question = None
 
-                # Keep last 3 pairs (most recent first)
-                use_history_pairs = get_last_n_pairs(self.state.session, n=3)
+                # Keep last 2 pairs (most recent first)
+                use_history_pairs = get_last_n_pairs(self.state.session, n=2)
                 logger.debug("HlasFlow.decide: Follow-up using %d history pairs (product switch)", len(use_history_pairs))
             else:
                 # Prepare recent history window (most recent first)
-                use_history_pairs = get_last_n_pairs(self.state.session, n=3)
+                use_history_pairs = get_last_n_pairs(self.state.session, n=2)
                 logger.debug("HlasFlow.decide: Follow-up using %d history pairs (no product switch)", len(use_history_pairs))
 
-            context_lines = []
-            for pair in use_history_pairs:
+            # Build recent context with turn markers and trimming
+            def _shorten_text_local(val: str, max_len: int = 200) -> str:
+                s = (val or "").strip()
+                if len(s) <= max_len:
+                    return s
+                return s[:max_len].rstrip() + "…"
+
+            recent_lines: list[str] = []
+            for idx, pair in enumerate(use_history_pairs, start=1):
                 try:
                     u = pair.get("user", "")
                     a = pair.get("assistant", "")
-                    context_lines.append(f"User: {u}")
-                    context_lines.append(f"Assistant: {a}")
+                    turn_parts: list[str] = []
+                    if u:
+                        turn_parts.append(f"User: {_shorten_text_local(u)}")
+                    if a:
+                        turn_parts.append(f"Assistant: {_shorten_text_local(a)}")
+                    if turn_parts:
+                        recent_lines.append(f"Turn -{idx}:")
+                        recent_lines.extend(turn_parts)
                 except Exception:
                     continue
-            convo_context = "\n".join(context_lines)
 
             # Include available tiers dynamically (avoid hardcoding in prompts)
             available_tiers_line = ""
@@ -491,13 +573,22 @@ class HlasFlow(Flow[HlasState]):
             except Exception:
                 available_tiers_line = ""
 
-            # Always include a small recent conversation window to aid pronoun/tier resolution
-            fu_context = (
-                f"Product: {self.state.session.get('product') or ''}\n"
-                f"{available_tiers_line}"
-                f"Latest: {self.state.message}\n"
-                f"Recent conversation (most recent first):\n{convo_context}"
-            )
+            # Build focused context for follow-up constructor
+            prod_line = f"Product: {self.state.session.get('product') or ''}"
+            tiers_line = (available_tiers_line or "").rstrip("\n")
+            ctx_lines: list[str] = [prod_line]
+            if tiers_line:
+                ctx_lines.append(tiers_line)
+            ctx_lines.append(f"CURRENT_MESSAGE: {self.state.message}")
+            if recent_lines:
+                ctx_lines.append("RECENT_CONTEXT (most recent first):")
+                ctx_lines.extend(recent_lines)
+            # Lightweight guidance to anchor evidence and reduce drift
+            ctx_lines.append("Guidance:")
+            ctx_lines.append("- Prefer CURRENT_MESSAGE. Use RECENT_CONTEXT only to resolve pronouns/vague references in CURRENT_MESSAGE.")
+            ctx_lines.append("- Do not introduce topics from older turns unless CURRENT_MESSAGE refers to them.")
+            ctx_lines.append("- Evidence must cite tokens in CURRENT_MESSAGE, or a pronoun in CURRENT_MESSAGE plus its antecedent in Turn -1.")
+            fu_context = "\n".join(ctx_lines)
 
             logger.info("HlasFlow.decide: Constructing follow-up query - context_len=%d", len(fu_context))
 

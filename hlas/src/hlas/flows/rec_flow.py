@@ -5,12 +5,13 @@ import yaml
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import json
+import re
 
 from ..prompt_runner import run_direct_task
 from ..tools.benefits_tool import benefits_tool
 from ..agents import recommendation_responder
 from ..llm import azure_response_llm
-from ..utils.product_lex import lexical_product_hint
+from ..utils.product_lex import lexical_product_hint, lexical_product_candidates
 
 
 class RecFlowHelper:
@@ -67,7 +68,7 @@ class RecFlowHelper:
         """Get descriptions for each slot to help extraction."""
         descriptions = {
             "travel": {
-                "coverage_scope": "Coverage for yourself or your family",
+                "coverage_scope": "Coverage for yourself, family, a group of adults (≤20), or a group of families (≤10)",
                 "destination": "Country the user is travelling to (country name only)",
             },
             "maid": {
@@ -79,7 +80,7 @@ class RecFlowHelper:
             "personalaccident": {
                 "coverage_scope": "Coverage for yourself or your family",
                 "risk_level": "Occupational risk level: high or low",
-                "desired_amount": "Desired coverage amount between $500 and $3,500"
+                "desired_amount": "Desired coverage amount between $500 and $3,500 (accept 'the higher the better' → 3500; 'the lower the better' → 500)"
             },
             "home": {
                 "risk_concerns": "Specific worries such as fire, water damage, or theft (single or multiple)",
@@ -148,7 +149,7 @@ class RecFlowHelper:
         p = (product or "").lower()
         if p == "travel":
             return {
-                "coverage_scope": {"type": "choice", "options": ["self", "family"]},
+                "coverage_scope": {"type": "choice", "options": ["myself", "family", "group of adults (up to 20)", "group of families (up to 10)"]},
                 "destination": {"type": "value", "format": "country"},
             }
         if p == "maid":
@@ -160,9 +161,33 @@ class RecFlowHelper:
             }
         if p == "personalaccident":
             return {
-                "coverage_scope": {"type": "choice", "options": ["self", "family"]},
+                "coverage_scope": {"type": "choice", "options": ["self or me", "family"]},
                 "risk_level": {"type": "choice", "options": ["high", "low"]},
-                "desired_amount": {"type": "value", "format": "amount:int"},
+                "desired_amount": {
+                    "type": "value",
+                    "format": "amount:int",
+                    "hints": {
+                        "preference_phrases": {
+                            "higher": [
+                                "the higher the better",
+                                "highest",
+                                "max",
+                                "maximum",
+                                "as high as possible",
+                                "best coverage"
+                            ],
+                            "lower": [
+                                "the lower the better",
+                                "lowest",
+                                "min",
+                                "minimum",
+                                "as low as possible",
+                                "budget"
+                            ]
+                        },
+                        "normalize_to": {"higher": "3500", "lower": "500"}
+                    }
+                },
             }
         if p == "home":
             return {
@@ -213,8 +238,9 @@ class RecFlowHelper:
                     description = slot_descriptions.get(slot, f"Information about {slot}")
                     slot_info.append(f"- {slot}: {description} (current: {current_value})")
         
-        # Include last bot question for context (crucial for yes/no disambiguation)
-        last_bot_question = state.session.get('last_question', 'None')
+        # Include last bot question ONLY when it is a real slot question
+        last_slot_name_ctx = state.session.get('_last_slot_name')
+        last_bot_question = state.session.get('last_question', 'None') if last_slot_name_ctx else 'None'
         
         targets = missing_slots or required_slots
         valid_slots_str = ", ".join(targets)
@@ -356,6 +382,9 @@ class RecFlowHelper:
                    bool(question_result.get("question")), list(question_result.keys()))
         
         question = question_result.get("question") or f"Could you please provide {missing_slot}?"
+        # Mark last slot asked for yes/no disambiguation
+        state.session["_last_slot_name"] = missing_slot
+        state.session["_last_slot_question"] = question
         logger.info("RecFlow.ask_question: Generated question for slot=%s, length=%d", missing_slot, len(question))
         return question
 
@@ -517,9 +546,33 @@ class RecFlowHelper:
         stage = state.session.get("fraud_stage")
 
         def _yn(s: str) -> str:
+            # Normalize simple chat acknowledgements, tolerate punctuation and elongations.
             s = (s or "").strip().lower()
-            yes = {"yes", "y", "yeah", "yep", "sure", "ok", "okay", "pls", "please", "go ahead"}
-            no = {"no", "n", "nope", "nah", "not now", "later"}
+            # Trim trailing punctuation/ellipsis
+            s = re.sub(r"[\s\.\!\?\,\;\:…]+$", "", s)
+            # Collapse internal multiple spaces
+            s = re.sub(r"\s+", " ", s)
+
+            yes = {
+                # Core
+                "yes", "y", "yeah", "yep", "yup", "ya", "yah",
+                # Elongations
+                "yess", "yesss", "yessss", "yupp", "yuppp", "yass", "yasss",
+                # Polite/ack
+                "sure", "ok", "okay", "k", "kk", "alright", "please", "pls", "plz",
+                # Phrases
+                "go ahead", "go for it", "do it", "proceed", "continue", "sounds good", "yes please", "yes pls", "ok please", "ok pls",
+            }
+            no = {
+                # Core
+                "no", "n", "nope", "nah",
+                # Phrases / defer
+                "not now", "later", "maybe later", "no thanks", "no thank you", "not interested", "no need", "no need thanks",
+                # Negations
+                "don't", "dont", "do not", "stop", "cancel", "skip",
+                # Soft declines
+                "i'm fine", "im fine", "all good", "no pls", "no please",
+            }
             if s in yes:
                 return "yes"
             if s in no:
@@ -595,6 +648,10 @@ class RecFlowHelper:
                 # Proceed into slot collection next; clear stage and ensure in_progress
                 state.session.pop("fraud_stage", None)
                 state.session["recommendation_status"] = "in_progress"
+                # This was meta-consent, not a slot answer. Clear non-slot question and
+                # skip extraction for this turn to avoid consuming "Yes" as a slot value.
+                state.session.pop("last_question", None)
+                state.session["_skip_extraction_once"] = True
                 return None
             if ans == "no":
                 promo = (
@@ -638,24 +695,38 @@ class RecFlowHelper:
                 return res
             # If res is None, user accepted to proceed; continue to slot collection
 
-        # Guard: do not perform product switch while recommendation flow is in-progress (entered but not finished)
-        if recommendation_status == "done":
+        # Allow lexical product switch detection during recommendation (in_progress or done)
+        if recommendation_status in ("in_progress", "done"):
             try:
-                lex_hint = lexical_product_hint(state.message or "")
+                # Bypass early lexical switching if a product clarification is outstanding
+                clarifying_product = bool(state.session.get("_last_rec_prod_q") or state.session.get("_last_info_prod_q"))
+                cand_list = [] if clarifying_product else lexical_product_candidates(state.message or "")
             except Exception:
-                lex_hint = None
-            if lex_hint and lex_hint != (state.product or state.session.get("product")):
+                cand_list = []
+            session_or_state = state.product or state.session.get("product")
+            # Fully LLM-driven: probe whenever we have any candidates
+            should_probe = bool(cand_list)
+            if should_probe:
                 try:
                     from ..tasks import identify_product_task as _ipt
                     from ..prompt_runner import run_direct_task as _rdt
-                    probe_ctx = (
-                        f"Message: {state.message}\n"
-                        f"Session product: {state.product or state.session.get('product')}\n"
-                        f"Proposed switch: {lex_hint}\n\n"
-                        f"Instruction: Confirm only if the message unambiguously refers to 'Proposed switch'. "
-                        f"Prefer explicit product names/brands. Do not infer from generic benefits. "
-                        f"If unsure, return empty product."
+                    lines = [
+                        f"Message: {state.message}",
+                        f"Session product: {session_or_state}",
+                        "Candidates:",
+                    ]
+                    for c in cand_list[:3]:
+                        reasons = ",".join(c.get("reasons", [])) if isinstance(c.get("reasons"), list) else ""
+                        lines.append(
+                            f"- product: {c.get('product')}, score: {c.get('score')}, polarity: {c.get('polarity')}, reasons: {reasons}"
+                        )
+                    lines.append("")
+                    lines.append(
+                        "Instruction: Choose the product explicitly requested by the CURRENT message. "
+                        "Prefer positive candidates; treat negated candidates as not requested. "
+                        "If ambiguous, return an empty product or a short clarifying question."
                     )
+                    probe_ctx = "\n".join(lines)
                     probe = _rdt(
                         agent_obj=_ipt.agent,
                         agent_key="product_identifier",
@@ -666,7 +737,15 @@ class RecFlowHelper:
                     ) or {}
                     confirmed = (probe.get("product") or "").strip()
                     conf = float(probe.get("confidence") or 0.0)
-                    if confirmed and confirmed.lower() == lex_hint.lower() and conf >= 0.8:
+                    # If identifier provides a clarification question, ask it now and short-circuit
+                    ask_q = (probe.get("question") or "").strip()
+                    if ask_q and not confirmed:
+                        state.session["_last_rec_prod_q"] = True
+                        state.session["last_question"] = ask_q
+                        state.reply = ask_q
+                        logger.info("RecFlow: Product clarification requested by identifier; asking and short-circuiting")
+                        return "__done__"
+                    if confirmed and conf >= 0.8:
                         # Commit switch and clear rec-specific state to avoid leakage
                         state.product = confirmed
                         state.session["product"] = confirmed
@@ -674,6 +753,8 @@ class RecFlowHelper:
                         state.session.pop("recommendation_status", None)
                         state.session.pop("last_question", None)
                         state.session.pop("_last_rec_prod_q", None)
+                        # Refresh local tracker so downstream logic uses updated product
+                        current_product = confirmed
                         logger.info("RecFlow: Product switch confirmed via lexical+LLM - %s (state cleared)", confirmed)
                 except Exception:
                     pass
@@ -750,7 +831,23 @@ class RecFlowHelper:
                     bool(prod_result.get("question")),
                     list(prod_result.keys()),
                 )
-                if identified_product and identified_product != current_product:
+
+                # IMPORTANT: If there's a clarification question, ask it FIRST, even if a product was tentatively identified
+                # This handles cases where confidence is low or the product identifier wants to confirm
+                if prod_result.get("question"):
+                    question = prod_result["question"]
+                    state.reply = question
+                    state.session["recommendation_status"] = "in_progress"
+                    # Mark that next user message is a product clarification for RecFlow
+                    state.session["_last_rec_prod_q"] = True
+                    # Optionally save the tentative product for context
+                    if identified_product:
+                        state.session["_tentative_product"] = identified_product
+                    logger.info(
+                        "RecFlow.handle: Product clarification question provided (has_question=True), requesting clarification"
+                    )
+                    return "__done__"
+                elif identified_product and identified_product != current_product:
                     logger.info(
                         "RecFlow.handle: Product switch detected - %s -> %s, clearing previous state",
                         current_product,
@@ -768,15 +865,14 @@ class RecFlowHelper:
                 elif current_product:
                     product = current_product
                 else:
+                    # No product and no question - ask default clarification
                     question = "What type of insurance are you interested in for the recommendation: Travel, Maid, Car, Personal Accident, Home, or Early?"
-                    if prod_result and "question" in prod_result:
-                        question = prod_result["question"]
                     state.reply = question
                     state.session["recommendation_status"] = "in_progress"
                     # Mark that next user message is a product clarification for RecFlow
                     state.session["_last_rec_prod_q"] = True
                     logger.info(
-                        "RecFlow.handle: No product identified, requesting clarification and setting status to in_progress"
+                        "RecFlow.handle: No product identified, requesting default clarification and setting status to in_progress"
                     )
                     return "__done__"
         
@@ -938,6 +1034,19 @@ class RecFlowHelper:
                 logger.info("RecFlow.handle: Early FAQ answered - never claim question")
                 return "__done__"
         
+        # If we just received meta-consent (e.g., from Fraud intro), skip extraction this turn
+        if state.session.pop("_skip_extraction_once", False):
+            # Ask the first missing slot directly
+            missing_slots = cls._get_missing_slots(current_slots, required_slots)
+            if missing_slots:
+                next_slot = missing_slots[0]
+                question = cls._ask_next_question(product, next_slot, current_slots, user_wants_details, state, logger)
+                state.session["last_question"] = question
+                state.reply = question
+                logger.info("RecFlow.handle: Skip extraction once; asking next slot=%s", next_slot)
+                return "__done__"
+            # No missing slots; proceed to generation below
+
         # Extract/update slots from current message
         extracted_slots = cls._extract_slots(state, product, logger)
         
@@ -1013,7 +1122,7 @@ class RecFlowHelper:
                         if slot_name == "destination":
                             question_text = "Please provide a country name (not a city). Which country will you be travelling to?"
                         elif slot_name == "coverage_scope":
-                            question_text = "Please specify if the coverage is for yourself or for your family."
+                            question_text = "Please choose: myself, family, group of adults (up to 20), or group of families (up to 10)."
                         else:
                             question_text = f"Please provide a valid {slot_name.replace('_', ' ')}."
 
