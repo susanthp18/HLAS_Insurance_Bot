@@ -8,6 +8,7 @@ from .agents import (
     slot_extractor,
     question_asker,
     recommendation_responder,
+    capabilities_responder,
     follow_up_agent,
     tier_identifier,
     followup_clarification_agent,
@@ -30,6 +31,7 @@ agent_map = {
     "slot_extractor": slot_extractor,
     "question_asker": question_asker,
     "recommendation_responder": recommendation_responder,
+    "capabilities_responder": capabilities_responder,
     "follow_up_agent": follow_up_agent,
     "tier_identifier": tier_identifier,
     "followup_clarification_agent": followup_clarification_agent,
@@ -50,6 +52,7 @@ def build_task(config_key: str) -> Task:
 # Instantiate the tasks with proper Agent instances
 identify_product_task = build_task("identify_product")
 synthesize_response_task = build_task("synthesize_response")
+answer_capabilities_task = build_task("answer_capabilities")
 route_decision_task = build_task("route_decision")
 construct_follow_up_query_task = build_task("construct_follow_up_query")
 identify_tiers_task = build_task("identify_tiers")
@@ -62,6 +65,7 @@ ask_question_task = build_task("ask_question")
 task_by_name = {
     "identify_product": identify_product_task,
     "synthesize_response": synthesize_response_task,
+    "answer_capabilities": answer_capabilities_task,
     "route_decision": route_decision_task,
     "identify_tiers": identify_tiers_task,
     "validate_slot": validate_slot_task,

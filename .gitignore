@@ -1,6 +1,7 @@
 # Environment variables
 .env
-
+deploy/env.hlas
+.cursor/
 # Python cache
 __pycache__/
 *.pyc

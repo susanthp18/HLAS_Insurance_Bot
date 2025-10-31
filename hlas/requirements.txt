@@ -10,3 +10,5 @@ redis
 prometheus-client
 orjson
 pymongo
+httpx
+websockets

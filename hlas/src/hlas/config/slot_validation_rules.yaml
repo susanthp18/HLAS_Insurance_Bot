@@ -12,17 +12,22 @@ fraud:
 
 travel:
   coverage_scope:
-    - "Your goal is to determine if the policy should cover just the individual ('self') or their family."
-    - "1. **Normalize Input**: Attempt to normalize the user's input to either 'self' or 'family'. Synonyms for 'self' include 'just me', 'myself', 'for me'. Synonyms for 'family' include 'my whole family', 'for us', 'family trip'."
-    - "2. **Handle Failure**: If the input cannot be confidently normalized to 'self' or 'family', validation fails. Ask directly: 'Please specify if the coverage is for yourself or for your family.'"
+    - "Your goal is to determine if the policy should cover one of: 'self', 'family', 'group_adults', or 'group_families'."
+    - "1. **Normalize Input**: Map common phrases to these normalized values:
+         • 'self'/'myself'/'just me'/'for me'/'solo' → 'self'
+         • 'family'/'my family'/'for us'/'family trip' → 'family'
+         • 'group of adults'/'adult group'/'group adults'/'friends group' → 'group_adults'
+         • 'group of families'/'family group'/'multiple families' → 'group_families'"
+    - "2. **Optional Counts**: If a number of people/families is provided, enforce limits: group_adults ≤ 20; group_families ≤ 10. If over the limit, validation fails and you MUST ask the user to stay within the limit."
+    - "3. **Handle Failure**: If the input cannot be confidently normalized, ask: 'Please choose: myself, family, group of adults (up to 20), or group of families (up to 10).' Normalize the final answer to one of: 'self', 'family', 'group_adults', 'group_families'."
   destination:
     - "Your goal is to identify and validate a destination country from the user's message."
-    - "1. **Validate Country**: Check if the input is a recognizable country name. Accept only full country names, with the exception of the following standard abbreviations which MUST be auto-normalized: US/USA → 'United States', UK → 'United Kingdom', UAE → 'United Arab Emirates'."
+    - "1. **Validate Country**: Accept ANY valid country name worldwide. The user can provide full country names (e.g., 'France', 'Japan', 'Brazil', 'Egypt') OR common abbreviations. If the user provides an abbreviation, auto-normalize it to the full country name. Common abbreviations include (but are not limited to): US/USA → 'United States', UK → 'United Kingdom', UAE → 'United Arab Emirates', SG/SGP → 'Singapore', MY/MYS → 'Malaysia', TH/THA → 'Thailand', ID/IDN → 'Indonesia', PH/PHL → 'Philippines', VN/VNM → 'Vietnam', JP/JPN → 'Japan', KR/KOR → 'South Korea', CN/CHN → 'China', AU/AUS → 'Australia', NZ/NZL → 'New Zealand', FR/FRA → 'France', DE/DEU → 'Germany', IT/ITA → 'Italy', ES/ESP → 'Spain', CA/CAN → 'Canada'."
     - "2. **Handle Cities/Places**: If the user mentions a city or place (e.g., 'Paris', 'Bali', 'Tokyo'), DO NOT infer the country. Ask explicitly: 'Which country will you be travelling to? Please provide the country name.'"
     - "3. **Handle Multiple Countries**: If the user mentions multiple countries (e.g., 'France and Spain'), ask them to specify the primary destination: 'That sounds like a great trip! Which country will you be spending the most time in?'"
-    - "4. **Handle Invalid Input**: If the input is not a recognizable country name, ask: 'Could you please tell me which country you'll be travelling to?'"
-    - "5. **Handle 'I Don't Know'**: If the user says they don't know, ask: 'Please let me know the country you're planning to visit so I can find the right plan for you.'"
-    - "6. **Normalize**: Normalize to the standard English country name (e.g., 'United States' not 'USA'). For abbreviations, only normalize the explicit whitelist: US/USA, UK, UAE. Do NOT derive a country from city/place names, and do NOT auto-normalize other abbreviations."
+    - "4. **Handle Invalid Input**: If the input is not a country name, ask: 'Could you please tell me which country you'll be travelling to?'"
+    - "5. **Handle 'I Don't Know'**: If the user says they don't know, provide a brief explanation and ask: 'I need to know which country you're travelling to so I can recommend the right coverage for you. Which country will you be visiting?'"
+    - "6. **Normalize**: Always normalize to the standard English country name (e.g., 'United States' not 'USA', 'United Kingdom' not 'UK'). For known abbreviations, normalize them to full names. Do NOT derive a country from city/place names."
     - "Strictly ignore any other information like dates or durations."
 
 maid:
@@ -30,24 +35,23 @@ maid:
     - "Your goal is to determine the insurance duration. The only valid normalized values are '12' (for 12 months/1 year) or '24' (for 24 months/2 years)."
     - "1. **Normalize Input**: Convert the user's input into '12' or '24'. Understand and accept natural language like '1 year', 'one year', '12 months' for '12', and '2 years', 'two years', '24 months' for '24'."
     - "2. **Handle Ambiguity/Invalid Input**: If the user provides any other duration, or if the input is unclear, you must ask for a clear choice between the two valid options: 'We offer 12-month and 24-month policies. Which duration would you prefer?'"
-    - "3. **Handle 'I Don't Know'**: If the user says they 'don't know', briefly explain and ask for a choice: 'No problem. The policy can cover either 12 or 24 months. Which option works better for you?'"
+    - "3. **Handle 'I Don't Know'**: If the user says they 'don't know', provide a brief explanation and ask for a choice: 'No problem! The policy duration determines how long your helper will be covered. We offer 12-month and 24-month policies. Which option works better for you?'"
   maid_country:
     - "Your goal is to identify and validate the maid's country of origin."
-    - "1. **Validate Country**: Check if the input is a recognizable country name. Accept common variations and colloquial terms (e.g., 'Pinoy', 'Filipino' -> 'Philippines', 'Indo' -> 'Indonesia'). Do NOT infer the country from city or place names."
+    - "1. **Validate Country**: Accept ANY valid country name. The user can provide full country names, common variations, colloquial terms, OR standard abbreviations. Auto-normalize common variations and abbreviations including (but not limited to): 'Pinoy', 'Filipino' → 'Philippines', 'Indo' → 'Indonesia', 'PH', 'PHL' → 'Philippines', 'ID', 'IDN' → 'Indonesia', 'MY', 'MYS' → 'Malaysia', 'TH', 'THA' → 'Thailand', 'VN', 'VNM' → 'Vietnam', 'MM', 'MMR' → 'Myanmar', 'BD', 'BGD' → 'Bangladesh', 'LK', 'LKA' → 'Sri Lanka', 'IN', 'IND' → 'India'. Do NOT infer the country from city or place names."
     - "2. **Handle Invalid Input**: If the input is not a recognizable country, ask: 'Could you please tell me which country your helper is from?'"
-    - "3. **Handle 'I Don't Know'**: If the user says they don't know, ask: 'To proceed with the recommendation, I'll need to know your helper's country of origin. Which country are they from?'"
-    - "Abbreviations (e.g., 'US', 'USA', 'UK', 'UAE') are not accepted; ask for the full country name (e.g., 'United States')."
-    - "4. **Normalize**: Only when a country is provided, normalize to the standard English name (e.g., 'Pinoy' -> 'Philippines', 'Indo' -> 'Indonesia')."
+    - "3. **Handle 'I Don't Know'**: If the user says they don't know, provide a brief explanation and ask: 'I need to know your helper's country of origin to recommend the right coverage. Which country are they from?'"
+    - "4. **Normalize**: Always normalize to the standard English country name (e.g., 'Pinoy' → 'Philippines', 'Indo' → 'Indonesia', 'PH' → 'Philippines', 'MY' → 'Malaysia')."
   coverage_above_mom_minimum:
     - "Your goal is to determine if the user wants coverage higher than the legal minimum. The only valid normalized values are 'yes' or 'no'."
     - "1. **Normalize Input**: Convert user's input into a strict 'yes' or 'no'. Be flexible with user phrasing. Accept common variants like: 'yes', 'yep', 'yup', 'sure', 'want more', 'beyond minimum' should all normalize to 'yes'. Variants like 'no', 'nope', 'nah', 'basic is fine', 'minimum only' should all normalize to 'no'."
     - "2. **Handle Ambiguity**: If the user's response is unclear (e.g., 'is it expensive?'), re-ask the question clearly: 'To clarify, would you like coverage for medical expenses beyond the legal minimum requirement? (Yes/No)'"
-    - "3. **Handle 'I Don't Know'**: If the user says they 'don't know', explain the benefit and ask for a choice: 'The Ministry of Manpower (MOM) requires a minimum level of medical coverage. We offer plans that go beyond this minimum for greater protection. Would you like to include this higher coverage? (Yes/No)'"
+    - "3. **Handle 'I Don't Know'**: If the user says they 'don't know', provide a brief explanation and ask for a choice: 'No problem! The Ministry of Manpower (MOM) requires a minimum level of medical coverage for helpers. We offer plans that go beyond this minimum for greater protection. Would you like to include this higher coverage? (Yes/No)'"
   add_ons:
     - "Your goal is to determine if the user is interested in optional add-on coverages. The only valid normalized values are 'required' or 'not_required'."
     - "1. **Normalize Input**: Convert user's input into 'required' or 'not_required'. Be flexible with user phrasing. Accept common variants like: 'yes', 'yep', 'yup', 'sure', 'interested', 'want add-ons' should normalize to 'required'. Variants like 'no', 'nope', 'nah', 'not interested', 'no extras' should normalize to 'not_required'."
     - "2. **Handle Ambiguity**: If the user's response is unclear, re-ask the question clearly: 'Just to be sure, are you interested in learning about optional add-ons for greater coverage? (Yes/No)'"
-    - "3. **Handle 'I Don't Know'**: If the user says they 'don't know' or asks what they are, explain the add-ons and ask for a clear choice: 'Optional add-ons include benefits like increased hospital expense limits and coverage for medical check-ups. Are you interested in these extra coverages? (Yes/No)'"
+    - "3. **Handle 'I Don't Know'**: If the user says they 'don't know' or asks what they are, provide a brief explanation and ask for a clear choice: 'No problem! Optional add-ons include benefits like increased hospital expense limits and coverage for medical check-ups. Are you interested in these extra coverages? (Yes/No)'"
 
 personalaccident:
   coverage_scope:
@@ -60,7 +64,10 @@ personalaccident:
     - "2. **Handle Failure**: If the input is ambiguous ('it depends') or you cannot confidently classify the provided occupation, validation fails. You MUST then ask for the user's occupation directly so you can classify it. For example: 'To determine the risk level, could you please tell me your occupation?'"
   desired_amount:
     - "Your goal is to validate the desired coverage amount is a number between 500 and 3500."
-    - "1. **Normalize Input**: Extract digits from the user's input; accept currency symbols and commas (e.g., '$2,500' → '2500')."
+    - "0. **Preference Phrases (no number given)**: If the user expresses a directional preference, map it to a boundary value:
+         • 'the higher the better', 'highest', 'max', 'maximum', 'as high as possible', 'best coverage' → '3500'
+         • 'the lower the better', 'lowest', 'min', 'minimum', 'as low as possible', 'budget' → '500'"
+    - "1. **Normalize Input**: Extract digits from the user's input; accept currency symbols and commas (e.g., '$2,500' → '2500'). Also accept approximations like 'about 3k' → '3000'."
     - "2. **Validate Range**: After normalization, check the number falls within 500 to 3500, inclusive."
     - "3. **Handle Failure**: If the input is not numeric after normalization or is outside the valid range, validation fails. Your question MUST explain the error and state the valid range. For example: 'The amount you provided is not valid. Please provide an amount between $500 and $3,500.'"
     - "If valid, the `normalized_value` must be the number as a string (e.g., '1500')."

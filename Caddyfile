@@ -1,0 +1,20 @@
+http://:80 {
+  encode gzip zstd
+  log
+
+  @wa path /meta-whatsapp*
+  handle @wa {
+    reverse_proxy http://hlas-api:8000
+  }
+
+  @health path /health* /ready* /whatsapp/health*
+  handle @health {
+    reverse_proxy http://hlas-api:8000
+  }
+
+  handle {
+    reverse_proxy http://hlas-api:8000
+  }
+}
+
+

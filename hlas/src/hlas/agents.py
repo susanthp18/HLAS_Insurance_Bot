@@ -50,6 +50,7 @@ slot_extractor = build_agent_from_config("slot_extractor")
 question_asker = build_agent_from_config("question_asker")
 # Use response LLM for agents that generate user-facing responses
 recommendation_responder = build_agent_from_config("recommendation_responder", use_response_llm=True)
+capabilities_responder = build_agent_from_config("capabilities_responder", use_response_llm=True)
 follow_up_agent = build_agent_from_config("follow_up_agent", use_response_llm=True)
 tier_identifier = build_agent_from_config("tier_identifier")
 followup_clarification_agent = build_agent_from_config("followup_clarification_agent", use_response_llm=True)
