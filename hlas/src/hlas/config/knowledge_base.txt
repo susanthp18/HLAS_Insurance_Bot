@@ -9,14 +9,14 @@ Bot Capabilities
 - Recommendation: Collect a few preferences and suggest a suitable plan.
 
 Supported Products
-- Travel insurance (brand: Travel Protect360)
-- Maid insurance (brand: Maid Protect360 Pro)
-- Car insurance (brand: Car Protect360)
-- Personal Accident insurance (brand: Family Protect360)
-- Home insurance (brand: Home Protect360)
-- Early Critical Illness insurance (brand: Early Protect360 Plus)
-- Fraud Protect insurance (brand: Fraud Protect360 Plus)
-- Hospital Cash insurance (brand: Hospital Protect360)
+- Travel insurance (brand: Travel Protect360) — Tiers: Basic, Silver, Gold, Platinum
+- Maid insurance (brand: Maid Protect360 Pro) — Tiers: Basic, Enhanced, Premier, Exclusive
+- Car insurance (brand: Car Protect360) — Tiers: None (single plan)
+- Personal Accident insurance (brand: Family Protect360) — Tiers: Bronze, Silver, Premier, Platinum
+- Home insurance (brand: Home Protect360) — Tiers: Silver, Gold, Platinum
+- Early Critical Illness insurance (brand: Early Protect360 Plus) — Tiers: None (sum insured options)
+- Fraud Protect insurance (brand: Fraud Protect360 Plus) — Tiers: Gold, Platinum
+- Hospital Cash insurance (brand: Hospital Protect360) — Tiers: Silver, Premier, Titanium
 - We don't have any hybrid insurance products
 Examples of Suitable Questions for This KB
 - What can you help me with?
