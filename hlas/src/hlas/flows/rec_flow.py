@@ -68,7 +68,7 @@ class RecFlowHelper:
         """Get descriptions for each slot to help extraction."""
         descriptions = {
             "travel": {
-                "coverage_scope": "Coverage for yourself, family, a group of adults (≤20), or a group of families (≤10)",
+                "coverage_scope": "Coverage for self (e.g., myself/just me/me), family, a group of adults, or a group of families. Use general phrases; if a headcount is given, the validator will enforce limits (adults ≤ 20, families ≤ 10).",
                 "destination": "Country the user is travelling to (country name only)",
             },
             "maid": {
@@ -149,7 +149,7 @@ class RecFlowHelper:
         p = (product or "").lower()
         if p == "travel":
             return {
-                "coverage_scope": {"type": "choice", "options": ["myself", "family", "group of adults (up to 20)", "group of families (up to 10)"]},
+                "coverage_scope": {"type": "choice", "options": ["self", "family", "group of adults", "group of families"]},
                 "destination": {"type": "value", "format": "country"},
             }
         if p == "maid":
