@@ -83,7 +83,7 @@ class RecFlowHelper:
                 "desired_amount": "Desired coverage amount between $500 and $3,500 (accept 'the higher the better' → 3500; 'the lower the better' → 500)"
             },
             "home": {
-                "risk_concerns": "Specific worries such as fire, water damage, or theft (single or multiple)",
+                "risk_concerns": "Specific worries such as fire, water damage, or theft (single, multiple, or 'all' to mean everything). Synonyms: burglary/break-in/stolen → theft; flood/leak/water/pipe burst → water damage.",
                 "coverage_amount": "Estimated total value of renovations, home contents, and valuables (numeric amount)"
             },
             "early": {
@@ -102,7 +102,10 @@ class RecFlowHelper:
                 "coverage": "Desired daily hospital cash (e.g., $100/day, $200/day, $300/day)",
             },
         }
-        return descriptions.get((product or "").lower(), {})
+        p = (product or "").lower()
+        if p == "homeprotect360":
+            p = "home"
+        return descriptions.get(p, {})
 
     @staticmethod
     def _get_slot_value(slots_dict: Dict[str, Any], slot_name: str) -> str:
@@ -189,9 +192,21 @@ class RecFlowHelper:
                     }
                 },
             }
-        if p == "home":
+        if p in ("home", "homeprotect360"):
             return {
-                "risk_concerns": {"type": "value", "options": ["fire", "water damage", "theft"]},
+                "risk_concerns": {
+                    "type": "value",
+                    "options": ["fire", "water damage", "theft"],
+                    "hints": {
+                        "accept_all_phrases": ["all", "everything", "both"],
+                        "synonyms": {
+                            "theft": ["burglary", "break-in", "stolen"],
+                            "water damage": ["flood", "leak", "water", "pipe burst"],
+                            "fire": ["fire", "fires"]
+                        },
+                        "output_format": "comma-separated in order: fire, water damage, theft"
+                    }
+                },
                 "coverage_amount": {"type": "value", "format": "amount:int"},
             }
         if p == "early":
@@ -306,6 +321,8 @@ class RecFlowHelper:
             with open(base_dir / "config" / "slot_validation_rules.yaml", "r", encoding="utf-8") as rf:
                 rules_yaml = yaml.safe_load(rf) or {}
             product_key = (product or "").lower()
+            if product_key == "homeprotect360":
+                product_key = "home"
             slot_key = (slot_name or "").lower()
             lines = rules_yaml.get(product_key, {}).get(slot_key, [])
             if lines:
