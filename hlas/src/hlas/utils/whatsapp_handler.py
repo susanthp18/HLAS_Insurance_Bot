@@ -345,11 +345,37 @@ class WhatsAppMessageHandler:
                     new_session.pop(key, None)
 
             # 4) Ephemeral guidance flags: copy if present; otherwise ensure they are removed
-            for key in ("last_question", "_last_info_prod_q", "_last_info_user_msg", "pending_slot", "_fu_query", "fraud_stage"):
+            for key in (
+                # Existing keys (already working)
+                "last_question", "_last_info_prod_q", "_last_info_user_msg",
+                "pending_slot", "_fu_query", "fraud_stage",
+
+                # Slot extraction context (fixes Early flow stuck bug on server)
+                "_last_slot_name", "_last_slot_question",
+
+                # RecFlow product clarification
+                "_last_rec_prod_q", "_tentative_product",
+
+                # Fraud flow skip extraction flag
+                "_skip_extraction_once",
+
+                # Early product educational notice
+                "_early_existing_cover_notice",
+
+                # Product switch confirmation marker
+                "__product_switch_confirmed__"
+            ):
                 if key in flow.state.session and flow.state.session.get(key) not in (None, ""):
                     new_session[key] = flow.state.session.get(key)
                 else:
                     new_session.pop(key, None)
+
+            # Step 2: Handle recommended_tier removal propagation (e.g., on product switch)
+            if "recommended_tier" in flow.state.session:
+                new_session["recommended_tier"] = flow.state.session["recommended_tier"]
+            else:
+                # Flow cleared it (e.g., on product switch) - propagate removal to prevent stale tier
+                new_session.pop("recommended_tier", None)
 
             # 5) Histories and markers: copy if present
             for key in ("comparison_history", "summary_history", "last_completed"):
