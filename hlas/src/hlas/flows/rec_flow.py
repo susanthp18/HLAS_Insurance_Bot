@@ -255,8 +255,8 @@ class RecFlowHelper:
         
         # Include last bot question ONLY when it is a real slot question
         last_slot_name_ctx = state.session.get('_last_slot_name')
-        last_bot_question = state.session.get('last_question', 'None') if last_slot_name_ctx else 'None'
-        
+        last_bot_question = state.session.get('_last_slot_question', 'None') if last_slot_name_ctx else 'None'
+
         targets = missing_slots or required_slots
         valid_slots_str = ", ".join(targets)
         slot_meta_json = json.dumps({s: specs.get(s, {}) for s in targets})
