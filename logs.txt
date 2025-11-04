@@ -1,0 +1,731 @@
+INFO:     Application startup complete.
+2025-11-04 14:01:14 - hlas.src.hlas.main - INFO - Chat.request: session_id=s54 message='hi'
+2025-11-04 14:01:14 - hlas.src.hlas.main - INFO - Chat.handler: Received 'hi' greeting - resetting session before processing
+2025-11-04 14:01:14 - hlas.src.hlas.session - INFO - Reset session state for s54 with fresh history.
+2025-11-04 14:01:14 - hlas.src.hlas.main - INFO - Chat.handler: Responding with time-based greeting
+INFO:     127.0.0.1:60817 - "POST /chat HTTP/1.1" 200 OK
+2025-11-04 14:01:32 - hlas.src.hlas.main - INFO - Chat.request: session_id=s54 message='i want a recommendation'
+╭─────────────────────────────────────────────────── Flow Execution ───────────────────────────────────────────────────╮
+│                                                                                                                      │
+│  Starting Flow Execution                                                                                             │
+│  Name: HlasFlow                                                                                                      │
+│  ID: 7a5f62a0-25e3-456a-ace1-27b55d4149cc                                                                            │
+│  Tool Args:                                                                                                          │
+│                                                                                                                      │
+│                                                                                                                      │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+2025-11-04 14:01:32 - hlas.src.hlas.flow - INFO - HlasFlow.__init__: Initializing with RECFLOW_AVAILABLE=True
+2025-11-04 14:01:32 - hlas.src.hlas.flow - INFO - HlasFlow.__init__: Using cached config - agents=10, tasks=10
+2025-11-04 14:01:32 - hlas.src.hlas.session - INFO - Loaded session s54 from cache.
+2025-11-04 14:01:32 - hlas.src.hlas.main - INFO - Chat.session_loaded: pending_slot='None' product='None' keys=['product', 'slots', 'recommended_tier', 'live_agent_status', 'session_id', 'history', 'created_at', 'last_active']
+2025-11-04 14:01:32,828 - crewai.flow.flow - INFO - Flow started with ID: 7a5f62a0-25e3-456a-ace1-27b55d4149cc
+2025-11-04 14:01:32 - hlas.src.hlas.flow - INFO - HlasFlow.ingest: Starting flow - message_len=23, session_keys=['product', 'slots', 'recommended_tier', 'live_agent_status', 'session_id', 'history', 'created_at', 'last_active']
+2025-11-04 14:01:32 - hlas.src.hlas.flow - INFO - HlasFlow.decide: Entry state - message='i want a recommendation', rec_status='None', cmp_status='None', sum_status='None', product='None'
+2025-11-04 14:01:32 - hlas.src.hlas.flow - INFO - HlasFlow.decide: Calling orchestrator - context_len=111
+2025-11-04 14:01:32 - hlas.src.hlas.flow - INFO - LLM Direct [orchestrator.route_decision]:
+[SYSTEM]
+You are Master Intent Router. You are a stateless router. Read compact context fields carefully and return exactly one directive with evidence.
+
+Follow-up policy:
+- If turn == "follow_up_candidate":
+  * Return handle_follow_up when pending_flag is true; otherwise decide using the message and recent_context.
+  * If last_completed ∈ {comparison, summary}, bias toward handle_follow_up for short clarifications.
+  * If message contains a pronoun (it, that, this) together with comparison/summary verbs (compare, summarize, recommend),
+    prefer handle_follow_up to allow pronoun resolution, even if only one tier is explicitly named.
+- If turn == "first": do NOT return handle_follow_up.
+- When uncertain, prefer handle_information.
+
+PRIORITY & GATING:
+- Decide based on the CURRENT user message; use recent_context only to resolve pronouns and if it is actually linked with previous message. If they conflict, prefer the CURRENT message.
+
+STRICT ROUTING CONTRACTS:
+Primary intents (pick the first that fits, with explicit evidence):
+
+Plan-only comparison detection:
+- If CURRENT_MESSAGE contains the verb "compare" and any of "plan", "plans", "tier", or "tiers", and a session_product exists, route to plan_only_comparison even if no tier names are present.
+
+- handle_recommendation: user explicitly asks for a recommendation/quote OR expresses intent to purchase/get a product.
+  * Required evidence:
+    - Explicit request verbs: "recommend", "suggest", "which should I buy", "quote", "help me pick", "help me choose", "help me select"
+    - Purchase intent phrases: "I want [product]", "I want to buy", "I want to get", "I need [product]", "get me [product]", "looking for [product]"
+    - Product-only messages: When user says just the product name (e.g., "travel", "maid insurance", "home") without asking a specific question
+  * Abstain if: user is asking a specific question about benefits, coverage, exclusions, or policy details (route to handle_information instead)
+
+- plan_only_comparison: STRICT CONTRACT - user asks to compare OVERALL plans/tiers without specifying a single benefit.
+  * Required evidence: TWO OR MORE tier names explicitly mentioned ("Silver and Gold", "Basic vs Premier") OR explicit comparative language ("compare plans", "difference between plans", "which plan is better")
+  * Abstain if: user asks about a SPECIFIC benefit (e.g., "compare medical expenses"), policy details, exclusions, or coverage limits
+  * Counterexamples that MUST route to handle_information instead:
+    - "what are the exclusions for travel insurance" → handle_information (policy details, not plan comparison)
+    - "compare medical expenses in all plans" → handle_information (specific benefit comparison)
+    - "which countries are covered" → handle_information (coverage details)
+    - "what's not covered" → handle_information (exclusion query)
+  * DO NOT introduce tiers never mentioned by user or in session_product context
+  * If fewer than two tiers mentioned and no explicit comparison verb, route to handle_information
+
+- handle_summary: user asks for a summary/overview of plan(s).
+  * Required evidence: explicit summary verbs ("summarize", "overview", "recap", "tell me about")
+  * Abstain if: no summary verb, route to handle_information
+
+- handle_information: benefit/policy questions (coverage, limits, exclusions, which plan covers X, specific benefit comparisons, etc.).
+  * Use as safe default when other intents lack sufficient evidence
+  * Always prefer this for: exclusions, coverage details, policy limits, specific benefit queries
+
+Secondary intents:
+- greet, handle_capabilities, live_agent, handle_other.
+  - handle_capabilities: ONLY choose when the user asks meta/capability or catalog questions, such as:
+    * What the bot can do / how it can help / features / capabilities
+    * Which products are available (product catalog) — e.g., "what products do you have? or what other insurance products do you offer? "
+    * Do you have hybrid insurance products?
+    * Don't choose handle_capabilities for questions like "Can you compare the plans? or can you summarize the plan?"
+
+EVIDENCE GROUNDING:
+• Evidence MUST cite only words/entities present in the user message or recent_context
+• DO NOT hallucinate tiers, benefits, or entities not mentioned
+• When in doubt between plan_only_comparison and handle_information, prefer handle_information
+
+Output rules:
+- Return only the JSON contract with "directive" and optional "evidence" field. No extra text.
+
+Your goal is: Decide one high-level directive for the current user message using compact, explicit context signals.
+Output a single JSON object with the directive and explicit evidence.
+
+Task Description: Context JSON fields:
+  - CURRENT_MESSAGE
+  - SESSION_PRODUCT
+  - turn (first | follow_up_candidate | normal)
+  - LAST_COMPLETED (recommendation | comparison | summary | none)
+  - PENDING_FLAG (boolean)
+  - RECENT_CONTEXT (string[]; most recent first, up to 2 short lines)
+
+Output Requirements:
+- Return directive with optional evidence field citing words/entities from message or recent_context
+- Evidence is required for plan_only_comparison (must cite tier names or comparison verbs)
+- When in doubt between plan_only_comparison and handle_information, prefer handle_information
+
+Return only a single JSON object. No extra text.
+
+
+
+Output contract (JSON):
+{ "directive": "greet" | "handle_recommendation" | "handle_information" | "handle_follow_up" | "plan_only_comparison" | "handle_summary" | "handle_capabilities" | "live_agent" | "handle_other", "evidence"?: "<optional: tokens/entities from message or context>" }
+
+[USER]
+[Context]
+CURRENT_MESSAGE: i want a recommendation
+SESSION_PRODUCT:
+TURN: first
+LAST_COMPLETED: none
+PENDING_FLAG: False
+14:01:32 - LiteLLM:INFO: utils.py:3258 -
+LiteLLM completion() model= gpt-4.1-mini; provider = azure
+2025-11-04 14:01:32,844 - LiteLLM - INFO -
+LiteLLM completion() model= gpt-4.1-mini; provider = azure
+2025-11-04 14:01:34,889 - httpx - INFO - HTTP Request: POST https://hlasdemoapillm.openai.azure.com/openai/deployments/gpt-4.1-mini/chat/completions?api-version=2024-12-01-preview "HTTP/1.1 200 OK"
+14:01:34 - LiteLLM:INFO: utils.py:1260 - Wrapper: Completed Call, calling success_handler
+2025-11-04 14:01:34,908 - LiteLLM - INFO - Wrapper: Completed Call, calling success_handler
+2025-11-04 14:01:34 - hlas.src.hlas.flow - INFO - LLM API call successful [orchestrator.route_decision]
+2025-11-04 14:01:34 - hlas.src.hlas.flow - INFO - LLM Direct [orchestrator.route_decision]: Output - {"directive": "handle_recommendation", "evidence": "i want a recommendation"}
+2025-11-04 14:01:34 - hlas.src.hlas.flow - INFO - HlasFlow.decide: Orchestrator output - directive=handle_recommendation, keys=['directive', 'evidence']
+2025-11-04 14:01:34 - hlas.src.hlas.flow - INFO - HlasFlow.decide: Routing to recommendation flow
+2025-11-04 14:01:34 - hlas.src.hlas.flow - INFO - HlasFlow.decide: Using RecFlow for recommendation
+2025-11-04 14:01:34 - hlas.src.hlas.flow - INFO - RecFlow.handle: Starting recommendation flow - message_len=23
+2025-11-04 14:01:34 - hlas.src.hlas.flow - INFO - RecFlow.handle: Product identification - current_product=None, rec_status=None, prev_prod_q=False
+2025-11-04 14:01:34 - hlas.src.hlas.flow - INFO - LLM Direct [product_identifier.identify_product.rec_flow]:
+[SYSTEM]
+You are Product Identifier. You are a precise product identifier. Your primary goal is to correctly identify one of the available insurance products: Travel, Maid, Car, PersonalAccident, Home, Early, Fraud, or Hospital.
+
+**Identification Rules:**
+1.  **Direct Match First:** Your highest priority is to look for the literal product names and their official brand names. If you find a direct match, you MUST identify that product with high confidence.
+    - **Travel:** "Travel", "travel insurance", "Travel Protect360", "Travel protect 360"
+    - **Maid:** "Maid", "maid insurance", "Maid Protect360", "Maid Protect 360", "helper", "domestic helper", "domestic worker", "FDW", "foreign domestic worker", "housemaid"
+    - **Car:** "Car", "car insurance", "motor insurance", "Car Protect360", "Car Protect 360"
+    - **PersonalAccident:** "Personal Accident", "personal accident insurance", "pa insurance", "Family Protect360"
+    - **Home:** "Home", "home insurance", "Home Protect360", "Home Protect 360", "home protect360"
+    - **Early:** "Early", "critical illness", "critical illness insurance", "CI insurance", "Early Protect360", "Early Protect 360", "early protect 360", "early protect360"
+    - **Fraud:** "Fraud", "fraud insurance", "Fraud Protect360 PLUS", "Fraud Protect360+", "Fraud Protect 360"
+    - **Hospital:** "Hospital", "hospital insurance", "Hospital Protect360", "Hospital Protect 360", "hospital protect360"
+
+Additionally: if the user's entire message is exactly one of the product names or a known alias above (case-insensitive), you MUST return that product with confidence 1.0 and WITHOUT asking a question.
+2.  **Context-Informed Inference:** If no direct product name is present:
+   - Accident-related benefit terms like "Accidental Death", "accident cover", "accident plan", and generic benefits like "medical expenses"
+     can appear across products. You MUST NOT infer PersonalAccident from these terms alone. Prefer direct product names, unique tiers, or explicit context.
+
+   - Other clear contextual examples:
+     * "travel to Japan", "trip" -> Travel
+     * "domestic helper", "FDW", "FWW" -> Maid
+     * "car accident", "motor" -> Car
+     * "home contents", "renovations", "home theft" -> Home
+     * "critical illness", "CI payout", "lump sum on diagnosis" -> Early
+3.  **Ask for Clarification:** Only if the message is truly ambiguous (e.g., "what about coverage for medical expenses?") and contains no direct product name or clear contextual clue, should you ask for clarification.
+4.  When uncertain, ask a short clarification and list the available products using full category names (no short forms):
+    Travel insurance, Maid insurance, Car insurance, Personal Accident insurance, Home Contents insurance, Critical Illness (Early Protect), Fraud insurance, Hospital Income insurance.
+
+FOLLOW-UP ANCHORING:
+- When a Session product is provided, treat it as LOCKED. Do NOT switch products due to topical words (e.g., "fire", "accident", "home contents", "medical expenses").
+- Switch ONLY if the CURRENT message clearly and explicitly names another insurance product or brand variant (e.g., "Fraud", "Fraud Protect360", "Travel Protect360", "Home insurance", "my Early policy").
+- Accept explicit phrasing patterns broadly, not just "under": e.g., "for <Product>", "about <Product>", "regarding <Product>", "in <Product>", "my <Product> policy/plan".
+- If a product word is also a common noun (e.g., "home"), require an adjacent insurance cue ("insurance", "plan", "policy", "Protect360") to treat it as a product.
+- If the message references a section/benefit previously tied to the Session product (e.g., "Restoration Costs") without naming a different product, PREFER the Session product.
+
+If a "Candidates:" block is provided (from lexical detection), analyze the CURRENT user response and confirm the single product the user wants to switch to or continue with. Return that as "product". If ambiguous, ask a short clarifying question.
+
+Switching guidelines (keep minimal and precise):
+- Prefer the Session product by default.
+- Switch ONLY if the CURRENT message explicitly names another product via:
+  * Brand or Protect360 form (e.g., "Fraud Protect360", "Travel Protect 360").
+  * "<product>" with an insurance cue ("insurance", "policy", "plan", "cover/coverage"), e.g., "home insurance", "car policy".
+  * An explicit correction that negates the Session product and affirms another (e.g., "not Home, I asked for Travel").
+- When you switch, include "product_switch_reason": "explicit_brand" | "explicit_name_with_insurance_cue" | "explicit_correction".
+
+OPTIONAL TRACEABILITY:
+- When you identify a product that differs from the Session product (i.e., a potential switch), include an optional field "product_switch_reason" in your JSON with one of:
+  * "explicit_brand" (e.g., "Travel Protect360", "Fraud Protect360 Plus", "Maid Protect 320 Pro")
+  * "explicit_name_with_insurance_cue" (e.g., "home insurance", "car insurance")
+  * "synonym_with_insurance_cue" (e.g., "vacation insurance", "overseas travel insurance", "hospitalization insurance")
+  * "alias_acronym" (e.g., "FDW", "MDW", "PA insurance")
+  * "typo_corrected" (clear misspelling but confidently resolved)
+- If no switch occurs or reason is unclear, omit this field.
+
+Your goal is: Identify the user's product (Travel, Maid, Car, PersonalAccident, Home, Early, Fraud, Hospital) with high precision. Only return a product if there is a clear, unambiguous reference. If the message could apply to multiple products or lacks specific product context, ask a clarifying question. Return JSON.
+
+Task Description: Identify which insurance product the user refers to. **Handle typos robustly**.
+If the user's message is exactly one product name or a known alias (case-insensitive) and contains no conflicting references, return that product with confidence 1.0 and do not include a question.
+For non-unique tier names ("Basic", "Silver", "Gold", "Premier", "Platinum"), require additional product cues; otherwise, ask a short clarification question.
+If ambiguous, provide a short clarification question.
+Return only a single JSON object. No extra text.
+
+
+
+Output contract (JSON):
+{ "product": "Travel" | "Maid" | "Car" | "PersonalAccident" | "Home" | "Early" | "Fraud" | "Hospital" | "", "confidence": 0.0-1.0, "question"?: string, "product_switch_reason"?: "explicit_brand" | "explicit_name_with_insurance_cue" | "explicit_correction" | "synonym_with_insurance_cue" | "alias_acronym" | "typo_corrected" }
+
+[USER]
+[Context]
+Message: i want a recommendation
+Session product: None
+14:01:34 - LiteLLM:INFO: utils.py:3258 -
+LiteLLM completion() model= gpt-4.1-mini; provider = azure
+2025-11-04 14:01:34,917 - LiteLLM - INFO -
+LiteLLM completion() model= gpt-4.1-mini; provider = azure
+2025-11-04 14:01:36,277 - httpx - INFO - HTTP Request: POST https://hlasdemoapillm.openai.azure.com/openai/deployments/gpt-4.1-mini/chat/completions?api-version=2024-12-01-preview "HTTP/1.1 200 OK"
+14:01:36 - LiteLLM:INFO: utils.py:1260 - Wrapper: Completed Call, calling success_handler
+2025-11-04 14:01:36,277 - LiteLLM - INFO - Wrapper: Completed Call, calling success_handler
+2025-11-04 14:01:36 - hlas.src.hlas.flow - INFO - LLM API call successful [product_identifier.identify_product.rec_flow]
+2025-11-04 14:01:36 - hlas.src.hlas.flow - INFO - LLM Direct [product_identifier.identify_product.rec_flow]: Output - {"product": "", "confidence": 0.0, "question": "Could you please specify which type of insurance you are interested in? We offer Travel insurance, Maid insurance, Car insurance, Personal Accident insurance, Home Contents insurance, Critical Illness (Early Protect), Fraud insurance, and Hospital Income insurance."}
+2025-11-04 14:01:36 - hlas.src.hlas.flow - INFO - RecFlow.handle: Product identification API output - product=, confidence=0.0, has_question=True, keys=['product', 'confidence', 'question']
+2025-11-04 14:01:36 - hlas.src.hlas.flow - INFO - RecFlow.handle: Product clarification question provided (has_question=True), requesting clarification
+2025-11-04 14:01:36 - hlas.src.hlas.session - INFO - Saved session state for s54 in Redis.
+2025-11-04 14:01:36 - hlas.src.hlas.mongo_history - INFO - Mongo history writer initialized for DB 'hlas_insurance_bot'
+2025-11-04 14:01:36 - hlas.src.hlas.session - INFO - Added history entry for session s54.
+2025-11-04 14:01:36 - hlas.src.hlas.main - INFO - Chat.session_persist.final: rec_status='in_progress' cmp_status='None' sum_status='None' keys=['product', 'slots', 'recommended_tier', 'live_agent_status', 'session_id', 'history', 'created_at', 'last_active', 'recommendation_status', '_last_rec_prod_q']
+2025-11-04 14:01:36 - hlas.src.hlas.main - INFO - Chat.completed: product=None reply_len=265 sources=
+INFO:     127.0.0.1:60821 - "POST /chat HTTP/1.1" 200 OK
+2025-11-04 14:02:09 - hlas.src.hlas.main - INFO - Chat.request: session_id=s54 message='maid'
+╭─────────────────────────────────────────────────── Flow Execution ───────────────────────────────────────────────────╮
+│                                                                                                                      │
+│  Starting Flow Execution                                                                                             │
+│  Name: HlasFlow                                                                                                      │
+│  ID: 2cf8a5de-11c0-4250-b922-f6ed012c3886                                                                            │
+│  Tool Args:                                                                                                          │
+│                                                                                                                      │
+│                                                                                                                      │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+2025-11-04 14:02:09 - hlas.src.hlas.flow - INFO - HlasFlow.__init__: Initializing with RECFLOW_AVAILABLE=True
+2025-11-04 14:02:09 - hlas.src.hlas.flow - INFO - HlasFlow.__init__: Using cached config - agents=10, tasks=10
+2025-11-04 14:02:09 - hlas.src.hlas.session - INFO - Loaded session s54 from cache.
+2025-11-04 14:02:09 - hlas.src.hlas.main - INFO - Chat.session_loaded: pending_slot='None' product='None' keys=['product', 'slots', 'recommended_tier', 'live_agent_status', 'session_id', 'history', 'created_at', 'last_active', 'recommendation_status', '_last_rec_prod_q']
+2025-11-04 14:02:09,593 - crewai.flow.flow - INFO - Flow started with ID: 2cf8a5de-11c0-4250-b922-f6ed012c3886
+2025-11-04 14:02:09 - hlas.src.hlas.flow - INFO - HlasFlow.ingest: Starting flow - message_len=4, session_keys=['product', 'slots', 'recommended_tier', 'live_agent_status', 'session_id', 'history', 'created_at', 'last_active', 'recommendation_status', '_last_rec_prod_q']
+2025-11-04 14:02:09 - hlas.src.hlas.flow - INFO - HlasFlow.decide: Entry state - message='maid', rec_status='in_progress', cmp_status='None', sum_status='None', product='None'
+2025-11-04 14:02:09 - hlas.src.hlas.flow - INFO - HlasFlow.decide: Recommendation in progress, bypassing orchestrator to RecFlow
+2025-11-04 14:02:09 - hlas.src.hlas.flow - INFO - RecFlow.handle: Starting recommendation flow - message_len=4
+2025-11-04 14:02:09 - hlas.src.hlas.flow - INFO - RecFlow.handle: Product identification - current_product=None, rec_status=in_progress, prev_prod_q=True
+2025-11-04 14:02:09 - hlas.src.hlas.flow - INFO - LLM Direct [product_identifier.identify_product.rec_flow_prod_clarify]:
+[SYSTEM]
+You are Product Identifier. You are a precise product identifier. Your primary goal is to correctly identify one of the available insurance products: Travel, Maid, Car, PersonalAccident, Home, Early, Fraud, or Hospital.
+
+**Identification Rules:**
+1.  **Direct Match First:** Your highest priority is to look for the literal product names and their official brand names. If you find a direct match, you MUST identify that product with high confidence.
+    - **Travel:** "Travel", "travel insurance", "Travel Protect360", "Travel protect 360"
+    - **Maid:** "Maid", "maid insurance", "Maid Protect360", "Maid Protect 360", "helper", "domestic helper", "domestic worker", "FDW", "foreign domestic worker", "housemaid"
+    - **Car:** "Car", "car insurance", "motor insurance", "Car Protect360", "Car Protect 360"
+    - **PersonalAccident:** "Personal Accident", "personal accident insurance", "pa insurance", "Family Protect360"
+    - **Home:** "Home", "home insurance", "Home Protect360", "Home Protect 360", "home protect360"
+    - **Early:** "Early", "critical illness", "critical illness insurance", "CI insurance", "Early Protect360", "Early Protect 360", "early protect 360", "early protect360"
+    - **Fraud:** "Fraud", "fraud insurance", "Fraud Protect360 PLUS", "Fraud Protect360+", "Fraud Protect 360"
+    - **Hospital:** "Hospital", "hospital insurance", "Hospital Protect360", "Hospital Protect 360", "hospital protect360"
+
+Additionally: if the user's entire message is exactly one of the product names or a known alias above (case-insensitive), you MUST return that product with confidence 1.0 and WITHOUT asking a question.
+2.  **Context-Informed Inference:** If no direct product name is present:
+   - Accident-related benefit terms like "Accidental Death", "accident cover", "accident plan", and generic benefits like "medical expenses"
+     can appear across products. You MUST NOT infer PersonalAccident from these terms alone. Prefer direct product names, unique tiers, or explicit context.
+
+   - Other clear contextual examples:
+     * "travel to Japan", "trip" -> Travel
+     * "domestic helper", "FDW", "FWW" -> Maid
+     * "car accident", "motor" -> Car
+     * "home contents", "renovations", "home theft" -> Home
+     * "critical illness", "CI payout", "lump sum on diagnosis" -> Early
+3.  **Ask for Clarification:** Only if the message is truly ambiguous (e.g., "what about coverage for medical expenses?") and contains no direct product name or clear contextual clue, should you ask for clarification.
+4.  When uncertain, ask a short clarification and list the available products using full category names (no short forms):
+    Travel insurance, Maid insurance, Car insurance, Personal Accident insurance, Home Contents insurance, Critical Illness (Early Protect), Fraud insurance, Hospital Income insurance.
+
+FOLLOW-UP ANCHORING:
+- When a Session product is provided, treat it as LOCKED. Do NOT switch products due to topical words (e.g., "fire", "accident", "home contents", "medical expenses").
+- Switch ONLY if the CURRENT message clearly and explicitly names another insurance product or brand variant (e.g., "Fraud", "Fraud Protect360", "Travel Protect360", "Home insurance", "my Early policy").
+- Accept explicit phrasing patterns broadly, not just "under": e.g., "for <Product>", "about <Product>", "regarding <Product>", "in <Product>", "my <Product> policy/plan".
+- If a product word is also a common noun (e.g., "home"), require an adjacent insurance cue ("insurance", "plan", "policy", "Protect360") to treat it as a product.
+- If the message references a section/benefit previously tied to the Session product (e.g., "Restoration Costs") without naming a different product, PREFER the Session product.
+
+If a "Candidates:" block is provided (from lexical detection), analyze the CURRENT user response and confirm the single product the user wants to switch to or continue with. Return that as "product". If ambiguous, ask a short clarifying question.
+
+Switching guidelines (keep minimal and precise):
+- Prefer the Session product by default.
+- Switch ONLY if the CURRENT message explicitly names another product via:
+  * Brand or Protect360 form (e.g., "Fraud Protect360", "Travel Protect 360").
+  * "<product>" with an insurance cue ("insurance", "policy", "plan", "cover/coverage"), e.g., "home insurance", "car policy".
+  * An explicit correction that negates the Session product and affirms another (e.g., "not Home, I asked for Travel").
+- When you switch, include "product_switch_reason": "explicit_brand" | "explicit_name_with_insurance_cue" | "explicit_correction".
+
+OPTIONAL TRACEABILITY:
+- When you identify a product that differs from the Session product (i.e., a potential switch), include an optional field "product_switch_reason" in your JSON with one of:
+  * "explicit_brand" (e.g., "Travel Protect360", "Fraud Protect360 Plus", "Maid Protect 320 Pro")
+  * "explicit_name_with_insurance_cue" (e.g., "home insurance", "car insurance")
+  * "synonym_with_insurance_cue" (e.g., "vacation insurance", "overseas travel insurance", "hospitalization insurance")
+  * "alias_acronym" (e.g., "FDW", "MDW", "PA insurance")
+  * "typo_corrected" (clear misspelling but confidently resolved)
+- If no switch occurs or reason is unclear, omit this field.
+
+Your goal is: Identify the user's product (Travel, Maid, Car, PersonalAccident, Home, Early, Fraud, Hospital) with high precision. Only return a product if there is a clear, unambiguous reference. If the message could apply to multiple products or lacks specific product context, ask a clarifying question. Return JSON.
+
+Task Description: Identify which insurance product the user refers to. **Handle typos robustly**.
+If the user's message is exactly one product name or a known alias (case-insensitive) and contains no conflicting references, return that product with confidence 1.0 and do not include a question.
+For non-unique tier names ("Basic", "Silver", "Gold", "Premier", "Platinum"), require additional product cues; otherwise, ask a short clarification question.
+If ambiguous, provide a short clarification question.
+Return only a single JSON object. No extra text.
+
+
+
+Output contract (JSON):
+{ "product": "Travel" | "Maid" | "Car" | "PersonalAccident" | "Home" | "Early" | "Fraud" | "Hospital" | "", "confidence": 0.0-1.0, "question"?: string, "product_switch_reason"?: "explicit_brand" | "explicit_name_with_insurance_cue" | "explicit_correction" | "synonym_with_insurance_cue" | "alias_acronym" | "typo_corrected" }
+
+[USER]
+[Context]
+Message: maid
+14:02:09 - LiteLLM:INFO: utils.py:3258 -
+LiteLLM completion() model= gpt-4.1-mini; provider = azure
+2025-11-04 14:02:09,597 - LiteLLM - INFO -
+LiteLLM completion() model= gpt-4.1-mini; provider = azure
+2025-11-04 14:02:11,296 - httpx - INFO - HTTP Request: POST https://hlasdemoapillm.openai.azure.com/openai/deployments/gpt-4.1-mini/chat/completions?api-version=2024-12-01-preview "HTTP/1.1 200 OK"
+14:02:11 - LiteLLM:INFO: utils.py:1260 - Wrapper: Completed Call, calling success_handler
+2025-11-04 14:02:11,297 - LiteLLM - INFO - Wrapper: Completed Call, calling success_handler
+2025-11-04 14:02:11 - hlas.src.hlas.flow - INFO - LLM API call successful [product_identifier.identify_product.rec_flow_prod_clarify]
+2025-11-04 14:02:11 - hlas.src.hlas.flow - INFO - LLM Direct [product_identifier.identify_product.rec_flow_prod_clarify]: Output - {"product": "Maid", "confidence": 1.0}
+2025-11-04 14:02:11 - hlas.src.hlas.flow - INFO - RecFlow.ask_question: Generating custom question for slot=duration_of_insurance, user_wants_details=True
+2025-11-04 14:02:11 - hlas.src.hlas.flow - INFO - LLM Direct [question_asker.ask_question]:
+[SYSTEM]
+You are Insurance Question Generator. You will receive the product, the missing slot, and slot metadata (type and options) in the context.
+Ask exactly ONE short question (under 25 words), matching the slot type:
+- Value: Ask for the specific value (NEVER Yes/No)
+- Choice: Ask the user to choose between the listed options
+- Yes/No: Ask a clear Yes/No question
+
+Your goal is: Generate a single, clear, and concise question to collect the missing slot information.
+
+Task Description: Generate a clear, user-friendly question to collect missing slot information for insurance recommendations.
+
+
+
+Output contract (JSON):
+{ "question": "<clear, concise question for the missing slot>" }
+
+[USER]
+[Context]
+Product: Maid
+Missing slot: duration_of_insurance
+Slot type: choice
+Options: 12, 24
+Slot description: Policy duration (12 or 24 months)
+Current slots: {}
+User wants detailed explanations: True
+14:02:11 - LiteLLM:INFO: utils.py:3258 -
+LiteLLM completion() model= gpt-4.1-mini; provider = azure
+2025-11-04 14:02:11,302 - LiteLLM - INFO -
+LiteLLM completion() model= gpt-4.1-mini; provider = azure
+2025-11-04 14:02:12,008 - httpx - INFO - HTTP Request: POST https://hlasdemoapillm.openai.azure.com/openai/deployments/gpt-4.1-mini/chat/completions?api-version=2024-12-01-preview "HTTP/1.1 200 OK"
+14:02:12 - LiteLLM:INFO: utils.py:1260 - Wrapper: Completed Call, calling success_handler
+2025-11-04 14:02:12,017 - LiteLLM - INFO - Wrapper: Completed Call, calling success_handler
+2025-11-04 14:02:12 - hlas.src.hlas.flow - INFO - LLM API call successful [question_asker.ask_question]
+2025-11-04 14:02:12 - hlas.src.hlas.flow - INFO - LLM Direct [question_asker.ask_question]: Output - {"question": "Would you prefer a maid insurance policy lasting 12 months or 24 months?"}
+2025-11-04 14:02:12 - hlas.src.hlas.flow - INFO - RecFlow.ask_question: API output - has_question=True, keys=['question']
+2025-11-04 14:02:12 - hlas.src.hlas.flow - INFO - RecFlow.ask_question: Generated question for slot=duration_of_insurance, length=72
+2025-11-04 14:02:12 - hlas.src.hlas.flow - INFO - RecFlow.handle: Product clarified; asking next slot=duration_of_insurance
+2025-11-04 14:02:12 - hlas.src.hlas.session - INFO - Saved session state for s54 in Redis.
+2025-11-04 14:02:12 - hlas.src.hlas.session - INFO - Added history entry for session s54.
+2025-11-04 14:02:12 - hlas.src.hlas.main - INFO - Chat.session_persist.final: rec_status='in_progress' cmp_status='None' sum_status='None' keys=['product', 'slots', 'recommended_tier', 'live_agent_status', 'session_id', 'history', 'created_at', 'last_active', 'recommendation_status', '_last_slot_name', '_last_slot_question', 'last_question']
+2025-11-04 14:02:12 - hlas.src.hlas.main - INFO - Chat.completed: product=Maid reply_len=72 sources=
+INFO:     127.0.0.1:60840 - "POST /chat HTTP/1.1" 200 OK
+2025-11-04 14:02:17 - hlas.src.hlas.main - INFO - Chat.request: session_id=s54 message='12'
+╭─────────────────────────────────────────────────── Flow Execution ───────────────────────────────────────────────────╮
+│                                                                                                                      │
+│  Starting Flow Execution                                                                                             │
+│  Name: HlasFlow                                                                                                      │
+│  ID: 22d54626-cfe3-474e-ae7a-e2b842ba7259                                                                            │
+│  Tool Args:                                                                                                          │
+│                                                                                                                      │
+│                                                                                                                      │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+2025-11-04 14:02:17 - hlas.src.hlas.flow - INFO - HlasFlow.__init__: Initializing with RECFLOW_AVAILABLE=True
+2025-11-04 14:02:17 - hlas.src.hlas.flow - INFO - HlasFlow.__init__: Using cached config - agents=10, tasks=10
+2025-11-04 14:02:17 - hlas.src.hlas.session - INFO - Loaded session s54 from cache.
+2025-11-04 14:02:17 - hlas.src.hlas.main - INFO - Chat.session_loaded: pending_slot='None' product='Maid' keys=['product', 'slots', 'recommended_tier', 'live_agent_status', 'session_id', 'history', 'created_at', 'last_active', 'recommendation_status', '_last_slot_name', '_last_slot_question', 'last_question']
+2025-11-04 14:02:17,120 - crewai.flow.flow - INFO - Flow started with ID: 22d54626-cfe3-474e-ae7a-e2b842ba7259
+2025-11-04 14:02:17 - hlas.src.hlas.flow - INFO - HlasFlow.ingest: Starting flow - message_len=2, session_keys=['product', 'slots', 'recommended_tier', 'live_agent_status', 'session_id', 'history', 'created_at', 'last_active', 'recommendation_status', '_last_slot_name', '_last_slot_question', 'last_question']
+2025-11-04 14:02:17 - hlas.src.hlas.flow - INFO - HlasFlow.decide: Entry state - message='12', rec_status='in_progress', cmp_status='None', sum_status='None', product='Maid'
+2025-11-04 14:02:17 - hlas.src.hlas.flow - INFO - HlasFlow.decide: Recommendation in progress, bypassing orchestrator to RecFlow
+2025-11-04 14:02:17 - hlas.src.hlas.flow - INFO - RecFlow.handle: Starting recommendation flow - message_len=2
+2025-11-04 14:02:17 - hlas.src.hlas.flow - INFO - RecFlow.handle: Product identification - current_product=Maid, rec_status=in_progress, prev_prod_q=False
+2025-11-04 14:02:17 - hlas.src.hlas.flow - INFO - RecFlow.handle: Skipping product identification (cached product in session)
+2025-11-04 14:02:17 - hlas.src.hlas.flow - INFO - RecFlow.handle: Current recommendation status=in_progress
+2025-11-04 14:02:17 - hlas.src.hlas.flow - INFO - RecFlow.handle: Slot analysis - product=Maid, current_slots=[], required_slots=['duration_of_insurance', 'maid_country', 'coverage_above_mom_minimum', 'add_ons'], user_wants_details=True
+2025-11-04 14:02:17 - hlas.src.hlas.flow - INFO - RecFlow.extract_slots: Starting extraction - product=Maid, required_slots=4, last_question='Would you prefer a maid insurance policy lasting 12 months or 24 months?'
+2025-11-04 14:02:17 - hlas.src.hlas.flow - INFO - LLM Direct [slot_extractor.extract_slots]:
+[SYSTEM]
+You are Slot Extractor. You will receive in the context:
+- Product
+- Valid slots (comma-separated list)
+- Slot meta (JSON: type value|choice|yesno, plus options/range)
+- Last bot question (to disambiguate yes/no)
+
+Follow the Task Description rules strictly. Keep behavior minimal:
+- Only return slots that appear in Valid slots.
+- Use Last bot question to map yes/no replies.
+- Do not validate ranges or reject values using Slot meta.
+- If the message contains no slot information (e.g., just a product name), return empty strings for all slots and DO NOT set user_needs_explanation.
+- For country-related slots (destination, maid_country), ACCEPT country abbreviations as valid input (e.g., "PH"/"PHP" for Philippines, "US"/"USA" for United States, "UK" for United Kingdom, "SG"/"SGP" for Singapore, "MY" for Malaysia, "ID" for Indonesia). Extract abbreviations as-is without rejection.
+- IMPORTANT: Do NOT confuse "best coverage" or "best plan" phrases with slot values. These are general preference expressions, not slot-specific values. Only extract actual slot values that match the slot's expected format (e.g., "self"/"family" for coverage_scope, country names for destination).
+- Set user_needs_explanation when the user explicitly asks about a specific slot OR when they express uncertainty (e.g., "I don't know", "not sure", "idk", "dunno").
+- When user says "I don't know" or similar, treat it the same as "what does that mean?" - provide a brief explanation and guide them.
+
+Your goal is: Extract and update slot values for the current product using the provided context.
+
+Task Description: Extract and update slot values from the user's message using conversation context.
+The context WILL provide a product-specific list of valid slots under "Valid slots" and a JSON object under "Slot meta" describing each slot's type (value|choice|yesno) and any options.
+- Only return keys that appear in the provided "Valid slots" list.
+- Use "Last bot question" to disambiguate yes/no replies.
+- Do NOT validate ranges or reject values based on Slot meta; treat ranges/options as hints only. Always extract the raw value if you can identify it.
+- IMPORTANT: If the user message contains NO slot-related information (e.g., just a product name), return empty strings for all slots and DO NOT set user_needs_explanation.
+- Set user_needs_explanation if the user EXPLICITLY asks for an explanation about a specific slot (e.g., "what does that mean?", "explain destination") OR if the user says they don't know (e.g., "I don't know", "not sure", "idk", "dunno").
+- **Country Names**: For destination and maid_country slots, ACCEPT country abbreviations as valid input (e.g., "PH", "PHP" for Philippines, "US", "USA" for United States, "UK" for United Kingdom, "SG" for Singapore, "MY" for Malaysia, "ID" for Indonesia, etc.). Extract the abbreviation as-is; downstream validation will normalize it to the full country name.
+- **Plan Preference ONLY** (if plan_preference slot exists in Valid slots): Common phrases that indicate budget/coverage preferences:
+  * "no budget constraints", "money is no issue", "best coverage" → extract as "comprehensive" for plan_preference slot ONLY
+  * "cheapest", "budget option", "basic" → extract as "budget" for plan_preference slot ONLY
+  * DO NOT apply these mappings to other slots like coverage_scope, coverage_amount, etc.
+- If a value appears out of range or malformed, still extract it; downstream validation will handle corrections.
+- If the user asks for clarification about a specific slot OR says they don't know, set user_needs_explanation to that slot and provide a SHORT explanation (under 50 words) that ends with the right type of request:
+  * Yes/No slots → ask a clear (Yes/No) question
+  * Choice-based slots → ask the user to choose one of the listed options
+  * Value slots → ask for the specific value in the expected format/range (NEVER Yes/No)
+- When the user says "I don't know" or similar uncertainty phrases, provide a brief explanation of what the slot is for, then ask them to provide the information.
+Return only a single JSON object. No extra text.
+
+
+
+Output contract (JSON):
+{
+  "slot_name_1": "<extracted/updated value or empty string>",
+  "slot_name_2": "<extracted/updated value or empty string>",
+  "slot_name_3": "<extracted/updated value or empty string>",
+  "user_needs_explanation": "<slot_name if user asks for clarification about a slot or says they don't know, otherwise empty string>",
+  "explanation": "<short explanation (under 50 words) that ends with a slot-appropriate request if user_needs_explanation is not empty; otherwise empty>"
+}
+
+[USER]
+[Context]
+Product: Maid
+User message: 12
+Last bot question: Would you prefer a maid insurance policy lasting 12 months or 24 months?
+Valid slots: duration_of_insurance, maid_country, coverage_above_mom_minimum, add_ons
+Slot meta (JSON): {"duration_of_insurance": {"type": "choice", "options": ["12", "24"]}, "maid_country": {"type": "value", "format": "country"}, "coverage_above_mom_minimum": {"type": "yesno"}, "add_ons": {"type": "choice", "options": ["required", "not_required"]}}
+
+Slots to extract/update (focus on these only):
+- duration_of_insurance: Policy duration (12 or 24 months) (current: not filled)
+- maid_country: Helper's country of origin (country name only) (current: not filled)
+- coverage_above_mom_minimum: Whether user wants coverage beyond MOM minimum (yes/no) (current: not filled)
+- add_ons: Whether user wants additional add-on coverages (required/not_required) (current: not filled)
+14:02:17 - LiteLLM:INFO: utils.py:3258 -
+LiteLLM completion() model= gpt-4.1-mini; provider = azure
+2025-11-04 14:02:17,125 - LiteLLM - INFO -
+LiteLLM completion() model= gpt-4.1-mini; provider = azure
+2025-11-04 14:02:19,087 - httpx - INFO - HTTP Request: POST https://hlasdemoapillm.openai.azure.com/openai/deployments/gpt-4.1-mini/chat/completions?api-version=2024-12-01-preview "HTTP/1.1 200 OK"
+14:02:19 - LiteLLM:INFO: utils.py:1260 - Wrapper: Completed Call, calling success_handler
+2025-11-04 14:02:19,089 - LiteLLM - INFO - Wrapper: Completed Call, calling success_handler
+2025-11-04 14:02:19 - hlas.src.hlas.flow - INFO - LLM API call successful [slot_extractor.extract_slots]
+2025-11-04 14:02:19 - hlas.src.hlas.flow - INFO - LLM Direct [slot_extractor.extract_slots]: Output - {"duration_of_insurance": "12", "maid_country": "", "coverage_above_mom_minimum": "", "add_ons": "", "user_needs_explanation": "", "explanation": ""}
+2025-11-04 14:02:19 - hlas.src.hlas.flow - INFO - RecFlow.extract_slots: API output - keys=['duration_of_insurance', 'maid_country', 'coverage_above_mom_minimum', 'add_ons', 'user_needs_explanation', 'explanation'], user_needs_explanation=
+2025-11-04 14:02:19 - hlas.src.hlas.flow - INFO - RecFlow.extract_slots: Completed extraction - extracted_slots=['duration_of_insurance']
+2025-11-04 14:02:19 - hlas.src.hlas.flow - INFO - RecFlow.handle: Slot extracted and assigned - duration_of_insurance=12 (needs validation)
+2025-11-04 14:02:19 - hlas.src.hlas.flow - INFO - RecFlow.handle: Starting slot validation (sequential) - duration_of_insurance=12
+2025-11-04 14:02:19 - hlas.src.hlas.flow - INFO - RecFlow.validate_slot: Starting validation - slot=duration_of_insurance, value='12'
+2025-11-04 14:02:19 - hlas.src.hlas.flow - INFO - LLM Direct [validate_slot.duration_of_insurance]:
+[SYSTEM]
+You are Slot Validator. You are an expert at validating and normalizing user-provided data against a set of rules. You are precise, diligent, and always return structured JSON.
+
+Your goal is: Your goal is to validate a single piece of data according to the provided task description and rules, then return a single JSON object with the result.
+
+Task Description: Your task is to validate and normalize one Maid slot for the given product.
+
+**CRITICAL RULES:**
+1.  You must validate ONLY the single slot specified in the [Context] block under the "Slot:" key. Do not infer or validate other slots.
+2.  You must use ONLY the validation rules provided in the [Context] block under "Validation rules:".
+3.  Prioritize the provided 'Value' field from the [Context] when it is already in a normalized format (e.g., an integer for days).
+4.  Your response must be a single, complete JSON object that adheres to the Output contract.
+
+**WHEN INVALID (valid:false):**
+- Always provide both "reason" (brief explanation of what's wrong) and "question" (what to provide instead).
+- Reference the user's input when helpful (e.g., "'Karur' appears to be a city" or "Sep 2020 is in the past").
+- Keep questions short and actionable (<25 words when possible).
+- Pattern: "<Brief reason>. <Clear instruction for what to provide>."
+Return only a single JSON object. No extra text.
+
+Validation rules:
+Your goal is to determine the insurance duration. The only valid normalized values are '12' (for 12 months/1 year) or '24' (for 24 months/2 years).
+1. **Normalize Input**: Convert the user's input into '12' or '24'. Understand and accept natural language like '1 year', 'one year', '12 months' for '12', and '2 years', 'two years', '24 months' for '24'.
+2. **Handle Ambiguity/Invalid Input**: If the user provides any other duration, or if the input is unclear, you must ask for a clear choice between the two valid options: 'We offer 12-month and 24-month policies. Which duration would you prefer?'
+3. **Handle 'I Don't Know'**: If the user says they 'don't know', provide a brief explanation and ask for a choice: 'No problem! The policy duration determines how long your helper will be covered. We offer 12-month and 24-month policies. Which option works better for you?'
+
+Output contract (JSON):
+{ "valid": true|false, "slot_name": string, "normalized_value"?: string, "question"?: string, "reason"?: string }
+
+Focus only on validating duration_of_insurance.
+
+[USER]
+[Context]
+Product: Maid
+Slot: duration_of_insurance
+Value: 12
+User message: 12
+Current date (Asia/Singapore): 04 November 2025
+14:02:19 - LiteLLM:INFO: utils.py:3258 -
+LiteLLM completion() model= gpt-4.1-mini; provider = azure
+2025-11-04 14:02:19,121 - LiteLLM - INFO -
+LiteLLM completion() model= gpt-4.1-mini; provider = azure
+2025-11-04 14:02:19,876 - httpx - INFO - HTTP Request: POST https://hlasdemoapillm.openai.azure.com/openai/deployments/gpt-4.1-mini/chat/completions?api-version=2024-12-01-preview "HTTP/1.1 200 OK"
+14:02:19 - LiteLLM:INFO: utils.py:1260 - Wrapper: Completed Call, calling success_handler
+2025-11-04 14:02:19,877 - LiteLLM - INFO - Wrapper: Completed Call, calling success_handler
+2025-11-04 14:02:19 - hlas.src.hlas.flow - INFO - LLM API call successful [validate_slot.duration_of_insurance]
+2025-11-04 14:02:19 - hlas.src.hlas.flow - INFO - LLM Direct [validate_slot.duration_of_insurance]: Output - {"valid": true, "slot_name": "duration_of_insurance", "normalized_value": "12"}
+2025-11-04 14:02:19 - hlas.src.hlas.flow - INFO - RecFlow.validate_slot: API output - valid=True, has_normalized=True, has_question=False
+2025-11-04 14:02:19 - hlas.src.hlas.flow - INFO - RecFlow.validate_slot: Completed validation - slot=duration_of_insurance, valid=True, has_normalized=True
+2025-11-04 14:02:19 - hlas.src.hlas.flow - INFO - RecFlow.handle: Slot validated successfully - duration_of_insurance=12
+2025-11-04 14:02:19 - hlas.src.hlas.flow - INFO - RecFlow.handle: Updated session slots - count=1, valid_slots=['duration_of_insurance']
+2025-11-04 14:02:19 - hlas.src.hlas.flow - INFO - RecFlow.handle: Missing slots detected - missing=['maid_country', 'coverage_above_mom_minimum', 'add_ons'], asking_for=maid_country
+2025-11-04 14:02:19 - hlas.src.hlas.flow - INFO - RecFlow.ask_question: Generating custom question for slot=maid_country, user_wants_details=True
+2025-11-04 14:02:19 - hlas.src.hlas.flow - INFO - LLM Direct [question_asker.ask_question]:
+[SYSTEM]
+You are Insurance Question Generator. You will receive the product, the missing slot, and slot metadata (type and options) in the context.
+Ask exactly ONE short question (under 25 words), matching the slot type:
+- Value: Ask for the specific value (NEVER Yes/No)
+- Choice: Ask the user to choose between the listed options
+- Yes/No: Ask a clear Yes/No question
+
+Your goal is: Generate a single, clear, and concise question to collect the missing slot information.
+
+Task Description: Generate a clear, user-friendly question to collect missing slot information for insurance recommendations.
+
+
+
+Output contract (JSON):
+{ "question": "<clear, concise question for the missing slot>" }
+
+[USER]
+[Context]
+Product: Maid
+Missing slot: maid_country
+Slot type: value
+Options:
+Slot description: Helper's country of origin (country name only)
+Current slots: {'duration_of_insurance': {'value': '12', 'valid': True}}
+User wants detailed explanations: True
+14:02:19 - LiteLLM:INFO: utils.py:3258 -
+LiteLLM completion() model= gpt-4.1-mini; provider = azure
+2025-11-04 14:02:19,884 - LiteLLM - INFO -
+LiteLLM completion() model= gpt-4.1-mini; provider = azure
+2025-11-04 14:02:20,614 - httpx - INFO - HTTP Request: POST https://hlasdemoapillm.openai.azure.com/openai/deployments/gpt-4.1-mini/chat/completions?api-version=2024-12-01-preview "HTTP/1.1 200 OK"
+14:02:20 - LiteLLM:INFO: utils.py:1260 - Wrapper: Completed Call, calling success_handler
+2025-11-04 14:02:20,616 - LiteLLM - INFO - Wrapper: Completed Call, calling success_handler
+2025-11-04 14:02:20 - hlas.src.hlas.flow - INFO - LLM API call successful [question_asker.ask_question]
+2025-11-04 14:02:20 - hlas.src.hlas.flow - INFO - LLM Direct [question_asker.ask_question]: Output - {"question": "What is the country of origin of the maid?"}
+2025-11-04 14:02:20 - hlas.src.hlas.flow - INFO - RecFlow.ask_question: API output - has_question=True, keys=['question']
+2025-11-04 14:02:20 - hlas.src.hlas.flow - INFO - RecFlow.ask_question: Generated question for slot=maid_country, length=42
+2025-11-04 14:02:20 - hlas.src.hlas.flow - INFO - RecFlow.handle: Asked question for missing slot - slot=maid_country, question_len=42
+2025-11-04 14:02:20 - hlas.src.hlas.session - INFO - Saved session state for s54 in Redis.
+2025-11-04 14:02:20 - hlas.src.hlas.session - INFO - Added history entry for session s54.
+2025-11-04 14:02:20 - hlas.src.hlas.main - INFO - Chat.session_persist.final: rec_status='in_progress' cmp_status='None' sum_status='None' keys=['product', 'slots', 'recommended_tier', 'live_agent_status', 'session_id', 'history', 'created_at', 'last_active', 'recommendation_status', '_last_slot_name', '_last_slot_question', 'last_question']
+2025-11-04 14:02:20 - hlas.src.hlas.main - INFO - Chat.completed: product=Maid reply_len=42 sources=
+INFO:     127.0.0.1:60844 - "POST /chat HTTP/1.1" 200 OK
+2025-11-04 14:02:27 - hlas.src.hlas.main - INFO - Chat.request: session_id=s54 message='usa'
+╭─────────────────────────────────────────────────── Flow Execution ───────────────────────────────────────────────────╮
+│                                                                                                                      │
+│  Starting Flow Execution                                                                                             │
+│  Name: HlasFlow                                                                                                      │
+│  ID: 4bcc9335-1f08-4491-95c5-97d11a8b0758                                                                            │
+│  Tool Args:                                                                                                          │
+│                                                                                                                      │
+│                                                                                                                      │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+2025-11-04 14:02:27 - hlas.src.hlas.flow - INFO - HlasFlow.__init__: Initializing with RECFLOW_AVAILABLE=True
+2025-11-04 14:02:27 - hlas.src.hlas.flow - INFO - HlasFlow.__init__: Using cached config - agents=10, tasks=10
+2025-11-04 14:02:27 - hlas.src.hlas.session - INFO - Loaded session s54 from cache.
+2025-11-04 14:02:27 - hlas.src.hlas.main - INFO - Chat.session_loaded: pending_slot='None' product='Maid' keys=['product', 'slots', 'recommended_tier', 'live_agent_status', 'session_id', 'history', 'created_at', 'last_active', 'recommendation_status', '_last_slot_name', '_last_slot_question', 'last_question']
+2025-11-04 14:02:27,292 - crewai.flow.flow - INFO - Flow started with ID: 4bcc9335-1f08-4491-95c5-97d11a8b0758
+2025-11-04 14:02:27 - hlas.src.hlas.flow - INFO - HlasFlow.ingest: Starting flow - message_len=3, session_keys=['product', 'slots', 'recommended_tier', 'live_agent_status', 'session_id', 'history', 'created_at', 'last_active', 'recommendation_status', '_last_slot_name', '_last_slot_question', 'last_question']
+2025-11-04 14:02:27 - hlas.src.hlas.flow - INFO - HlasFlow.decide: Entry state - message='usa', rec_status='in_progress', cmp_status='None', sum_status='None', product='Maid'
+2025-11-04 14:02:27 - hlas.src.hlas.flow - INFO - HlasFlow.decide: Recommendation in progress, bypassing orchestrator to RecFlow
+2025-11-04 14:02:27 - hlas.src.hlas.flow - INFO - RecFlow.handle: Starting recommendation flow - message_len=3
+2025-11-04 14:02:27 - hlas.src.hlas.flow - INFO - RecFlow.handle: Product identification - current_product=Maid, rec_status=in_progress, prev_prod_q=False
+2025-11-04 14:02:27 - hlas.src.hlas.flow - INFO - RecFlow.handle: Skipping product identification (cached product in session)
+2025-11-04 14:02:27 - hlas.src.hlas.flow - INFO - RecFlow.handle: Current recommendation status=in_progress
+2025-11-04 14:02:27 - hlas.src.hlas.flow - INFO - RecFlow.handle: Slot analysis - product=Maid, current_slots=['duration_of_insurance'], required_slots=['duration_of_insurance', 'maid_country', 'coverage_above_mom_minimum', 'add_ons'], user_wants_details=True
+2025-11-04 14:02:27 - hlas.src.hlas.flow - INFO - RecFlow.extract_slots: Starting extraction - product=Maid, required_slots=4, last_question='What is the country of origin of the maid?'
+2025-11-04 14:02:27 - hlas.src.hlas.flow - INFO - LLM Direct [slot_extractor.extract_slots]:
+[SYSTEM]
+You are Slot Extractor. You will receive in the context:
+- Product
+- Valid slots (comma-separated list)
+- Slot meta (JSON: type value|choice|yesno, plus options/range)
+- Last bot question (to disambiguate yes/no)
+
+Follow the Task Description rules strictly. Keep behavior minimal:
+- Only return slots that appear in Valid slots.
+- Use Last bot question to map yes/no replies.
+- Do not validate ranges or reject values using Slot meta.
+- If the message contains no slot information (e.g., just a product name), return empty strings for all slots and DO NOT set user_needs_explanation.
+- For country-related slots (destination, maid_country), ACCEPT country abbreviations as valid input (e.g., "PH"/"PHP" for Philippines, "US"/"USA" for United States, "UK" for United Kingdom, "SG"/"SGP" for Singapore, "MY" for Malaysia, "ID" for Indonesia). Extract abbreviations as-is without rejection.
+- IMPORTANT: Do NOT confuse "best coverage" or "best plan" phrases with slot values. These are general preference expressions, not slot-specific values. Only extract actual slot values that match the slot's expected format (e.g., "self"/"family" for coverage_scope, country names for destination).
+- Set user_needs_explanation when the user explicitly asks about a specific slot OR when they express uncertainty (e.g., "I don't know", "not sure", "idk", "dunno").
+- When user says "I don't know" or similar, treat it the same as "what does that mean?" - provide a brief explanation and guide them.
+
+Your goal is: Extract and update slot values for the current product using the provided context.
+
+Task Description: Extract and update slot values from the user's message using conversation context.
+The context WILL provide a product-specific list of valid slots under "Valid slots" and a JSON object under "Slot meta" describing each slot's type (value|choice|yesno) and any options.
+- Only return keys that appear in the provided "Valid slots" list.
+- Use "Last bot question" to disambiguate yes/no replies.
+- Do NOT validate ranges or reject values based on Slot meta; treat ranges/options as hints only. Always extract the raw value if you can identify it.
+- IMPORTANT: If the user message contains NO slot-related information (e.g., just a product name), return empty strings for all slots and DO NOT set user_needs_explanation.
+- Set user_needs_explanation if the user EXPLICITLY asks for an explanation about a specific slot (e.g., "what does that mean?", "explain destination") OR if the user says they don't know (e.g., "I don't know", "not sure", "idk", "dunno").
+- **Country Names**: For destination and maid_country slots, ACCEPT country abbreviations as valid input (e.g., "PH", "PHP" for Philippines, "US", "USA" for United States, "UK" for United Kingdom, "SG" for Singapore, "MY" for Malaysia, "ID" for Indonesia, etc.). Extract the abbreviation as-is; downstream validation will normalize it to the full country name.
+- **Plan Preference ONLY** (if plan_preference slot exists in Valid slots): Common phrases that indicate budget/coverage preferences:
+  * "no budget constraints", "money is no issue", "best coverage" → extract as "comprehensive" for plan_preference slot ONLY
+  * "cheapest", "budget option", "basic" → extract as "budget" for plan_preference slot ONLY
+  * DO NOT apply these mappings to other slots like coverage_scope, coverage_amount, etc.
+- If a value appears out of range or malformed, still extract it; downstream validation will handle corrections.
+- If the user asks for clarification about a specific slot OR says they don't know, set user_needs_explanation to that slot and provide a SHORT explanation (under 50 words) that ends with the right type of request:
+  * Yes/No slots → ask a clear (Yes/No) question
+  * Choice-based slots → ask the user to choose one of the listed options
+  * Value slots → ask for the specific value in the expected format/range (NEVER Yes/No)
+- When the user says "I don't know" or similar uncertainty phrases, provide a brief explanation of what the slot is for, then ask them to provide the information.
+Return only a single JSON object. No extra text.
+
+
+
+Output contract (JSON):
+{
+  "slot_name_1": "<extracted/updated value or empty string>",
+  "slot_name_2": "<extracted/updated value or empty string>",
+  "slot_name_3": "<extracted/updated value or empty string>",
+  "user_needs_explanation": "<slot_name if user asks for clarification about a slot or says they don't know, otherwise empty string>",
+  "explanation": "<short explanation (under 50 words) that ends with a slot-appropriate request if user_needs_explanation is not empty; otherwise empty>"
+}
+
+[USER]
+[Context]
+Product: Maid
+User message: usa
+Last bot question: What is the country of origin of the maid?
+Valid slots: maid_country, coverage_above_mom_minimum, add_ons
+Slot meta (JSON): {"maid_country": {"type": "value", "format": "country"}, "coverage_above_mom_minimum": {"type": "yesno"}, "add_ons": {"type": "choice", "options": ["required", "not_required"]}}
+
+Slots to extract/update (focus on these only):
+- maid_country: Helper's country of origin (country name only) (current: not filled)
+- coverage_above_mom_minimum: Whether user wants coverage beyond MOM minimum (yes/no) (current: not filled)
+- add_ons: Whether user wants additional add-on coverages (required/not_required) (current: not filled)
+14:02:27 - LiteLLM:INFO: utils.py:3258 -
+LiteLLM completion() model= gpt-4.1-mini; provider = azure
+2025-11-04 14:02:27,298 - LiteLLM - INFO -
+LiteLLM completion() model= gpt-4.1-mini; provider = azure
+2025-11-04 14:02:29,010 - httpx - INFO - HTTP Request: POST https://hlasdemoapillm.openai.azure.com/openai/deployments/gpt-4.1-mini/chat/completions?api-version=2024-12-01-preview "HTTP/1.1 200 OK"
+14:02:29 - LiteLLM:INFO: utils.py:1260 - Wrapper: Completed Call, calling success_handler
+2025-11-04 14:02:29,012 - LiteLLM - INFO - Wrapper: Completed Call, calling success_handler
+2025-11-04 14:02:29 - hlas.src.hlas.flow - INFO - LLM API call successful [slot_extractor.extract_slots]
+2025-11-04 14:02:29 - hlas.src.hlas.flow - INFO - LLM Direct [slot_extractor.extract_slots]: Output - {"maid_country": "usa", "coverage_above_mom_minimum": "", "add_ons": "", "user_needs_explanation": "", "explanation": ""}
+2025-11-04 14:02:29 - hlas.src.hlas.flow - INFO - RecFlow.extract_slots: API output - keys=['maid_country', 'coverage_above_mom_minimum', 'add_ons', 'user_needs_explanation', 'explanation'], user_needs_explanation=
+2025-11-04 14:02:29 - hlas.src.hlas.flow - INFO - RecFlow.extract_slots: Completed extraction - extracted_slots=['maid_country']
+2025-11-04 14:02:29 - hlas.src.hlas.flow - INFO - RecFlow.handle: Slot extracted and assigned - maid_country=usa (needs validation)
+2025-11-04 14:02:29 - hlas.src.hlas.flow - INFO - RecFlow.handle: Starting slot validation (sequential) - maid_country=usa
+2025-11-04 14:02:29 - hlas.src.hlas.flow - INFO - RecFlow.validate_slot: Starting validation - slot=maid_country, value='usa'
+2025-11-04 14:02:29 - hlas.src.hlas.flow - INFO - LLM Direct [validate_slot.maid_country]:
+[SYSTEM]
+You are Slot Validator. You are an expert at validating and normalizing user-provided data against a set of rules. You are precise, diligent, and always return structured JSON.
+
+Your goal is: Your goal is to validate a single piece of data according to the provided task description and rules, then return a single JSON object with the result.
+
+Task Description: Your task is to validate and normalize one Maid slot for the given product.
+
+**CRITICAL RULES:**
+1.  You must validate ONLY the single slot specified in the [Context] block under the "Slot:" key. Do not infer or validate other slots.
+2.  You must use ONLY the validation rules provided in the [Context] block under "Validation rules:".
+3.  Prioritize the provided 'Value' field from the [Context] when it is already in a normalized format (e.g., an integer for days).
+4.  Your response must be a single, complete JSON object that adheres to the Output contract.
+
+**WHEN INVALID (valid:false):**
+- Always provide both "reason" (brief explanation of what's wrong) and "question" (what to provide instead).
+- Reference the user's input when helpful (e.g., "'Karur' appears to be a city" or "Sep 2020 is in the past").
+- Keep questions short and actionable (<25 words when possible).
+- Pattern: "<Brief reason>. <Clear instruction for what to provide>."
+Return only a single JSON object. No extra text.
+
+Validation rules:
+Your goal is to identify and validate the maid's country of origin.
+1. **Validate Country**: Accept ANY valid country name. The user can provide full country names, common variations, colloquial terms, OR standard abbreviations. Auto-normalize common variations and abbreviations including (but not limited to): 'Pinoy', 'Filipino' → 'Philippines', 'Indo' → 'Indonesia', 'PH', 'PHL' → 'Philippines', 'ID', 'IDN' → 'Indonesia', 'MY', 'MYS' → 'Malaysia', 'TH', 'THA' → 'Thailand', 'VN', 'VNM' → 'Vietnam', 'MM', 'MMR' → 'Myanmar', 'BD', 'BGD' → 'Bangladesh', 'LK', 'LKA' → 'Sri Lanka', 'IN', 'IND' → 'India'. Do NOT infer the country from city or place names.
+2. **Handle Invalid Input**: If the input is not a recognizable country, ask: 'Could you please tell me which country your helper is from?'
+3. **Handle 'I Don't Know'**: If the user says they don't know, provide a brief explanation and ask: 'I need to know your helper's country of origin to recommend the right coverage. Which country are they from?'
+4. **Normalize**: Always normalize to the standard English country name (e.g., 'Pinoy' → 'Philippines', 'Indo' → 'Indonesia', 'PH' → 'Philippines', 'MY' → 'Malaysia').
+
+Output contract (JSON):
+{ "valid": true|false, "slot_name": string, "normalized_value"?: string, "question"?: string, "reason"?: string }
+
+Focus only on validating maid_country.
+
+[USER]
+[Context]
+Product: Maid
+Slot: maid_country
+Value: usa
+User message: usa
+Current date (Asia/Singapore): 04 November 2025
+14:02:29 - LiteLLM:INFO: utils.py:3258 -
+LiteLLM completion() model= gpt-4.1-mini; provider = azure
+2025-11-04 14:02:29,036 - LiteLLM - INFO -
+LiteLLM completion() model= gpt-4.1-mini; provider = azure
+2025-11-04 14:02:30,142 - httpx - INFO - HTTP Request: POST https://hlasdemoapillm.openai.azure.com/openai/deployments/gpt-4.1-mini/chat/completions?api-version=2024-12-01-preview "HTTP/1.1 200 OK"
+14:02:30 - LiteLLM:INFO: utils.py:1260 - Wrapper: Completed Call, calling success_handler
+2025-11-04 14:02:30,144 - LiteLLM - INFO - Wrapper: Completed Call, calling success_handler
+2025-11-04 14:02:30 - hlas.src.hlas.flow - INFO - LLM API call successful [validate_slot.maid_country]
+2025-11-04 14:02:30 - hlas.src.hlas.flow - INFO - LLM Direct [validate_slot.maid_country]: Output - {"valid": false, "slot_name": "maid_country", "reason": "'usa' is not recognized as a valid country name or accepted variation in the context of maid country of origin.", "question": "Could you please tell me which country your helper is from?"}
+2025-11-04 14:02:30 - hlas.src.hlas.flow - INFO - RecFlow.validate_slot: API output - valid=False, has_normalized=False, has_question=True
+2025-11-04 14:02:30 - hlas.src.hlas.flow - INFO - RecFlow.validate_slot: Completed validation - slot=maid_country, valid=False, has_normalized=False
+2025-11-04 14:02:30 - hlas.src.hlas.flow - INFO - RecFlow.handle: Slot validation failed - maid_country (removed from slots)
+2025-11-04 14:02:30 - hlas.src.hlas.flow - INFO - RecFlow.handle: Generated validation failure question: ''usa' is not recognized as a valid country name or accepted variation in the context of maid country of origin.. Could you please tell me which country your helper is from?'
+2025-11-04 14:02:30 - hlas.src.hlas.flow - INFO - RecFlow.handle: Updated session slots - count=1, valid_slots=['duration_of_insurance']
+2025-11-04 14:02:30 - hlas.src.hlas.flow - INFO - RecFlow.handle: Validation failed, asking for clarification - slot=maid_country
+2025-11-04 14:02:30 - hlas.src.hlas.session - INFO - Saved session state for s54 in Redis.
+2025-11-04 14:02:30 - hlas.src.hlas.session - INFO - Added history entry for session s54.
+2025-11-04 14:02:30 - hlas.src.hlas.main - INFO - Chat.session_persist.final: rec_status='in_progress' cmp_status='None' sum_status='None' keys=['product', 'slots', 'recommended_tier', 'live_agent_status', 'session_id', 'history', 'created_at', 'last_active', 'recommendation_status', '_last_slot_name', '_last_slot_question', 'last_question']
+2025-11-04 14:02:30 - hlas.src.hlas.main - INFO - Chat.completed: product=Maid reply_len=172 sources=
+INFO:     127.0.0.1:60849 - "POST /chat HTTP/1.1" 200 OK

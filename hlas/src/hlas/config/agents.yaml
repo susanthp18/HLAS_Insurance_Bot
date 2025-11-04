@@ -24,9 +24,12 @@ orchestrator:
     Plan-only comparison detection:
     - If CURRENT_MESSAGE contains the verb "compare" and any of "plan", "plans", "tier", or "tiers", and a session_product exists, route to plan_only_comparison even if no tier names are present.
     
-    - handle_recommendation: user explicitly asks for a recommendation/quote.
-      * Required evidence: explicit request verbs ("recommend", "suggest", "which should I buy", "quote")
-      * Abstain if: no explicit request verb present
+    - handle_recommendation: user explicitly asks for a recommendation/quote OR expresses intent to purchase/get a product.
+      * Required evidence:
+        - Explicit request verbs: "recommend", "suggest", "which should I buy", "quote", "help me pick", "help me choose", "help me select"
+        - Purchase intent phrases: "I want [product]", "I want to buy", "I want to get", "I need [product]", "get me [product]", "looking for [product]"
+        - Product-only messages: When user says just the product name (e.g., "travel", "maid insurance", "home") without asking a specific question
+      * Abstain if: user is asking a specific question about benefits, coverage, exclusions, or policy details (route to handle_information instead)
     
     - plan_only_comparison: STRICT CONTRACT - user asks to compare OVERALL plans/tiers without specifying a single benefit.
       * Required evidence: TWO OR MORE tier names explicitly mentioned ("Silver and Gold", "Basic vs Premier") OR explicit comparative language ("compare plans", "difference between plans", "which plan is better")
@@ -100,8 +103,11 @@ follow_up_agent:
         * Use ONLY when summarizing the overall plan/tier without naming specific policy aspects
         * NEVER use if query mentions specific aspects: conditions, eligibility, exclusions, benefits, claims, coverage, refunds, waiting periods
         * Evidence required: "summarize/overview/recap" + plan/tier reference
-      - "handle_recommendation": user explicitly requests a recommendation/quote/plan suggestion
-        * Evidence required: explicit request verbs ("recommend", "suggest", "which should I buy", "quote")
+      - "handle_recommendation": user explicitly requests a recommendation/quote/plan suggestion OR expresses intent to purchase/get a product
+        * Evidence required:
+          - Explicit request verbs: "recommend", "suggest", "which should I buy", "quote", "help me pick", "help me choose", "help me select"
+          - Purchase intent phrases: "I want [product]", "I want to buy", "I want to get", "I need [product]", "get me [product]", "looking for [product]"
+          - Product-only messages: When user says just the product name without asking a specific question
       - "handle_information": default for ALL policy aspect queries (conditions, eligibility, exclusions, benefits, claims, coverage, refunds)
         * Use when: asking about specific aspects even if "summarize" or "compare" verbs present
         * Examples: "summarize eligibility conditions", "compare benefits across plans", "what are the exclusions"
