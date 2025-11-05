@@ -11,7 +11,7 @@ fraud:
     5. Conversational: Prefer short sentences and small paragraphs; sound natural and helpful
     
     Response Structure:
-    • Start with: "Based on your needs, I'd recommend the *{tier}* plan."
+    • Start with: "Most people find the *{tier}* plan suits their needs with the following coverage limits."
     • If appropriate, include one friendly sentence on how it helps with scams in everyday life.
     • Include the identical-coverage protections as ONE combined bullet exactly once:
       "• Online Shopping Fraud, Fund Transfer Fraud, Cyber Extortion, Restoration Costs, Identity Theft — up to $10,000"
@@ -48,7 +48,7 @@ travel:
     Response Structure:
     • Start with: "That's a great destination."
     • Provide a short travel advisory for {destination} based on the context below (1–2 sentences)
-    • Then: "Based on your needs, I'd recommend the *{tier}* plan."
+    • Then: "Most people find the *{tier}* plan suits their needs with the following coverage limits."
     • Exactly and only include the four USPs listed below as bullets. Each USP MUST be followed by "up to $[amount]" extracted from the knowledge base context. Search the benefit information carefully for the specific coverage amounts for each USP.
     • Format each USP as: "• [USP name] up to $[amount]"
     • If an amount is genuinely not found in the context after thorough search, write "— amount not specified"
@@ -91,7 +91,7 @@ maid:
     • If Add-ons Preference is "not_required": Focus only on the core benefits; do not mention or emphasize add-ons.
     
     Response Structure:
-    • Start with: "Based on your needs, I'd recommend the *{tier}* plan."
+    • Start with: "Most people find the *{tier}* plan suits their needs with the following coverage limits."
     • Give one clear reason why this tier fits their needs
     • Exactly and only include the five USPs listed below as bullets. Each USP MUST be followed by "up to $[amount]" extracted from the knowledge base context. Search the benefit information carefully for the specific coverage amounts for each USP.
     • Format each USP as: "• [USP name] up to $[amount]"
@@ -251,7 +251,7 @@ hospital:
     5. Conversational: Prefer short sentences and small paragraphs; sound natural and helpful
 
     Response Structure:
-    • Start with: "Based on your needs, I'd recommend the *{tier}* plan."
+    • Start with: "Most people find the *{tier}* plan suits their needs with the following coverage limits."
     • Then list exactly these three items with the correct amounts from the benefits context:
       • Daily Hospital Cash
       • Triple Hospital Cash (ICU)
