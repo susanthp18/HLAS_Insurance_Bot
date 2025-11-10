@@ -1,6 +1,6 @@
 """
-Enhanced WhatsApp Handler for Production-Grade HLAS Insurance Chatbot
-=====================================================================
+Enhanced WhatsApp Handler for Production-Grade BT Insurance Chatbot
+===================================================================
 
 This module provides comprehensive WhatsApp message handling with robust
 error recovery, validation, and production-grade features.
@@ -26,7 +26,7 @@ from zoneinfo import ZoneInfo
 from ..redis_utils import RateLimiter, Deduplicator, OrderGuard, RedisLock, session_lock_key
 from ..metrics import WA_MESSAGES_PROCESSED_TOTAL, REDIS_LOCK_TIMEOUTS
 
-# Import HLAS components at module level to avoid circular imports and runtime overhead
+# Import BT chatbot components at module level to avoid circular imports and runtime overhead
 try:
     # Backwards-compatible alias: MongoSessionManager now maps to Redis-only SessionManager
     from ..session import MongoSessionManager
@@ -34,7 +34,7 @@ try:
     from ..utils.greeting import get_time_based_greeting
     HLAS_IMPORTS_AVAILABLE = True
 except ImportError as e:
-    logging.warning(f"HLAS imports not available: {e}")
+    logging.warning(f"BT chatbot imports not available: {e}")
     MongoSessionManager = None
     HlasFlow = None
     get_time_based_greeting = None
@@ -77,9 +77,9 @@ class WhatsAppMessageHandler:
                     from ..redis_utils import get_redis
                     r = get_redis()
                     if r.set("log_once:wa_handler_init", "1", nx=True, ex=3600):
-                        logger.info("WhatsApp handler initialized with Redis-only session manager")
+            logger.info("WhatsApp handler initialized with Redis-only session manager")
                 except Exception:
-                    logger.info("WhatsApp handler initialized with Redis-only session manager")
+            logger.info("WhatsApp handler initialized with Redis-only session manager")
             except Exception as e:
                 logger.error(f"Failed to initialize session manager: {e}")
                 self._mongo_session_manager = None
@@ -252,14 +252,14 @@ class WhatsAppMessageHandler:
     
     async def handle_message(self, message: str, user_phone: str, metadata: Dict[str, Any]) -> str:
         """
-        Process the message through the HLAS chat system with error handling.
+        Process the message through the BT chat system with error handling.
         """
         try:
             logger.info(f"Processing message from {user_phone}: {message[:100]}...")
             
-            # Check if HLAS components are available
+            # Check if BT components are available
             if not HLAS_IMPORTS_AVAILABLE or not self._mongo_session_manager:
-                logger.error("HLAS components not available for message processing")
+                logger.error("BT components not available for message processing")
                 return "I'm sorry, the service is temporarily unavailable. Please try again later."
             
             # Use phone number as session ID (could be enhanced with user mapping)
@@ -286,7 +286,7 @@ class WhatsAppMessageHandler:
                 logger.info("WhatsApp handler: live_agent_status active for %s - short-circuiting reply", session_id)
                 return "Live agent integration is under development. It will be coming soon. Please say 'hi' exactly to reset the session."
             
-            # Process through HLAS Flow
+            # Process through BT Flow
             flow = HlasFlow()
             
             # Suppress third-party console UIs during flow execution
@@ -330,7 +330,7 @@ class WhatsAppMessageHandler:
                 new_session["product"] = flow.state.product or flow.state.session.get("product") or new_session.get("product")
 
             # 2) Flow statuses: persist when present; remove when cleared by flow
-            for key in ("recommendation_status", "comparison_status", "summary_status"):
+            for key in ("recommendation_status", "comparison_status", "summary_status", "policy_status_status", "claim_status_status"):
                 if key in flow.state.session:
                     new_session[key] = flow.state.session.get(key)
                 else:
@@ -363,7 +363,11 @@ class WhatsAppMessageHandler:
                 "_early_existing_cover_notice",
 
                 # Product switch confirmation marker
-                "__product_switch_confirmed__"
+                "__product_switch_confirmed__",
+
+                # Policy/Claim status flow working state
+                "policy_status_slots", "policy_status_last_slot",
+                "claim_status_slots", "claim_status_last_slot",
             ):
                 if key in flow.state.session and flow.state.session.get(key) not in (None, ""):
                     new_session[key] = flow.state.session.get(key)

@@ -36,11 +36,12 @@ class ExplanationTool(BaseTool):
             pass
 
         message = (
-            f"{greeting}! I'm HLAS Assistant. I can help you:\n"
+            f"{greeting}! I'm BT Assistant. I can help you:\n"
             "- Recommend plans\n"
             "- Answer questions\n"
             "- Compare options\n"
             "- Summarize products\n"
+            "- Check your policy or claim status\n"
         )
         return message
 

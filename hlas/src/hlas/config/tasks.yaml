@@ -132,7 +132,7 @@ route_decision:
     Return only a single JSON object. No extra text.
   agent: "orchestrator"
   expected_output: |
-    { "directive": "greet" | "handle_recommendation" | "handle_information" | "handle_follow_up" | "plan_only_comparison" | "handle_summary" | "handle_capabilities" | "live_agent" | "handle_other", "evidence"?: "<optional: tokens/entities from message or context>" }
+    { "directive": "greet" | "handle_recommendation" | "handle_information" | "handle_follow_up" | "plan_only_comparison" | "handle_summary" | "handle_capabilities" | "live_agent" | "handle_policy_status" | "handle_claim_status" | "handle_other", "evidence"?: "<optional: tokens/entities from message or context>" }
 
 construct_follow_up_query:
   description: |
@@ -177,5 +177,12 @@ construct_follow_up_query:
   agent: "follow_up_agent"
   expected_output: |
     { "query": "<standalone query or original message>", "query_type": "plan_only_comparison" | "handle_summary" | "handle_recommendation" | "handle_information", "routing_confidence": 0.0-1.0, "evidence": "<tokens/entities cited from user message or conversation>" }
+
+answer_status:
+  description: |
+    Compose a concise, WhatsApp-ready final status reply for policy or claim status checks using the provided context (type, user_question, captured_fields, mock_data). Return only JSON with the final response.
+  agent: "status_responder"
+  expected_output: |
+    { "response": "<final response>" }
 
 

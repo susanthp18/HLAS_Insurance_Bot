@@ -125,7 +125,7 @@ from .utils.whatsapp_handler import whatsapp_handler, close_whatsapp_handler_htt
 @app.get("/health")
 def health_check():
     """General liveness endpoint."""
-    return {"status": "ok", "service": "HLAS Insurance Chatbot"}
+    return {"status": "ok", "service": "BT Insurance Chatbot"}
 
 @app.get("/ready")
 def readiness_check():

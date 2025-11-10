@@ -6,10 +6,11 @@ from zoneinfo import ZoneInfo
 
 
 def get_time_based_greeting() -> str:
-    """Return the standardized greeting for the HLAS Smart Bot."""
+    """Return the standardized greeting for the BT Smart Bot."""
     return (
-        "Hello! 👋 I’m the HLAS Smart Bot. I’m here to guide you through our insurance products and services, "
-        "answer your questions instantly, and make things easier for you. How can I help you today?"
+        "Hello! 👋 I’m the BT Smart Bot. I can check your policy or claim status, "
+        "guide you through our insurance products, answer questions instantly, and make things easier for you. "
+        "How can I help you today?"
     )
 
 

@@ -49,6 +49,14 @@ orchestrator:
     - handle_information: benefit/policy questions (coverage, limits, exclusions, which plan covers X, specific benefit comparisons, etc.).
       * Use as safe default when other intents lack sufficient evidence
       * Always prefer this for: exclusions, coverage details, policy limits, specific benefit queries
+    
+    - handle_policy_status: user wants to check a policy's status (not policy details).
+      * Evidence examples: "policy status", "check my policy", "is my policy active", "policy number" with "status" or "check"
+      * Abstain if: user asks about coverage/exclusions/limits (route to handle_information)
+    
+    - handle_claim_status: user wants to check a claim's status (not claim coverage rules).
+      * Evidence examples: "claim status", "check my claim", "claim number", "claim update/progress"
+      * Abstain if: user asks about claim policy coverage/exclusions (route to handle_information)
 
     Secondary intents:
     - greet, handle_capabilities, live_agent, handle_other.
@@ -65,6 +73,22 @@ orchestrator:
 
     Output rules:
     - Return only the JSON contract with "directive" and optional "evidence" field. No extra text.
+  allow_delegation: False
+
+status_responder:
+  role: "Status Responder"
+  goal: |
+    Compose a concise, friendly, WhatsApp-ready status reply for policy or claim status checks using ONLY the provided context:
+    - type: "policy" | "claim"
+    - user_question: the user's latest question
+    - captured_fields: JSON with collected identifiers (e.g., policy_number, claim_number)
+    - mock_data: JSON with mock status details (e.g., status, next_step, dates)
+
+    Requirements:
+    - Keep to plain text; use short sentences and simple bullets (•) when helpful
+    - Do not invent details beyond mock_data or captured_fields
+    - Do not ask follow-up questions; provide the status succinctly
+    - Keep under 800 characters
   allow_delegation: False
 
 follow_up_agent:

@@ -1,4 +1,4 @@
-HLAS Bot Knowledge Base
+BT Bot Knowledge Base
 
 Scope: Use this document to answer questions about what the bot can do, supported products, and available plans/tiers. If a user asks for factual policy details (coverage, exclusions, limits), defer to product information flows (not this KB).
 
@@ -7,6 +7,8 @@ Bot Capabilities
 - Summary: Summarize a plan/tier when user asks for an overview.
 - Comparison: Compare plans/tiers as a whole when requested.
 - Recommendation: Collect a few preferences and suggest a suitable plan.
+- Policy Status Check: Verify a policy’s status after collecting policy number, full name, and date of birth.
+- Claim Status Check: Verify a claim’s status after collecting claim number, policy number, and date of incident.
 
 Supported Products
 - Travel insurance (brand: Travel Protect360) — Tiers: Basic, Silver, Gold, Platinum
@@ -21,6 +23,7 @@ Supported Products
 Examples of Suitable Questions for This KB
 - What can you help me with?
 - Which products do you support?
+- Can you check my policy status or claim status?
 
 Answering Guidance
 - Answer only the user’s question based on this document.

@@ -24,6 +24,8 @@ import re
 from .flows.info_flow import InfoFlowHelper
 from .flows.compare_flow import CompareFlowHelper
 from .flows.summary_flow import SummaryFlowHelper
+from .flows.policy_flow import PolicyStatusFlowHelper
+from .flows.claim_flow import ClaimStatusFlowHelper
 from .utils.greeting import get_time_based_greeting
 from .lc.history import get_last_n_pairs
 from .utils.product_lex import lexical_product_hint, lexical_product_candidates
@@ -197,6 +199,20 @@ class HlasFlow(Flow[HlasState]):
             logger.info("HlasFlow.decide: Summary in progress, bypassing orchestrator to SummaryFlow")
             return SummaryFlowHelper.handle(self.state, {}, self._logger)
 
+        # New: Policy/Claim status flows in-progress bypass
+        try:
+            if self.state.session.get("policy_status_status") == "in_progress":
+                logger.info("HlasFlow.decide: Policy status in progress, bypassing orchestrator to PolicyStatusFlow")
+                return PolicyStatusFlowHelper.handle(self.state, {}, self._logger)
+        except Exception:
+            pass
+        try:
+            if self.state.session.get("claim_status_status") == "in_progress":
+                logger.info("HlasFlow.decide: Claim status in progress, bypassing orchestrator to ClaimStatusFlow")
+                return ClaimStatusFlowHelper.handle(self.state, {}, self._logger)
+        except Exception:
+            pass
+
         # Cleanup for completed flows
         if recommendation_status == "done":
             logger.info("HlasFlow.decide: Recommendation done, clearing status.")
@@ -209,6 +225,13 @@ class HlasFlow(Flow[HlasState]):
         if summary_status == "done":
             logger.info("HlasFlow.decide: Summary done, clearing status.")
             self.state.session.pop("summary_status", None)
+        # Cleanup for new status flows
+        if self.state.session.get("policy_status_status") == "done":
+            logger.info("HlasFlow.decide: Policy status flow done, clearing status.")
+            self.state.session.pop("policy_status_status", None)
+        if self.state.session.get("claim_status_status") == "done":
+            logger.info("HlasFlow.decide: Claim status flow done, clearing status.")
+            self.state.session.pop("claim_status_status", None)
 
         # Fall through to orchestrator if no multi-turn flow is active
         logger.debug("HlasFlow.decide: No active multi-turn flow, proceeding to orchestrator")
@@ -398,8 +421,8 @@ class HlasFlow(Flow[HlasState]):
         if directive == "greet":
             # Standardized greeting
             self.state.reply = (
-                "Hello! 👋 I’m the HLAS Smart Bot. I’m here to guide you through our insurance products and services, "
-                "answer your questions instantly, and make things easier for you. How can I help you today?"
+                "Hello! 👋 I’m the BT Smart Bot. I can check your policy or claim status, guide you through our insurance products, "
+                "answer questions instantly, and make things easier for you. How can I help you today?"
             )
             logger.info("HlasFlow.decide: Greeting generated (standardized)")
             return "__done__"
@@ -709,6 +732,22 @@ class HlasFlow(Flow[HlasState]):
             except Exception:
                 pass
             return SummaryFlowHelper.handle(self.state, {}, self._logger)
+
+        if directive == "handle_policy_status":
+            logger.info("HlasFlow.decide: Routing to PolicyStatusFlow")
+            try:
+                self.state.session.pop("last_question", None)
+            except Exception:
+                pass
+            return PolicyStatusFlowHelper.handle(self.state, {}, self._logger)
+
+        if directive == "handle_claim_status":
+            logger.info("HlasFlow.decide: Routing to ClaimStatusFlow")
+            try:
+                self.state.session.pop("last_question", None)
+            except Exception:
+                pass
+            return ClaimStatusFlowHelper.handle(self.state, {}, self._logger)
 
         if directive == "plan_only_comparison":
             logger.info("HlasFlow.decide: Routing to CompareFlow")

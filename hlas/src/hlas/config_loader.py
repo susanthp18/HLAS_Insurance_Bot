@@ -1,5 +1,5 @@
 """
-Centralized configuration loader for HLAS application.
+Centralized configuration loader for the BT application.
 Loads and caches YAML configurations at module import time to avoid repeated file I/O.
 """
 

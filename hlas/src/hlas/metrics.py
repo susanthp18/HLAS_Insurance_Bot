@@ -1,5 +1,5 @@
 """
-Prometheus metrics for HLAS chatbot.
+Prometheus metrics for BT chatbot.
 """
 from prometheus_client import Counter, Histogram
 
