@@ -77,9 +77,9 @@ class WhatsAppMessageHandler:
                     from ..redis_utils import get_redis
                     r = get_redis()
                     if r.set("log_once:wa_handler_init", "1", nx=True, ex=3600):
-            logger.info("WhatsApp handler initialized with Redis-only session manager")
+                        logger.info("WhatsApp handler initialized with Redis-only session manager")
                 except Exception:
-            logger.info("WhatsApp handler initialized with Redis-only session manager")
+                    logger.info("WhatsApp handler initialized with Redis-only session manager")
             except Exception as e:
                 logger.error(f"Failed to initialize session manager: {e}")
                 self._mongo_session_manager = None
