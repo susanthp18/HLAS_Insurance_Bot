@@ -13,6 +13,7 @@ from .agents import (
     tier_identifier,
     followup_clarification_agent,
     confirmation_classifier,
+    conversation_finisher,
 )
 
 # Get the path to the YAML file
@@ -37,6 +38,7 @@ agent_map = {
     "tier_identifier": tier_identifier,
     "followup_clarification_agent": followup_clarification_agent,
     "confirmation_classifier": confirmation_classifier,
+    "conversation_finisher": conversation_finisher,
 }
 
 def build_task(config_key: str) -> Task:
@@ -62,6 +64,7 @@ validate_slot_task = build_task("validate_slot")
 extract_slots_task = build_task("extract_slots")
 ask_question_task = build_task("ask_question")
 classify_confirmation_task = build_task("classify_confirmation")
+decide_finishing_response_task = build_task("decide_finishing_response")
 
 
 # Expose a name -> Task mapping for routing convenience
@@ -76,4 +79,5 @@ task_by_name = {
     "ask_question": ask_question_task,
     "followup_clarification": build_task("followup_clarification"),
     "classify_confirmation": classify_confirmation_task,
+    "decide_finishing_response": decide_finishing_response_task,
 }

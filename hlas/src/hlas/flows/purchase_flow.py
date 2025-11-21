@@ -265,7 +265,7 @@ class PurchaseFlowHelper:
         links = get_purchase_links()
         link = links.get(normalized) if normalized else None
         if link:
-            state.reply = f"You can purchase the {friendly} plan securely here: {link}"
+            state.reply = f"Great! You can purchase your {friendly} insurance plan securely here: {link}"
             logger.info("PurchaseFlow: Provided purchase link for product=%s", normalized)
         else:
             state.reply = (

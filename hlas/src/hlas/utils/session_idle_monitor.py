@@ -44,8 +44,8 @@ async def _process_idle_session(session_id: str, session: Dict[str, Any], now: d
     redis_key = f"session:{session_id}"
 
     try:
-        # Non-blocking lock acquisition; if we can't get it immediately, skip this round.
-        with RedisLock(lock_key, ttl_seconds=15.0, wait_timeout=0.0):
+        # Best-effort lock acquisition; wait briefly, but never block real traffic for long.
+        with RedisLock(lock_key, ttl_seconds=15.0, wait_timeout=0.2):
             raw = redis.get(redis_key)
             if not raw:
                 return

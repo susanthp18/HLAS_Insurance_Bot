@@ -196,3 +196,20 @@ construct_follow_up_query:
   agent: "follow_up_agent"
   expected_output: |
     { "query": "<standalone query or original message>", "query_type": "plan_only_comparison" | "handle_summary" | "handle_recommendation" | "handle_purchase" | "handle_information", "routing_confidence": 0.0-1.0, "evidence": "<tokens/entities cited from user message or conversation>" }
+
+decide_finishing_response:
+  description: |
+    Decide whether the bot should send a brief friendly reply or stay silent for a short, low-content user message (e.g., "ok", "thanks", "bye") based on recent context.
+    You will ONLY see messages that have already been pre-filtered as acknowledgements or closings by the main flow.
+    Use LAST_COMPLETED, SESSION_PRODUCT, and RECENT_HISTORY to infer whether:
+    - A recommendation, information answer, comparison, or summary has just finished,
+    - A purchase link was already provided,
+    - The user is clearly ending the conversation (for example, "thank you", "bye", "that's all").
+    Prefer "no_reply" when replying would feel like unnecessary noise, especially after an obvious closing.
+    Keep any reply under ~20 words, polite, and NEVER introduce new topics or restate policy details.
+  agent: "conversation_finisher"
+  expected_output: |
+    {
+      "action": "no_reply" | "short_ack" | "friendly_closing",
+      "reply": "<short text if action != 'no_reply', else empty string>"
+    }

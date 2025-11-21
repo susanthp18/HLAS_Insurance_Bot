@@ -15,6 +15,7 @@ from .tasks import (
     route_decision_task,
     construct_follow_up_query_task,
     answer_capabilities_task,
+    decide_finishing_response_task,
 )
 from .tools.benefits_tool import benefits_tool
 from .agents import recommendation_responder
@@ -220,8 +221,127 @@ class HlasFlow(Flow[HlasState]):
             logger.info("HlasFlow.decide: Summary done, clearing status.")
             self.state.session.pop("summary_status", None)
 
-        # Fall through to orchestrator if no multi-turn flow is active
-        logger.debug("HlasFlow.decide: No active multi-turn flow, proceeding to orchestrator")
+        # Potential acknowledgement / closing handling for short, low-content messages
+        try:
+            session = self.state.session or {}
+            current_message = (self.state.message or "").strip()
+            msg_low = current_message.lower()
+            history: list = session.get("history", []) or []
+            history_len = len(history)
+            pending_flag = bool(session.get("last_question") or session.get("_last_info_prod_q"))
+            any_in_progress = bool(
+                session.get("recommendation_status") == "in_progress"
+                or session.get("comparison_status") == "in_progress"
+                or session.get("summary_status") == "in_progress"
+                or session.get("purchase_flow_stage")
+                or (session.get("fraud_stage") or "").strip()
+            )
+
+            # Only consider ack logic when no multi-turn flow is in progress, there's prior context,
+            # and there is no outstanding bot question or product clarification.
+            if (
+                not any_in_progress
+                and not pending_flag
+                and history_len > 0
+                and 0 < len(current_message) <= 40
+                and "?" not in current_message
+            ):
+                # Normalize simple acknowledgement phrases by trimming trailing punctuation/ellipsis.
+                norm = re.sub(r"[\.!\?…\s]+$", "", msg_low)
+                ACK_PHRASES = {
+                    "ok",
+                    "okay",
+                    "k",
+                    "kk",
+                    "thanks",
+                    "thank you",
+                    "thank u",
+                    "thx",
+                    "got it",
+                    "great",
+                    "awesome",
+                    "cool",
+                    "bye",
+                    "bye bye",
+                    "goodbye",
+                    "good bye",
+                }
+                if norm in ACK_PHRASES:
+                    logger.info("HlasFlow.decide: Ack-like message detected ('%s'); delegating to conversation finisher", current_message)
+
+                    # Build compact context for finisher agent
+                    last_completed = session.get("last_completed") or "none"
+                    product_in_session = session.get("product") or self.state.product or ""
+                    purchase_stage = session.get("purchase_flow_stage") or ""
+
+                    ctx_lines: list[str] = []
+                    ctx_lines.append(f"CURRENT_MESSAGE: {current_message}")
+                    ctx_lines.append(f"SESSION_PRODUCT: {product_in_session}")
+                    ctx_lines.append(f"LAST_COMPLETED: {last_completed}")
+                    ctx_lines.append(f"PURCHASE_FLOW_STAGE: {purchase_stage}")
+                    ctx_lines.append(f"RECOMMENDATION_STATUS: {session.get('recommendation_status') or ''}")
+                    ctx_lines.append(f"COMPARISON_STATUS: {session.get('comparison_status') or ''}")
+                    ctx_lines.append(f"SUMMARY_STATUS: {session.get('summary_status') or ''}")
+
+                    # Add up to 2 most recent history pairs for additional context
+                    recent_pairs = get_last_n_pairs(session, n=2)
+                    if recent_pairs:
+                        ctx_lines.append("RECENT_HISTORY (most recent first):")
+                        for idx, p in enumerate(recent_pairs, start=1):
+                            try:
+                                u = p.get("user") or ""
+                                a = p.get("assistant") or ""
+                                if u or a:
+                                    ctx_lines.append(f"Turn -{idx}:")
+                                    if u:
+                                        ctx_lines.append(f"User: {u}")
+                                    if a:
+                                        ctx_lines.append(f"Assistant: {a}")
+                            except Exception:
+                                continue
+
+                    finisher_ctx = "\n".join(ctx_lines)
+
+                    finisher_result = run_direct_task(
+                        agent_obj=decide_finishing_response_task.agent,
+                        agent_key="conversation_finisher",
+                        task_key="decide_finishing_response",
+                        context_text=finisher_ctx,
+                        logger=self._logger,
+                        label="conversation_finisher.decide",
+                    ) or {}
+
+                    action = (finisher_result.get("action") or "").strip().lower()
+                    reply = (finisher_result.get("reply") or "").strip()
+
+                    if action == "no_reply":
+                        # Suppress reply for this turn; channel handlers can choose not to send anything.
+                        try:
+                            session["_suppress_reply"] = True
+                        except Exception:
+                            pass
+                        self.state.reply = ""
+                        logger.info("HlasFlow.decide: Conversation finisher chose no_reply for message '%s'", current_message)
+                        return "__done__"
+                    if action in ("short_ack", "friendly_closing") and reply:
+                        # Clear any previous suppression flag and send a brief closing/ack.
+                        try:
+                            session.pop("_suppress_reply", None)
+                        except Exception:
+                            pass
+                        self.state.reply = reply
+                        logger.info(
+                            "HlasFlow.decide: Conversation finisher reply for message '%s' (action=%s, len=%d)",
+                            current_message,
+                            action,
+                            len(reply),
+                        )
+                        return "__done__"
+        except Exception as e:
+            logger.warning("HlasFlow.decide: Ack/finisher handling failed - %s", str(e))
+
+        # Fall through to orchestrator if no multi-turn flow is active or ack handling did not apply
+        logger.debug("HlasFlow.decide: No active multi-turn flow (or ack not applicable), proceeding to orchestrator")
 
         # Create compact, explicit context for orchestrator
         current_user_message = self.state.message

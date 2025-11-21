@@ -55,4 +55,5 @@ follow_up_agent = build_agent_from_config("follow_up_agent", use_response_llm=Tr
 tier_identifier = build_agent_from_config("tier_identifier")
 followup_clarification_agent = build_agent_from_config("followup_clarification_agent", use_response_llm=True)
 confirmation_classifier = build_agent_from_config("confirmation_classifier")
+conversation_finisher = build_agent_from_config("conversation_finisher")
 

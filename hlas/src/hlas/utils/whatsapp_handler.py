@@ -390,8 +390,9 @@ class WhatsAppMessageHandler:
             # Save session
             self._mongo_session_manager.save_session(session_id, new_session)
             
-            # Validate response
-            if not response:
+            # Validate response unless the flow explicitly requested suppression
+            suppress_reply = bool(flow.state.session.get("_suppress_reply"))
+            if not response and not suppress_reply:
                 response = "I'm sorry, I couldn't process your request. Please try again or ask for help."
             
             # Ensure response fits WhatsApp limits
@@ -496,10 +497,14 @@ class WhatsAppMessageHandler:
             else:
                 # Process message
                 response = await self.handle_message(message, user_phone, metadata)
-                
-                # Send response
-                await self._send_message_async(user_phone, response)
-                WA_MESSAGES_PROCESSED_TOTAL.labels(result="ok").inc()
+
+                # Optionally send response: if the flow requested suppression (no_reply), skip sending
+                if response and response.strip():
+                    await self._send_message_async(user_phone, response)
+                    WA_MESSAGES_PROCESSED_TOTAL.labels(result="ok").inc()
+                else:
+                    logger.info("WhatsApp handler: No response sent for message from %s (suppressed or empty reply).", user_phone)
+                    WA_MESSAGES_PROCESSED_TOTAL.labels(result="ok").inc()
 
                 #Check if the stage is "live_agent" after the intent is set by the incoming message
                 if self._mongo_session_manager.get_session(session_id).get("live_agent_status") == True:
