@@ -12,6 +12,10 @@ from ..tools.benefits_tool import benefits_tool
 from ..agents import recommendation_responder
 from ..llm import azure_response_llm
 from ..utils.product_lex import lexical_product_hint, lexical_product_candidates
+from .info_flow import InfoFlowHelper
+
+
+PURCHASE_PROMPT = "Would you like to purchase this plan?"
 
 
 class RecFlowHelper:
@@ -72,14 +76,19 @@ class RecFlowHelper:
                 "destination": "Country the user is travelling to (country name only)",
             },
             "maid": {
-                "duration_of_insurance": "Policy duration (12 or 24 months)",
+                "duration_of_insurance": "Policy duration (14 or 26 months)",
                 "maid_country": "Helper's country of origin (country name only)",
-                "coverage_above_mom_minimum": "Whether user wants coverage beyond MOM minimum (yes/no)",
+                "coverage_above_mom_minimum": "Whether user wants coverage beyond MOM minimum (yes/no). MOM minimum is $60,000 medical coverage and a $5,000 security bond.",
                 "add_ons": "Whether user wants additional add-on coverages (required/not_required)"
             },
             "personalaccident": {
                 "coverage_scope": "Coverage for yourself or your family",
-                "risk_level": "Occupational risk level: high or low",
+                "risk_level": (
+                    "Occupational risk level with three bands: "
+                    "Low risk – primarily office/desk work with minimal physical exposure; "
+                    "Medium risk – light manual work with some outdoor or machinery exposure; "
+                    "High risk – significant physical hazard, height, heavy machinery, or field operations."
+                ),
                 "desired_amount": "Desired coverage amount between $500 and $3,500 (accept 'the higher the better' → 3500; 'the lower the better' → 500)"
             },
             "home": {
@@ -157,7 +166,7 @@ class RecFlowHelper:
             }
         if p == "maid":
             return {
-                "duration_of_insurance": {"type": "choice", "options": ["12", "24"]},
+                "duration_of_insurance": {"type": "choice", "options": ["14", "26"]},
                 "maid_country": {"type": "value", "format": "country"},
                 "coverage_above_mom_minimum": {"type": "yesno"},
                 "add_ons": {"type": "choice", "options": ["required", "not_required"]},
@@ -165,7 +174,7 @@ class RecFlowHelper:
         if p == "personalaccident":
             return {
                 "coverage_scope": {"type": "choice", "options": ["self or me", "family"]},
-                "risk_level": {"type": "choice", "options": ["high", "low"]},
+                "risk_level": {"type": "choice", "options": ["low", "medium", "high"]},
                 "desired_amount": {
                     "type": "value",
                     "format": "amount:int",
@@ -286,8 +295,25 @@ class RecFlowHelper:
         
         logger.info("RecFlow.extract_slots: API output - keys=%s, user_needs_explanation=%s", 
                    list(extraction_result.keys()), extraction_result.get("user_needs_explanation"))
-        
-        # Check if user needs explanation
+
+        # Check if extractor signalled a side information question (policy-level) instead of a slot answer
+        info_intent = (extraction_result.get("info_intent") or "").strip().lower()
+        if info_intent == "handle_information":
+            info_query = (extraction_result.get("info_query") or "").strip()
+            info_from_slot = (extraction_result.get("info_from_slot") or last_slot_name_ctx or "") or ""
+            logger.info(
+                "RecFlow.extract_slots: Detected side information intent from slot extractor - "
+                "info_query_len=%d, info_from_slot=%s",
+                len(info_query),
+                info_from_slot,
+            )
+            return {
+                "__info_intent__": "handle_information",
+                "__info_query__": info_query,
+                "__info_from_slot__": info_from_slot,
+            }
+
+        # Check if user needs explanation for a specific slot
         if extraction_result.get("user_needs_explanation") and extraction_result.get("explanation"):
             logger.info("RecFlow.extract_slots: User needs explanation - length=%d", len(extraction_result.get("explanation", "")))
             return {"explanation_needed": extraction_result.get("explanation")}
@@ -300,6 +326,91 @@ class RecFlowHelper:
         
         logger.info("RecFlow.extract_slots: Completed extraction - extracted_slots=%s", list(filtered_result.keys()))
         return filtered_result
+
+    @classmethod
+    def _handle_side_information(
+        cls,
+        state: Any,
+        product: str,
+        extracted_slots: Dict[str, Any],
+        current_slots: Dict[str, Any],
+        required_slots: list[str],
+        user_wants_details: bool,
+        logger: logging.Logger,
+    ) -> str:
+        """Handle side information questions during slot collection by delegating to InfoFlow, then resuming slots."""
+        info_query = (extracted_slots.get("__info_query__") or state.message or "").strip()
+        logger.info(
+            "RecFlow.handle: Handling side information during slot collection - info_query_len=%d, product=%s",
+            len(info_query),
+            product,
+        )
+
+        # If we have no meaningful info query, fall back to normal slot handling
+        if not info_query:
+            logger.warning(
+                "RecFlow.handle: Side information signalled but info_query is empty; falling back to slot questions."
+            )
+            return "__continue_slots__"
+
+        # Preserve original user message so history remains accurate
+        original_message = state.message
+
+        try:
+            # Ensure product context is set for InfoFlow
+            if product:
+                state.product = product
+                try:
+                    state.session["product"] = product
+                except Exception:
+                    pass
+
+            # Delegate to InfoFlow to answer the policy-level question using RAG
+            state.message = info_query
+            logger.info(
+                "RecFlow.handle: Delegating side information to InfoFlow (product=%s, message_len=%d)",
+                product,
+                len(state.message or ""),
+            )
+            InfoFlowHelper.handle(state, {}, logger)
+            info_answer = (state.reply or "").strip()
+        except Exception as exc:
+            logger.error(
+                "RecFlow.handle: InfoFlow call failed during side information handling - %s", str(exc)
+            )
+            info_answer = ""
+        finally:
+            # Restore original user message
+            state.message = original_message
+
+        # Determine next slot to ask (continue recommendation flow)
+        missing_slots = cls._get_missing_slots(current_slots, required_slots)
+        next_slot = missing_slots[0] if missing_slots else None
+
+        follow_up_question = ""
+        if next_slot:
+            logger.info(
+                "RecFlow.handle: Resuming slot collection after side information; next_slot=%s", next_slot
+            )
+            follow_up_question = cls._ask_next_question(
+                product, next_slot, current_slots, user_wants_details, state, logger
+            )
+            combined_reply = info_answer if info_answer else ""
+            if follow_up_question:
+                combined_reply = (
+                    f"{combined_reply}\n\n{follow_up_question}" if combined_reply else follow_up_question
+                )
+            state.reply = combined_reply
+        else:
+            # No missing slots (rare in this path) – just return the info answer
+            logger.info(
+                "RecFlow.handle: No missing slots detected after side information; returning info answer only."
+            )
+            state.reply = info_answer or (
+                "I have shared some information. Please let me know if you’d like to continue with a recommendation."
+            )
+
+        return "__done__"
 
     @classmethod  
     def _validate_slot(cls, slot_name: str, slot_value: str, product: str, state: Any, logger: logging.Logger) -> Dict[str, Any]:
@@ -556,6 +667,24 @@ class RecFlowHelper:
         logger.info("RecFlow.generate_recommendation: Completed - tier=%s, response_len=%d", tier, len(response))
         return response
 
+    @staticmethod
+    def _arm_purchase_follow_up(state: Any, logger: logging.Logger) -> None:
+        """Append a purchase prompt and set session flags for PurchaseFlow."""
+        try:
+            state.session["purchase_flow_stage"] = "await_purchase_decision"
+            state.session["last_question"] = PURCHASE_PROMPT
+        except Exception as exc:
+            logger.warning("RecFlow: Failed to set purchase follow-up flags - %s", exc)
+        reply = str(state.reply or "").rstrip()
+        if reply:
+            # Avoid duplicating the prompt if it already exists verbatim
+            if PURCHASE_PROMPT.lower() in reply.lower():
+                return
+            state.reply = f"{reply}\n\n{PURCHASE_PROMPT}"
+        else:
+            state.reply = PURCHASE_PROMPT
+        logger.info("RecFlow: Armed purchase follow-up prompt")
+
     @classmethod
     def _handle_fraud_intro(cls, state: Any, logger: logging.Logger) -> Optional[str]:
         """Handle Fraud guided intro funnel. Returns "__done__" when a reply was sent, or None to continue."""
@@ -780,9 +909,9 @@ class RecFlowHelper:
         from ..prompt_runner import run_direct_task
 
         logger.info("RecFlow.handle: Product identification - current_product=%s, rec_status=%s, prev_prod_q=%s", current_product, recommendation_status, rec_prev_prod_q)
-
+        
         product: Optional[str] = None
-
+        
         # Special case: previous turn asked for product clarification in RecFlow
         if rec_prev_prod_q:
             prod_result = run_direct_task(
@@ -793,12 +922,39 @@ class RecFlowHelper:
                 logger=logger,
                 label="product_identifier.identify_product.rec_flow_prod_clarify",
             ) or {}
-            product = prod_result.get("product") or current_product
-            if product:
-                state.product = product
-                state.session["product"] = product
-            # Clear the clarification flag regardless
+            identified_product = (prod_result.get("product") or "").strip()
+            question = (prod_result.get("question") or "").strip()
+            product = identified_product or current_product
+
+            # If we STILL do not have a product after clarification, re-ask (do NOT proceed to generation)
+            if not product:
+                # Prefer the LLM's clarification question if provided
+                if question:
+                    state.reply = question
+                else:
+                    # Safe fallback: explicit catalog reminder
+                    fallback = (
+                        "I'm sorry, I couldn't match that to any of our insurance products. "
+                        "We currently offer Travel insurance, Maid insurance, Car insurance, "
+                        "Personal Accident insurance, Home Contents insurance, Critical Illness "
+                        "(Early Protect), Fraud insurance, and Hospital Income insurance. "
+                        "Which of these are you interested in?"
+                    )
+                    state.reply = fallback
+                # Keep the clarification flag and status so the next turn is still treated as product clarification
+                state.session["recommendation_status"] = "in_progress"
+                state.session["_last_rec_prod_q"] = True
+                logger.info(
+                    "RecFlow.handle: Product clarification still unresolved; re-asking clarification question (product=None)"
+                )
+                return "__done__"
+
+            # We have a product – lock it into session
+            state.product = product
+            state.session["product"] = product
+            # Clear the clarification flag now that product is resolved
             state.session.pop("_last_rec_prod_q", None)
+
             # Fraud: start guided intro instead of slots
             if (product or "").strip().lower() == "fraud":
                 state.session.pop("recommendation_status", None)
@@ -807,9 +963,10 @@ class RecFlowHelper:
                 state.session["last_question"] = q
                 state.reply = q
                 return "__done__"
+
             # Ensure recommendation is marked in progress for slot collection
             state.session["recommendation_status"] = "in_progress"
-
+            
             # Skip slot extraction/validation this turn; ask next missing slot directly (or proceed if none)
             required_slots = cls._required_slots_for_product(product)
             current_slots = state.session.get("slots", {}) or {}
@@ -1015,9 +1172,14 @@ class RecFlowHelper:
                     logger.error("RecFlow.handle: Car LLM call failed - %s", str(e))
             
             state.reply = car_response
+            cls._arm_purchase_follow_up(state, logger)
                 
             # Mark as complete
             state.session["recommendation_status"] = "done"
+            try:
+                state.session["last_recommendation_product"] = (product or "").strip()
+            except Exception:
+                pass
             
             # Clear comparison/summary states to avoid unintended bypass
             state.session.pop("compare_pending", None)
@@ -1066,6 +1228,21 @@ class RecFlowHelper:
 
         # Extract/update slots from current message
         extracted_slots = cls._extract_slots(state, product, logger)
+
+        # If slot extractor signalled a side information question, handle it via InfoFlow and then resume slots
+        if extracted_slots.get("__info_intent__") == "handle_information":
+            res = cls._handle_side_information(
+                state,
+                product,
+                extracted_slots,
+                current_slots,
+                required_slots,
+                user_wants_details,
+                logger,
+            )
+            if res == "__done__":
+                return "__done__"
+            # If handler requested continuation, fall through to normal slot logic
         
         # Check if user needs explanation
         if "explanation_needed" in extracted_slots:
@@ -1190,11 +1367,34 @@ class RecFlowHelper:
             return "__done__"
         else:
             # All slots filled - generate recommendation
+            if not (product or "").strip():
+                # Safety guard: we should never generate a recommendation without a valid product
+                fallback = (
+                    "I'm sorry, I couldn't match that to any of our insurance products. "
+                    "We currently offer Travel insurance, Maid insurance, Car insurance, "
+                    "Personal Accident insurance, Home Contents insurance, Critical Illness "
+                    "(Early Protect), Fraud insurance, and Hospital Income insurance. "
+                    "Which of these are you interested in?"
+                )
+                state.session["recommendation_status"] = "in_progress"
+                state.session["_last_rec_prod_q"] = True
+                state.reply = fallback
+                logger.warning(
+                    "RecFlow.handle: Attempted to generate recommendation with no product; "
+                    "sending fallback clarification instead."
+                )
+                return "__done__"
+
             logger.info("RecFlow.handle: All slots filled, generating recommendation - slot_count=%d", len(updated_slots))
             recommendation = cls._generate_recommendation(product, updated_slots, state, logger)
             
             # Mark recommendation as complete
             state.session["recommendation_status"] = "done"
+            # Track which product we last recommended for purchase/pivot logic
+            try:
+                state.session["last_recommendation_product"] = (product or "").strip()
+            except Exception:
+                pass
             # Mark last completed flow to help downstream logic (e.g., follow-up context suppression)
             try:
                 state.session["last_completed"] = "recommendation"
@@ -1215,5 +1415,6 @@ class RecFlowHelper:
             state.session.pop("summary_pending", None)
 
             state.reply = recommendation
+            cls._arm_purchase_follow_up(state, logger)
             logger.info("RecFlow.handle: Recommendation flow completed - status=done, response_len=%d", len(recommendation))
             return "__done__"

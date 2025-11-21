@@ -8,7 +8,7 @@ from pathlib import Path
 # Get the path to the YAML file
 yaml_path = Path(__file__).parent / "config/agents.yaml"
 
-with open(yaml_path, "r") as f:
+with open(yaml_path, "r", encoding="utf-8") as f:
     agents_config = yaml.safe_load(f)
 
 custom_system_template = (
@@ -54,4 +54,5 @@ capabilities_responder = build_agent_from_config("capabilities_responder", use_r
 follow_up_agent = build_agent_from_config("follow_up_agent", use_response_llm=True)
 tier_identifier = build_agent_from_config("tier_identifier")
 followup_clarification_agent = build_agent_from_config("followup_clarification_agent", use_response_llm=True)
+confirmation_classifier = build_agent_from_config("confirmation_classifier")
 

@@ -25,6 +25,7 @@ class RouteDecisionOutput(BaseModel):
     directive: Literal[
         "greet",
         "handle_recommendation",
+        "handle_purchase",
         "handle_information",
         "handle_follow_up",
         "plan_only_comparison",
@@ -47,6 +48,7 @@ class FollowUpQueryOutput(BaseModel):
         "plan_only_comparison",
         "handle_summary",
         "handle_recommendation",
+        "handle_purchase",
         "handle_information",
     ]
     routing_confidence: float = 0.0
@@ -117,7 +119,7 @@ def structured_invoke(
         if not use_azure:
             from langchain_openai import ChatOpenAI  # type: ignore
             model = ChatOpenAI(
-                model=os.getenv("LC_OPENAI_MODEL", os.getenv("OPENAI_MODEL", "gpt-4o-mini")),
+                model=os.getenv("LC_OPENAI_MODEL", os.getenv("OPENAI_MODEL", "gpt-4.1-mini")),
                 temperature=float(os.getenv("LC_TEMPERATURE", "0")),
                 max_tokens=int(os.getenv("LC_MAX_TOKENS", "512")),
             )

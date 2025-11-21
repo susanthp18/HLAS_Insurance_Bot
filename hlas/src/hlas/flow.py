@@ -24,6 +24,7 @@ import re
 from .flows.info_flow import InfoFlowHelper
 from .flows.compare_flow import CompareFlowHelper
 from .flows.summary_flow import SummaryFlowHelper
+from .flows.purchase_flow import PurchaseFlowHelper
 from .utils.greeting import get_time_based_greeting
 from .lc.history import get_last_n_pairs
 from .utils.product_lex import lexical_product_hint, lexical_product_candidates
@@ -170,6 +171,15 @@ class HlasFlow(Flow[HlasState]):
         
         logger.info("HlasFlow.decide: Entry state - message='%s', rec_status='%s', cmp_status='%s', sum_status='%s', product='%s'", 
                    self.state.message[:100], recommendation_status, comparison_status, summary_status, session_product)
+        
+        # If purchase flow is mid-stage (product clarification or confirmation),
+        # give it precedence before any other multi-turn flow.
+        purchase_stage = self.state.session.get("purchase_flow_stage")
+        if purchase_stage:
+            logger.info("HlasFlow.decide: Purchase flow stage active (%s); handling before other flows", purchase_stage)
+            purchase_result = PurchaseFlowHelper.handle_stage(self.state, self._logger)
+            if purchase_result:
+                return purchase_result
         
         # Check recommendation status for simplified flow control
         if recommendation_status == "in_progress":
@@ -367,6 +377,10 @@ class HlasFlow(Flow[HlasState]):
             self.state.reply = "Please wait a minute i will connect you to live agent."
             logger.info("HlasFlow.decide: live_agent intent detected - session flag set and reply prepared")
             return "__done__"
+
+        if directive == "handle_purchase":
+            logger.info("HlasFlow.decide: Routing to PurchaseFlow helper via orchestrator directive")
+            return PurchaseFlowHelper.handle(self.state, d, self._logger)
 
         # --- Safety guard (relaxed): only override when truly first turn with no pending flag ---
         try:
@@ -695,6 +709,12 @@ class HlasFlow(Flow[HlasState]):
                 logger.error("HlasFlow.decide: RecFlow not available for follow-up recommendation request.")
                 self.state.reply = "I'm sorry, the recommendation service is temporarily unavailable. Please try again later."
                 return "__done__"
+
+            if final_query_type == "handle_purchase":
+                self.state.session.pop("_fu_query", None)
+                self.state.message = query
+                logger.info("HlasFlow.decide: Routing follow-up to PurchaseFlow (source=%s)", routing_source)
+                return PurchaseFlowHelper.handle(self.state, {"directive": "handle_purchase", "from_follow_up": True}, self._logger)
 
             # Default to information handling
             self.state.session["_fu_query"] = query

@@ -1,5 +1,7 @@
 from fastapi import FastAPI, HTTPException, Request, Response
 from contextlib import asynccontextmanager
+from contextlib import suppress
+import asyncio
 from pydantic import BaseModel
 from .session import MongoSessionManager
 from .logging_config import setup_logging
@@ -28,6 +30,7 @@ from .flow import HlasFlow
 from .llm import azure_llm, azure_embeddings
 from .redis_utils import RedisLock, session_lock_key, get_redis
 from .metrics import REQUESTS_TOTAL, REDIS_LOCK_TIMEOUTS
+from .utils.session_idle_monitor import idle_monitor_loop
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 # Suppress noisy pydantic serializer warnings from underlying LLM/tooling libs
@@ -39,10 +42,17 @@ warnings.filterwarnings(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: nothing special (models pre-initialized)
-    yield
-    # Shutdown: close reusable HTTP clients
-    await close_whatsapp_handler_http_client()
+    # Startup: launch background idle session monitor
+    idle_task = asyncio.create_task(idle_monitor_loop())
+    app.state.idle_monitor_task = idle_task
+    try:
+        yield
+    finally:
+        # Shutdown: stop idle monitor and close reusable HTTP clients
+        idle_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await idle_task
+        await close_whatsapp_handler_http_client()
 
 app = FastAPI(lifespan=lifespan)
 # Redis-only session manager (backwards alias retained)

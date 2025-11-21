@@ -62,8 +62,15 @@ extract_slots:
     - Only return keys that appear in the provided "Valid slots" list.
     - Use "Last bot question" to disambiguate yes/no replies.
     - Do NOT validate ranges or reject values based on Slot meta; treat ranges/options as hints only. Always extract the raw value if you can identify it.
+    - **Extraction Strategy**:
+      * **Prioritize raw extraction**: If the user provides a value that seems related to a slot (e.g., an occupation for 'risk_level', a country name for 'destination'), extract it AS-IS into the slot value. Do NOT clear the value just because it doesn't match the exact option list. The downstream validator is responsible for mapping/normalizing.
+      * **Occupation for risk_level**: If the slot is 'risk_level' and the user provides a job title (for example, 'accountant', 'driver', 'nurse', 'engineer', but not limited to these), EXTRACT the job title as the raw value for 'risk_level'. Do NOT set 'user_needs_explanation'.
+      * **Side information questions (policy-level)**: When the user's message is primarily asking for policy/benefit/coverage/limit/exclusion/add-on information instead of providing a slot value or asking what the slot itself means, do NOT invent a slot value and do NOT set user_needs_explanation. Instead, set `"info_intent": "handle_information"` and `"info_query"` to a short, self-contained restatement of their information question, and leave all slot values empty. This allows downstream flows to answer via RAG before re-asking the slot question.
+    - **Explanation Triggering (Strict)**:
+      * Only set 'user_needs_explanation' if the user EXPLICITLY asks for help (e.g., "what does that mean?", "explain", "help") or expresses explicit uncertainty (e.g., "I don't know", "not sure").
+      * Providing a value that requires normalization (like a job title) is NOT a request for explanation.
+      * For the Maid product, when the slot is 'coverage_above_mom_minimum' and the user is confused or asks what the coverage is, your explanation MUST mention that MOM requires at least $60,000 medical coverage and a $5,000 security bond, then ask clearly if they want coverage beyond this minimum (Yes/No).
     - IMPORTANT: If the user message contains NO slot-related information (e.g., just a product name), return empty strings for all slots and DO NOT set user_needs_explanation.
-    - Set user_needs_explanation if the user EXPLICITLY asks for an explanation about a specific slot (e.g., "what does that mean?", "explain destination") OR if the user says they don't know (e.g., "I don't know", "not sure", "idk", "dunno").
     - **Country Names**: For destination and maid_country slots, ACCEPT country abbreviations as valid input (e.g., "PH", "PHP" for Philippines, "US", "USA" for United States, "UK" for United Kingdom, "SG" for Singapore, "MY" for Malaysia, "ID" for Indonesia, etc.). Extract the abbreviation as-is; downstream validation will normalize it to the full country name.
     - **Plan Preference ONLY** (if plan_preference slot exists in Valid slots): Common phrases that indicate budget/coverage preferences:
       * "no budget constraints", "money is no issue", "best coverage" → extract as "comprehensive" for plan_preference slot ONLY
@@ -91,6 +98,18 @@ ask_question:
   agent: "question_asker"
   expected_output: |
     { "question": "<clear, concise question for the missing slot>" }
+
+
+classify_confirmation:
+  description: |
+    Determine whether the user affirmed ("yes"), declined ("no"), or responded with a different intent (handle_information, plan_only_comparison, handle_summary, handle_recommendation) to the bot's previous yes/no style question.
+    Normalize slang/emoji/multi-lingual yes/no expressions. Use ONLY the provided question + user reply.
+    IMPORTANT:
+    - Use "plan_only_comparison" ONLY when the reply contains explicit comparison verbs (e.g., "compare", "difference between", "which plan is better") together with plan/tier wording.
+    - For generic questions such as "what are the other plans available?" or "what other options are there?" WITHOUT comparison verbs, prefer "handle_information" (or "handle_recommendation" if they explicitly ask you to recommend another plan).
+  agent: "confirmation_classifier"
+  expected_output: |
+    { "classification": "yes" | "no" | "handle_information" | "plan_only_comparison" | "handle_summary" | "handle_recommendation", "confidence": 0.0-1.0 }
 
 
 validate_slot:
@@ -132,7 +151,7 @@ route_decision:
     Return only a single JSON object. No extra text.
   agent: "orchestrator"
   expected_output: |
-    { "directive": "greet" | "handle_recommendation" | "handle_information" | "handle_follow_up" | "plan_only_comparison" | "handle_summary" | "handle_capabilities" | "live_agent" | "handle_other", "evidence"?: "<optional: tokens/entities from message or context>" }
+    { "directive": "greet" | "handle_recommendation" | "handle_purchase" | "handle_information" | "handle_follow_up" | "plan_only_comparison" | "handle_summary" | "handle_capabilities" | "live_agent" | "handle_other", "evidence"?: "<optional: tokens/entities from message or context>" }
 
 construct_follow_up_query:
   description: |
@@ -176,6 +195,4 @@ construct_follow_up_query:
     Return only a single JSON object. No extra text.
   agent: "follow_up_agent"
   expected_output: |
-    { "query": "<standalone query or original message>", "query_type": "plan_only_comparison" | "handle_summary" | "handle_recommendation" | "handle_information", "routing_confidence": 0.0-1.0, "evidence": "<tokens/entities cited from user message or conversation>" }
-
-
+    { "query": "<standalone query or original message>", "query_type": "plan_only_comparison" | "handle_summary" | "handle_recommendation" | "handle_purchase" | "handle_information", "routing_confidence": 0.0-1.0, "evidence": "<tokens/entities cited from user message or conversation>" }

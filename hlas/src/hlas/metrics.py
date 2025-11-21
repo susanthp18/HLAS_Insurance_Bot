@@ -19,3 +19,10 @@ SESSION_CACHE_MISSES = Counter('hlas_session_cache_misses_total', 'Session cache
 
 # Redis locks
 REDIS_LOCK_TIMEOUTS = Counter('hlas_redis_lock_timeouts_total', 'Redis lock acquisition timeouts', ['scope'])
+
+# Idle farewell notifications (e.g. WhatsApp idle timeout goodbye messages)
+IDLE_FAREWELLS_SENT_TOTAL = Counter(
+    'hlas_idle_farewells_sent_total',
+    'Total idle timeout farewell messages sent, grouped by channel',
+    ['channel'],
+)

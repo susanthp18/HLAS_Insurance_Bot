@@ -32,10 +32,10 @@ travel:
 
 maid:
   duration_of_insurance:
-    - "Your goal is to determine the insurance duration. The only valid normalized values are '12' (for 12 months/1 year) or '24' (for 24 months/2 years)."
-    - "1. **Normalize Input**: Convert the user's input into '12' or '24'. Understand and accept natural language like '1 year', 'one year', '12 months' for '12', and '2 years', 'two years', '24 months' for '24'."
-    - "2. **Handle Ambiguity/Invalid Input**: If the user provides any other duration, or if the input is unclear, you must ask for a clear choice between the two valid options: 'We offer 12-month and 24-month policies. Which duration would you prefer?'"
-    - "3. **Handle 'I Don't Know'**: If the user says they 'don't know', provide a brief explanation and ask for a choice: 'No problem! The policy duration determines how long your helper will be covered. We offer 12-month and 24-month policies. Which option works better for you?'"
+    - "Your goal is to determine the insurance duration. The only valid normalized values are '14' (for 14 months) or '26' (for 26 months)."
+    - "1. **Normalize Input**: Convert the user's input into '14' or '26'. Understand and accept natural language like '14 months', '14 mths', 'fourteen months' for '14', and '26 months', '26 mths', 'twenty-six months' for '26'."
+    - "2. **Handle Ambiguity/Invalid Input**: If the user provides any other duration, or if the input is unclear, you must ask for a clear choice between the two valid options: 'We offer 14-month and 26-month policies. Which duration would you prefer?'"
+    - "3. **Handle 'I Don't Know'**: If the user says they 'don't know', provide a brief explanation and ask for a choice: 'No problem! The policy duration determines how long your helper will be covered. We offer 14-month and 26-month policies. Which option works better for you?'"
   maid_country:
     - "Your goal is to identify and validate the maid's country of origin."
     - "1. **Validate Country**: Accept ANY valid country name worldwide. The user can provide full country names, common variations, colloquial terms, OR standard abbreviations. Auto-normalize to the full country name. Examples (NOT exhaustive): 'PH'/'Philippines'/'Pinoy' → 'Philippines', 'US'/'USA' → 'United States'. Accept similar abbreviations for all countries. Do NOT infer the country from city or place names."
@@ -45,8 +45,8 @@ maid:
   coverage_above_mom_minimum:
     - "Your goal is to determine if the user wants coverage higher than the legal minimum. The only valid normalized values are 'yes' or 'no'."
     - "1. **Normalize Input**: Convert user's input into a strict 'yes' or 'no'. Be flexible with user phrasing. Accept affirmative responses ('yes', 'yep', 'sure', 'want more', 'beyond minimum') → normalize to 'yes'. Accept negative responses ('no', 'nope', 'basic is fine', 'minimum only') → normalize to 'no'."
-    - "2. **Handle Ambiguity**: If the user's response is unclear (e.g., 'is it expensive?'), re-ask the question clearly: 'To clarify, would you like coverage for medical expenses beyond the legal minimum requirement? (Yes/No)'"
-    - "3. **Handle 'I Don't Know'**: If the user says they 'don't know', provide a brief explanation and ask for a choice: 'No problem! The Ministry of Manpower (MOM) requires a minimum level of medical coverage for helpers. We offer plans that go beyond this minimum for greater protection. Would you like to include this higher coverage? (Yes/No)'"
+    - "2. **Handle Ambiguity**: If the user's response is unclear (e.g., 'is it expensive?'), re-ask the question clearly and include MOM minimum standards: 'Under MOM regulations, your helper must have at least $60,000 medical coverage and a $5,000 security bond. Would you like coverage beyond this minimum? (Yes/No)'"
+    - "3. **Handle 'I Don't Know'**: If the user says they 'don't know', provide a brief explanation that mentions MOM minimums and ask for a choice: 'No problem! The Ministry of Manpower (MOM) requires a minimum of $60,000 medical coverage and a $5,000 security bond for helpers. We offer plans that go beyond this minimum for greater protection. Would you like to include this higher coverage? (Yes/No)'"
   add_ons:
     - "Your goal is to determine if the user is interested in optional add-on coverages. The only valid normalized values are 'required' or 'not_required'."
     - "1. **Normalize Input**: Convert user's input into 'required' or 'not_required'. Be flexible with user phrasing. Accept affirmative responses ('yes', 'yep', 'sure', 'interested', 'want add-ons') → normalize to 'required'. Accept negative responses ('no', 'nope', 'not interested', 'no extras') → normalize to 'not_required'."
@@ -59,9 +59,20 @@ personalaccident:
     - "1. **Normalize Input**: Attempt to normalize the user's input to either 'self' or 'family'. Synonyms for 'self' include 'just me' and 'myself'. Synonyms for 'family' include 'my whole family' and 'for us'."
     - "2. **Handle Failure**: If the input cannot be confidently normalized to 'self' or 'family' (e.g., it is ambiguous like 'the adults' or invalid like 'my friend'), validation fails. You MUST ask a direct, non-yes/no question that guides the user to choose one of the two valid options. For example: 'Please specify if the coverage is for yourself or for your family.'"
   risk_level:
-    - "Your goal is to determine if the user's occupational risk is 'high' or 'low'."
-    - "1. **Normalize/Classify Input**: First, attempt to normalize a direct answer like 'high' or 'low'. Accept common variants and hyphenations: 'high risk', 'high-risk', 'highrisk' → 'high'; 'low risk', 'low-risk', 'lowrisk' → 'low' (case-insensitive). If the user provides their occupation instead (e.g., 'driver', 'accountant'), you MUST classify it into 'high' or 'low' risk based on these guidelines: manual labor or non-office jobs are 'high' risk; administrative or office-based jobs are 'low' risk."
-    - "2. **Handle Failure**: If the input is ambiguous ('it depends') or you cannot confidently classify the provided occupation, validation fails. You MUST then ask for the user's occupation directly so you can classify it. For example: 'To determine the risk level, could you please tell me your occupation?'"
+    - "Your goal is to determine if the user's occupational risk is 'low', 'medium', or 'high'."
+    - "Low risk – primarily office/desk work with minimal physical exposure."
+    - "Medium risk – light manual work with some outdoor or machinery exposure."
+    - "High risk – significant physical hazard, height, heavy machinery, or field operations."
+    - "1. **Normalize/Classify Direct Answers**: First, attempt to normalize a direct answer like 'low', 'medium', or 'high'. Accept common variants and hyphenations (case-insensitive):"
+    - "   • 'low risk', 'low-risk', 'lowrisk' → 'low'"
+    - "   • 'medium risk', 'mid risk', 'moderate risk' → 'medium'"
+    - "   • 'high risk', 'high-risk', 'highrisk' → 'high'"
+    - "2. **Occupation-Based Classification**: If the user provides their occupation instead of a direct risk label (e.g., 'driver', 'accountant', 'warehouse picker'), you MUST classify it into 'low', 'medium', or 'high' using these rules:"
+    - "   • Clearly physical/manual, outdoor or driving jobs with significant hazard → 'high' risk: e.g. construction worker, delivery rider/driver, warehouse or factory worker, cleaner, mover, mechanic, security guard, crane operator, technician working at height, offshore worker, site supervisor mainly on-site."
+    - "   • Clearly office/desk-based, professional or administrative jobs → 'low' risk: e.g. office worker, administrator, manager, accountant, teacher, clerk, receptionist, call centre staff, software engineer, IT engineer, analyst, designer, banker, consultant."
+    - "   • Jobs that mix some physical/manual or outdoor activity but are not as hazardous as the high-risk group → 'medium' risk: e.g. retail staff, shop assistant, supervisor who sometimes goes on-site but mainly does admin, light logistics/warehouse roles, salesman who visits clients but mostly travels by normal means without heavy lifting."
+    - "   • When in doubt: if the occupation clearly involves operating vehicles, heavy machinery, working at height, or in industrial/construction sites, PREFER 'high'; if clearly indoors and desk/computer based, PREFER 'low'; otherwise use 'medium'. You MUST still return one of 'low', 'medium', or 'high' unless the input is not an occupation at all."
+    - "3. **Handle Failure**: Only if the input is truly ambiguous or not an occupation (e.g., 'sometimes I move around a lot', 'it depends', 'various jobs') and you cannot reasonably infer the risk, validation fails. In that case you MUST ask a focused clarification that helps you classify, for example: 'To determine the risk level, is your job mainly office/desk-based, mainly light manual work, or mainly heavy/physical or outdoor work?' Do not ask them to pick a label again if they already gave you a clear job name."
   desired_amount:
     - "Your goal is to validate the desired coverage amount is a number between 500 and 3500."
     - "0. **Preference Phrases (no number given)**: If the user expresses a directional preference, map it to a boundary value:

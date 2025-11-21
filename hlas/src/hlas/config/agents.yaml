@@ -24,12 +24,19 @@ orchestrator:
     Plan-only comparison detection:
     - If CURRENT_MESSAGE contains the verb "compare" and any of "plan", "plans", "tier", or "tiers", and a session_product exists, route to plan_only_comparison even if no tier names are present.
     
-    - handle_recommendation: user explicitly asks for a recommendation/quote OR expresses intent to purchase/get a product.
+    - handle_recommendation: user explicitly asks for a recommendation/quote or wants guidance on which plan/tier fits best.
       * Required evidence:
         - Explicit request verbs: "recommend", "suggest", "which should I buy", "quote", "help me pick", "help me choose", "help me select"
-        - Purchase intent phrases: "I want [product]", "I want to buy", "I want to get", "I need [product]", "get me [product]", "looking for [product]"
         - Product-only messages: When user says just the product name (e.g., "travel", "maid insurance", "home") without asking a specific question
       * Abstain if: user is asking a specific question about benefits, coverage, exclusions, or policy details (route to handle_information instead)
+    
+    - handle_purchase: user explicitly states they want to buy/sign up/proceed with a plan, even if the product is not specified yet.
+      * Required evidence:
+        - Purchase verbs: "buy", "purchase", "sign up", "get this plan", "I'll take it", "go ahead with this"
+        - Accept variants like "I want to buy Travel insurance", "I want to purchase a product", "Purchase this plan", "Help me buy", "Can I sign up for this?"
+      * Behavior when product is missing (e.g., "I want to purchase a product"):
+        - STILL choose handle_purchase and allow downstream flows to ask which product the user wants to buy.
+      * Abstain if: the message still asks for information/comparison or expresses uncertainty ("what's the price", "compare first", "not sure yet") — route to handle_information/plan_only_comparison/handle_recommendation accordingly.
     
     - plan_only_comparison: STRICT CONTRACT - user asks to compare OVERALL plans/tiers without specifying a single benefit.
       * Required evidence: TWO OR MORE tier names explicitly mentioned ("Silver and Gold", "Basic vs Premier") OR explicit comparative language ("compare plans", "difference between plans", "which plan is better")
@@ -49,7 +56,7 @@ orchestrator:
     - handle_information: benefit/policy questions (coverage, limits, exclusions, which plan covers X, specific benefit comparisons, etc.).
       * Use as safe default when other intents lack sufficient evidence
       * Always prefer this for: exclusions, coverage details, policy limits, specific benefit queries
-
+    
     Secondary intents:
     - greet, handle_capabilities, live_agent, handle_other.
       - handle_capabilities: ONLY choose when the user asks meta/capability or catalog questions, such as:
@@ -57,12 +64,12 @@ orchestrator:
         * Which products are available (product catalog) — e.g., "what products do you have? or what other insurance products do you offer? "
         * Do you have hybrid insurance products?
         * Don't choose handle_capabilities for questions like "Can you compare the plans? or can you summarize the plan?"
-
+    
     EVIDENCE GROUNDING:
     • Evidence MUST cite only words/entities present in the user message or recent_context
     • DO NOT hallucinate tiers, benefits, or entities not mentioned
     • When in doubt between plan_only_comparison and handle_information, prefer handle_information
-
+    
     Output rules:
     - Return only the JSON contract with "directive" and optional "evidence" field. No extra text.
   allow_delegation: False
@@ -103,11 +110,17 @@ follow_up_agent:
         * Use ONLY when summarizing the overall plan/tier without naming specific policy aspects
         * NEVER use if query mentions specific aspects: conditions, eligibility, exclusions, benefits, claims, coverage, refunds, waiting periods
         * Evidence required: "summarize/overview/recap" + plan/tier reference
-      - "handle_recommendation": user explicitly requests a recommendation/quote/plan suggestion OR expresses intent to purchase/get a product
+      - "handle_recommendation": user explicitly requests a recommendation/quote/plan suggestion
         * Evidence required:
           - Explicit request verbs: "recommend", "suggest", "which should I buy", "quote", "help me pick", "help me choose", "help me select"
-          - Purchase intent phrases: "I want [product]", "I want to buy", "I want to get", "I need [product]", "get me [product]", "looking for [product]"
           - Product-only messages: When user says just the product name without asking a specific question
+        * DO NOT use this when the user is explicitly saying they want to "buy" or "purchase" a plan; prefer handle_purchase instead.
+      - "handle_purchase": user clearly states they want to buy/sign up/proceed with a plan (even if the product name is missing)
+        * Evidence required:
+          - Purchase verbs: "buy this", "purchase", "sign me up", "I'll take it", "proceed with this plan", "get me this plan"
+          - Generic purchase phrases like "I want to purchase a product" or "I want to buy insurance" (downstream flows will ask which product)
+          - Accept shorthand confirmations like "buy the Gold plan", "purchase it now", "go ahead with that plan"
+        * Abstain if the user still asks for information, prices, or comparisons — route to handle_information/plan_only_comparison instead
       - "handle_information": default for ALL policy aspect queries (conditions, eligibility, exclusions, benefits, claims, coverage, refunds)
         * Use when: asking about specific aspects even if "summarize" or "compare" verbs present
         * Examples: "summarize eligibility conditions", "compare benefits across plans", "what are the exclusions"
@@ -241,6 +254,28 @@ product_identifier:
   allow_delegation: False
 
 
+confirmation_classifier:
+  role: "Confirmation Classifier"
+  goal: |
+    Decide whether the user's latest reply is a confirmation ("yes"), a rejection ("no"), or a different intent (information, comparison, summary, recommendation) for the bot's prior question.
+    Normalize all slang, emojis, abbreviations, and multi-lingual yes/no phrases into a clean classification.
+    When the user is clearly asking for policy details, comparisons, summaries, or a new recommendation instead of answering the confirmation, return the corresponding intent label.
+    Follow the same STRICT routing rules as the main orchestrator, especially for comparison vs information:
+    - Only use plan_only_comparison when the reply contains an explicit comparison verb (e.g., "compare", "difference between", "which plan is better") together with plan/tier wording.
+    - If the reply talks about "other plans", "other options", "what else is available" WITHOUT explicit comparison verbs, treat it as handle_information (or handle_recommendation if they ask you to recommend another plan).
+  backstory: |
+    You classify short follow-up replies for prompts like
+    "Do you need a recommendation for Travel insurance?" or "Would you like to purchase this plan?".
+    - Output "yes" only when the user clearly agrees or wants to proceed (any variant such as "yup", "sure", "👍", "go ahead" should map to yes).
+    - Output "no" only when the user clearly declines (any variant such as "nah", "nope", "not now", "👎" should map to no).
+    - Output "handle_information" when the user asks for more info/pricing/details, or about "other plans/options" without using comparison verbs.
+    - Output "plan_only_comparison" ONLY when they explicitly ask to compare plans/tiers (e.g., "compare", "difference between plans", "which plan is better").
+    - Output "handle_summary" when they ask for an overview/summary.
+    - Output "handle_recommendation" when they want to restart or get a new recommendation instead.
+    Provide a confidence score between 0 and 1 indicating how certain you are.
+  allow_delegation: False
+
+
 slot_validator:
   role: "Slot Validator"
   goal: "Your goal is to validate a single piece of data according to the provided task description and rules, then return a single JSON object with the result."
@@ -287,6 +322,7 @@ slot_extractor:
     - IMPORTANT: Do NOT confuse "best coverage" or "best plan" phrases with slot values. These are general preference expressions, not slot-specific values. Only extract actual slot values that match the slot's expected format (e.g., "self"/"family" for coverage_scope, country names for destination).
     - Set user_needs_explanation when the user explicitly asks about a specific slot OR when they express uncertainty (e.g., "I don't know", "not sure", "idk", "dunno").
     - When user says "I don't know" or similar, treat it the same as "what does that mean?" - provide a brief explanation and guide them.
+    - When the user message is clearly a broader policy/benefit/coverage/exclusion/add-on question that goes beyond the current slot definition (and is not just "what does this slot mean?"), do NOT guess a slot value. Instead, set "info_intent": "handle_information" and "info_query" to a concise restatement of their question, and leave slots and user_needs_explanation empty so that higher-level flows can answer via information/RAG before continuing slot collection.
   allow_delegation: False
 
 question_asker:
@@ -299,4 +335,3 @@ question_asker:
     - Choice: Ask the user to choose between the listed options
     - Yes/No: Ask a clear Yes/No question
   allow_delegation: False
-

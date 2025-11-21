@@ -62,6 +62,7 @@ class ConfigLoader:
         self._agents_spec: Dict[str, Any] = {}
         self._tasks_spec: Dict[str, Any] = {}
         self._config_dir = Path(__file__).parent / "config"
+        self._links_spec: Dict[str, Any] = {}
         self._load_configs()
     
     def _load_configs(self) -> None:
@@ -85,6 +86,29 @@ class ConfigLoader:
         except Exception as e:
             logger.error("ConfigLoader: Failed to load tasks.yaml - %s", str(e))
             self._tasks_spec = {}
+        
+        # Load purchase links configuration (optional)
+        try:
+            links_path = self._config_dir / "links.yaml"
+            if links_path.exists():
+                with open(links_path, "r", encoding="utf-8") as f:
+                    raw_links = yaml.safe_load(f) or {}
+                if not isinstance(raw_links, dict):
+                    raise ValueError("links.yaml must contain a mapping of product -> url")
+                # Normalize to lowercase keys and string values
+                normalized = {}
+                for key, value in raw_links.items():
+                    if key is None or value is None:
+                        continue
+                    normalized[str(key).strip().lower()] = str(value).strip()
+                self._links_spec = normalized
+                logger.info("ConfigLoader: Loaded links.yaml - %d links defined", len(self._links_spec))
+            else:
+                self._links_spec = {}
+                logger.warning("ConfigLoader: links.yaml not found; purchase links will be unavailable")
+        except Exception as e:
+            logger.error("ConfigLoader: Failed to load links.yaml - %s", str(e))
+            self._links_spec = {}
     
     @property
     def agents_spec(self) -> Dict[str, Any]:
@@ -95,6 +119,11 @@ class ConfigLoader:
     def tasks_spec(self) -> Dict[str, Any]:
         """Get the cached tasks specification."""
         return self._tasks_spec
+    
+    @property
+    def purchase_links(self) -> Dict[str, str]:
+        """Get the cached purchase links mapping."""
+        return self._links_spec
     
     def reload(self) -> None:
         """
@@ -123,6 +152,11 @@ def get_agents_spec() -> Dict[str, Any]:
 def get_tasks_spec() -> Dict[str, Any]:
     """Get the cached tasks specification."""
     return _config_loader.tasks_spec
+
+
+def get_purchase_links() -> Dict[str, str]:
+    """Get the cached purchase links mapping."""
+    return _config_loader.purchase_links
 
 
 def reload_configs() -> None:

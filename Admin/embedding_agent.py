@@ -181,21 +181,22 @@ def chunk_policy_md(file_path: str, chunk_size: int = 1000, chunk_overlap: int =
     return chunks
 
 def generate_hypothetical_questions(chunk: str):
-    """Generates 10 comprehensive hypothetical questions for a given text chunk using an LLM."""
+    """Generates 20 comprehensive, unique, exclusion-aware questions for a given text chunk using an LLM."""
     logger.info(f"Generating questions for chunk starting with: '{chunk[:80]}...'")
     
     system_text = (
         "You are an expert at generating comprehensive hypothetical questions from insurance policy text chunks.\n"
-        "Your task is to generate 10 detailed questions that each cover MULTIPLE aspects of the provided text chunk.\n"
-        "Each question should be comprehensive and cover several related benefits, scenarios, or conditions rather than focusing on just one aspect.\n"
-        "Focus on broad coverage areas like overall benefits, comprehensive scenarios, multiple conditions, or combined features.\n"
-        "Don't include tier-specific questions - focus on general coverage, processes, and scenarios that apply broadly.\n"
-        "Make questions detailed enough to potentially answer multiple related inquiries in one response.\n"
-        "Return the questions as a JSON object with a single key \"questions\" which is a list of 10 comprehensive strings.\n"
-        "Examples:\n"
-        "- \"What are all the medical coverage limits for different age groups and how do they apply to various medical scenarios including overseas treatment and COVID-related expenses?\"\n"
-        "- \"How does the travel insurance handle both trip cancellation and trip disruption, including the compensation amounts, covered reasons, and the process for filing claims for both scenarios?\"\n"
-        "- \"What are the complete details of personal accident coverage including death benefits, permanent disability, and any additional grants or support provided under different circumstances?\""
+        "Generate EXACTLY 20 detailed, UNIQUE questions anchored to the provided chunk.\n"
+        "Non-overlapping: no two questions should be answerable by the same single clause or exclusion; avoid paraphrases and near-duplicates.\n"
+        "Each question must combine related aspects (benefits, scenarios, conditions, limits, documentation, timing windows, exclusions) rather than focusing on a single point.\n"
+        "Exclusion-aware: distinguish between policy-wide GENERAL EXCLUSIONS and SECTION-SPECIFIC EXCLUSIONS present in the chunk; craft questions that test both and clarify their interaction or precedence when relevant.\n"
+        "Incorporate edge cases commonly found in travel insurance policies when present in the chunk: vaccination requirements and exemptions, age-based applicability, pre-existing conditions and optional covers, publicly known events and travel alerts, quarantine and COVID-specific provisions, police/carrier report requirements, pair-and-sets clause, itemized bill requirements, automatic extensions, payment-before-cover warranty, sanctions/subrogation, and definitions that change applicability (Common Carrier, Trip, Immediate Family Member).\n"
+        "Do not include tier-specific questions; keep questions generally applicable across plans.\n"
+        "Output strictly as JSON with a single key 'questions' mapped to an array of 20 strings. No extra text.\n"
+        "Examples of multi-aspect questions (illustrative, adapt to the chunk):\n"
+        "- How do overseas and Singapore follow-up medical expense windows, documentation requirements, and section-specific exclusions interact when treatment starts overseas but continues at home?\n"
+        "- Under travel cancellation, postponement, and curtailment, what constitutes covered reasons versus general or section exclusions (e.g., publicly known events, travel alerts), and how do refunds from carriers affect claims?\n"
+        "- For baggage loss and personal documents, how do police report timing, carrier Property Irregularity Reports, pair-and-sets clause, and unattended property rules combine to determine claim eligibility?\n"
     )
     user_text = f"Here is the text chunk:\n\n---\n{chunk}\n---"
 
@@ -204,6 +205,7 @@ def generate_hypothetical_questions(chunk: str):
         json_str = txt.replace("```json", "").replace("```", "").strip()
         questions_obj = json.loads(json_str)
         questions = questions_obj.get("questions", [])
+        questions = questions[:20]
         if not isinstance(questions, list) or len(questions) == 0:
             logger.warning("LLM returned empty or invalid question list.")
             return []

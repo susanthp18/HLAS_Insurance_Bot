@@ -363,7 +363,8 @@ class WhatsAppMessageHandler:
                 "_early_existing_cover_notice",
 
                 # Product switch confirmation marker
-                "__product_switch_confirmed__"
+                "__product_switch_confirmed__",
+                "purchase_flow_stage"
             ):
                 if key in flow.state.session and flow.state.session.get(key) not in (None, ""):
                     new_session[key] = flow.state.session.get(key)
@@ -378,7 +379,7 @@ class WhatsAppMessageHandler:
                 new_session.pop("recommended_tier", None)
 
             # 5) Histories and markers: copy if present
-            for key in ("comparison_history", "summary_history", "last_completed"):
+            for key in ("comparison_history", "summary_history", "last_completed", "last_recommendation_product"):
                 if key in flow.state.session:
                     new_session[key] = flow.state.session.get(key)
 
