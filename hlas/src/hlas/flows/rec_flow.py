@@ -46,7 +46,7 @@ class RecFlowHelper:
                 "add_ons",
             ]
         if p == "personalaccident":
-            return ["coverage_scope", "risk_level", "desired_amount"]
+            return ["coverage_scope", "desired_amount"]
         if p == "home" or p == "homeprotect360":
             return ["risk_concerns", "coverage_amount"]
         if p == "early":
@@ -61,7 +61,6 @@ class RecFlowHelper:
         if p == "hospital":
             return [
                 "age",
-                "occupation",
                 "support",
                 "coverage",
             ]
@@ -83,12 +82,6 @@ class RecFlowHelper:
             },
             "personalaccident": {
                 "coverage_scope": "Coverage for yourself or your family",
-                "risk_level": (
-                    "Occupational risk level with three bands: "
-                    "Low risk – primarily office/desk work with minimal physical exposure; "
-                    "Medium risk – light manual work with some outdoor or machinery exposure; "
-                    "High risk – significant physical hazard, height, heavy machinery, or field operations."
-                ),
                 "desired_amount": "Desired coverage amount between $500 and $3,500 (accept 'the higher the better' → 3500; 'the lower the better' → 500)"
             },
             "home": {
@@ -106,7 +99,6 @@ class RecFlowHelper:
             },
             "hospital": {
                 "age": "User age or range (below 25, 25-35, 36-45, above 45) or a reasonable age number",
-                "occupation": "Free-text occupation (e.g., teacher, engineer, driver)",
                 "support": "Whether the user supports anyone financially (Yes/No)",
                 "coverage": "Desired daily hospital cash (e.g., $100/day, $200/day, $300/day)",
             },
@@ -174,7 +166,6 @@ class RecFlowHelper:
         if p == "personalaccident":
             return {
                 "coverage_scope": {"type": "choice", "options": ["self or me", "family"]},
-                "risk_level": {"type": "choice", "options": ["low", "medium", "high"]},
                 "desired_amount": {
                     "type": "value",
                     "format": "amount:int",
@@ -231,7 +222,6 @@ class RecFlowHelper:
         if p == "hospital":
             return {
                 "age": {"type": "value", "format": "age_or_range"},
-                "occupation": {"type": "value", "format": "text"},
                 "support": {"type": "yesno"},
                 "coverage": {"type": "choice", "options": ["$100/day", "$200/day", "$300/day"]},
             }
@@ -295,7 +285,7 @@ class RecFlowHelper:
         
         logger.info("RecFlow.extract_slots: API output - keys=%s, user_needs_explanation=%s", 
                    list(extraction_result.keys()), extraction_result.get("user_needs_explanation"))
-
+        
         # Check if extractor signalled a side information question (policy-level) instead of a slot answer
         info_intent = (extraction_result.get("info_intent") or "").strip().lower()
         if info_intent == "handle_information":
@@ -909,9 +899,9 @@ class RecFlowHelper:
         from ..prompt_runner import run_direct_task
 
         logger.info("RecFlow.handle: Product identification - current_product=%s, rec_status=%s, prev_prod_q=%s", current_product, recommendation_status, rec_prev_prod_q)
-        
+
         product: Optional[str] = None
-        
+
         # Special case: previous turn asked for product clarification in RecFlow
         if rec_prev_prod_q:
             prod_result = run_direct_task(
@@ -950,8 +940,8 @@ class RecFlowHelper:
                 return "__done__"
 
             # We have a product – lock it into session
-            state.product = product
-            state.session["product"] = product
+                state.product = product
+                state.session["product"] = product
             # Clear the clarification flag now that product is resolved
             state.session.pop("_last_rec_prod_q", None)
 
@@ -966,7 +956,7 @@ class RecFlowHelper:
 
             # Ensure recommendation is marked in progress for slot collection
             state.session["recommendation_status"] = "in_progress"
-            
+
             # Skip slot extraction/validation this turn; ask next missing slot directly (or proceed if none)
             required_slots = cls._required_slots_for_product(product)
             current_slots = state.session.get("slots", {}) or {}

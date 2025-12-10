@@ -7,6 +7,7 @@ from .session import MongoSessionManager
 from .logging_config import setup_logging
 from .llm import initialize_models
 from .utils.greeting import get_time_based_greeting
+from .agentic import agentic_chat
 import sys
 import uvicorn
 from dotenv import load_dotenv
@@ -62,6 +63,11 @@ logger = logging.getLogger(__name__)
 logger.info("Application startup: FastAPI app created. LLMs are pre-initialized via hlas.llm import.")
 
 class ChatInput(BaseModel):
+    session_id: str
+    message: str
+
+
+class AgentChatInput(BaseModel):
     session_id: str
     message: str
 
@@ -129,8 +135,41 @@ async def chat(payload: ChatInput):
         REQUESTS_TOTAL.labels(endpoint="/chat", status="500").inc()
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.post("/agent-chat")
+async def agent_chat_endpoint(payload: AgentChatInput):
+    """Experimental agentic endpoint using LangChain-style orchestration.
+
+    This does not modify the existing /chat behaviour and can be exercised
+    independently via Postman.
+    """
+    logger = logging.getLogger(__name__)
+    logger.info(
+        "AgentChat.request: session_id=%s message='%s'",
+        payload.session_id,
+        payload.message,
+    )
+    try:
+        flow_lock_key = session_lock_key(payload.session_id)
+        with RedisLock(flow_lock_key, ttl_seconds=15.0, wait_timeout=5.0):
+            # Reuse the same session store as /chat, but delegate orchestration
+            # to the new agentic runtime.
+            result = await agentic_chat(payload.session_id, payload.message)
+        REQUESTS_TOTAL.labels(endpoint="/agent-chat", status="200").inc()
+        return result
+    except TimeoutError as e:
+        logger.error("AgentChat: Redis lock timeout: %s", e, exc_info=True)
+        REDIS_LOCK_TIMEOUTS.labels(scope="agent_chat").inc()
+        REQUESTS_TOTAL.labels(endpoint="/agent-chat", status="503").inc()
+        raise HTTPException(status_code=503, detail="Service busy, please retry")
+    except Exception as e:
+        logger.error("AgentChat: unexpected error: %s", e, exc_info=True)
+        REQUESTS_TOTAL.labels(endpoint="/agent-chat", status="500").inc()
+        raise HTTPException(status_code=500, detail=str(e))
+
 # WhatsApp Integration Endpoints
 from .utils.whatsapp_handler import whatsapp_handler, close_whatsapp_handler_http_client
+from .utils.agentic_whatsapp_handler import agentic_whatsapp_handler
 
 @app.get("/health")
 def health_check():
@@ -172,6 +211,22 @@ async def meta_whatsapp_webhook(request: Request):
     Enhanced webhook handler for incoming WhatsApp messages with production-grade features.
     """
     return await whatsapp_handler.process_webhook(request)
+
+@app.get("/agent-whatsapp")
+def agentic_whatsapp_webhook_verification(request: Request):
+    """
+    Verification endpoint for the new Agentic WhatsApp webhook.
+    Uses the same verification token as the main endpoint for simplicity.
+    """
+    return agentic_whatsapp_handler.verify_webhook(request)
+
+@app.post("/agent-whatsapp")
+async def agentic_whatsapp_webhook(request: Request):
+    """
+    Webhook handler for Agentic WhatsApp messages.
+    Points to the new ReAct/LangGraph agent logic.
+    """
+    return await agentic_whatsapp_handler.process_webhook(request)
 
 @app.get("/whatsapp/health")
 def whatsapp_health_check():

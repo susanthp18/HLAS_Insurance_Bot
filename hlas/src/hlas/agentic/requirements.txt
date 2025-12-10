@@ -1,0 +1,52 @@
+# ============================================
+# HLAS Agentic Chatbot - Dependencies
+# ============================================
+
+# Core Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.0.0
+
+# LangChain & LangGraph
+langchain>=0.1.0
+langchain-openai>=0.0.5
+langchain-core>=0.1.0
+langgraph>=0.0.20
+
+# Azure OpenAI
+openai>=1.0.0
+
+# Vector Store (Weaviate)
+weaviate-client>=4.0.0
+
+# Redis
+redis>=5.0.0
+
+# MongoDB
+pymongo>=4.6.0
+
+# HTTP Client
+httpx>=0.25.0
+
+# Serialization
+orjson>=3.9.0
+
+# Environment
+python-dotenv>=1.0.0
+
+# Metrics (optional)
+prometheus-client>=0.19.0
+
+# WebSockets (for Zoom integration)
+websockets>=12.0
+
+# YAML parsing
+pyyaml>=6.0.0
+
+# ============================================
+# Development Dependencies (optional)
+# ============================================
+# pytest>=7.4.0
+# pytest-asyncio>=0.21.0
+# black>=23.0.0
+# ruff>=0.1.0

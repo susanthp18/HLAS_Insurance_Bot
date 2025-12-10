@@ -24,11 +24,34 @@ class BenefitsTool(BaseTool):
         base = (name or "").lower().strip()
         # remove common words and separators
         if base.endswith("_benefits"):
-            base = base[:-10]
+            base = base.replace("_benefits", "")
         if base.endswith("-benefits"):
-            base = base[:-10]
-        # keep only alphanumerics
-        return "".join(ch for ch in base if ch.isalnum())
+            base = base.replace("-benefits", "")
+        
+        # Normalize alphanumeric only
+        clean = "".join(ch for ch in base if ch.isalnum())
+        
+        # Explicit alias mapping to match benefits_raw.json keys
+        aliases = {
+            "pa": "personalaccident",
+            "personal": "personalaccident",
+            "accident": "personalaccident",
+            "familyprotect360": "personalaccident",
+            "familyprotect": "personalaccident",
+            "family": "personalaccident",
+            "travelprotect360": "travel",
+            "maidprotect360": "maid",
+            "carprotect360": "car",
+            "homeprotect360": "home",
+            "earlyprotect360": "early",
+            "earlyci": "early",
+            "ci": "early",
+            "fraudprotect360": "fraud",
+            "hospitalprotect360": "hospital",
+            "hospitalincome": "hospital"
+        }
+        
+        return aliases.get(clean, clean)
 
     @classmethod
     def _load_cache(cls) -> Dict[str, Any]:

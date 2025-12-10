@@ -15,7 +15,7 @@ fraud:
     • If appropriate, include one friendly sentence on how it helps with scams in everyday life.
     • Include the identical-coverage protections as ONE combined bullet exactly once:
       "• Online Shopping Fraud, Fund Transfer Fraud, Cyber Extortion, Restoration Costs, Identity Theft — up to $10,000"
-    • Then list the tier-differentiated items for the recommended tier with amounts:
+    • Then list the tier-differentiated items for the recommended tier. You MUST include the specific coverage amount for each item (e.g. "Benefit Name: up to $Amount"):
       • Accidental Death and Permanent Total Disablement
       • Accidental Medical Reimbursement
       • Hospital Cash Benefit
@@ -23,7 +23,8 @@ fraud:
       • Emergency Medical Transportation
     • Upsell rules: Tier order is Gold < Platinum. If recommending Platinum (highest), add one short sentence like "This gives the best coverage for your needs." Otherwise, mention the next tier up in ONE short sentence with one concrete added value from the context. NEVER invent amounts.
     • Do NOT add closing invitations like "If you want more info…" or "let me know if…" — end after the upsell sentence.
-    • Keep total response under 4096 characters
+    • Keep total response under 4096 characters.
+    • Ensure bullets are concise and not wordy. Avoid marketing fluff.
   user: |
     [User Inputs]
     - Product: Fraud
@@ -54,7 +55,8 @@ travel:
     • If an amount is genuinely not found in the context after thorough search, write "— amount not specified"
     • Upsell rules: Check the tier order provided in user context. If the recommended tier is the HIGHEST tier (last in the order), add one sentence like "This gives the best coverage for your needs." Otherwise, you MUST mention the next tier up in ONE short sentence, using the exact next tier name from the tier order, and highlight one concrete added value based on the provided benefits context. NEVER invent tier names or amounts.
     • Do NOT add closing invitations like "If you want more info…" or "let me know if…" — end after the upsell sentence.
-    • Keep total response under 4096 characters
+    • Keep total response under 4096 characters.
+    • Ensure bullets are concise and not wordy. Avoid marketing fluff.
   user: |
     [User Inputs]
     - Product: Travel
@@ -98,7 +100,8 @@ maid:
     • If an amount is genuinely not found in the context after thorough search, write "— amount not specified"
     • Upsell rules: Check the tier order provided in user context. If the recommended tier is the HIGHEST tier (last in the order), add one sentence like "This gives the best coverage for your needs." Otherwise, you MUST mention the next tier up in ONE short sentence, using the exact next tier name from the tier order, and highlight one concrete added value based on the provided benefits context. NEVER invent tier names or amounts.
     • Do NOT add closing invitations like "If you want more info…" or "let me know if…" — end after the upsell sentence.
-    • Keep total response under 4096 characters
+    • Keep total response under 4096 characters.
+    • Ensure bullets are concise and not wordy. Avoid marketing fluff.
   user: |
     [User Inputs]
     - Product: Maid
@@ -188,7 +191,8 @@ personalaccident:
     • If an amount is genuinely not found in the context after thorough search, write "— amount not specified"
     • Upsell rules: Check the tier order provided in user context. If the recommended tier is the HIGHEST tier (last in the order), add one sentence like "This gives the best coverage for your needs." Otherwise, mention the next tier up in ONE short sentence with one concrete added value from the context. NEVER invent amounts.
     • Do NOT add closing invitations like "If you want more info…" or "let me know if…" — end after the upsell sentence.
-    • Keep total response under 4096 characters
+    • Keep total response under 4096 characters.
+    • Ensure bullets are concise and not wordy. Avoid marketing fluff.
   user: |
     [User Inputs]
     - Product: PersonalAccident
@@ -224,6 +228,7 @@ home:
     • Upsell rules: Check the tier order provided in user context. If the recommended tier is the HIGHEST tier (last in the order), add one sentence like "This gives the best coverage for your needs." Otherwise, you MUST mention the next tier up in ONE short sentence, using the exact next tier name from the tier order, and highlight one concrete added value based on the provided benefits context. NEVER invent tier names or amounts.
     • Do NOT add closing invitations like "If you want more info…" or "let me know if…" — end after the upsell sentence.
     • Keep total response under 4096 characters.
+    • Ensure bullets are concise and not wordy. Avoid marketing fluff.
   user: |
     [User Inputs]
     - Product: Home
@@ -258,7 +263,8 @@ hospital:
       • Recuperation Benefit
     • Upsell rules: Tier order is Silver < Premier < Titanium. If recommending Titanium (highest), add one short sentence like "This gives the best coverage for your needs." Otherwise, mention the next tier up in ONE short sentence with one concrete added value from the context. NEVER invent amounts.
     • Do NOT add closing invitations like "If you want more info…" or "let me know if…" — end after the upsell sentence.
-    • Keep total response under 4096 characters
+    • Keep total response under 4096 characters.
+    • Ensure bullets are concise and not wordy. Avoid marketing fluff.
   user: |
     [User Inputs]
     - Product: Hospital

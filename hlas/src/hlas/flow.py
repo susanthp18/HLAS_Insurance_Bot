@@ -120,7 +120,7 @@ class HlasFlow(Flow[HlasState]):
                 "add_ons",
             ]
         if p == "personalaccident":
-            return ["coverage_scope", "risk_level", "desired_amount"]
+            return ["coverage_scope", "desired_amount"]
         if p == "home" or p == "homeprotect360":
             return ["risk_concerns", "coverage_amount"]
         if p == "early":

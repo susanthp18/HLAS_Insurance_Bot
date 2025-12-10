@@ -15,7 +15,7 @@ fraud:
     Combination rule (apply exactly once if present in context for both tiers):
     - Online Shopping Fraud, Fund Transfer Fraud, Cyber Extortion, Restoration Costs, Identity Theft — up to $10,000 (applies to Gold and Platinum)
 
-    Then compare the tier-differentiated items(Compare these only):
+    Then compare the tier-differentiated items. For each item, you MUST state the coverage amount for each tier:
     - Accidental Death and Permanent Total Disablement
     - Accidental Medical Reimbursement
     - Hospital Cash Benefit
