@@ -477,12 +477,6 @@ class WhatsAppMessageHandler:
         # Acquire per-session lock to avoid concurrent processing for same user
         session_id = f"whatsapp_{user_phone}"
         with RedisLock(session_lock_key(session_id), ttl_seconds=15.0, wait_timeout=5.0):
-            # Optional quick ack to improve perceived latency
-            try:
-                if os.getenv("WA_SEND_ACKS", "false").lower() in ("1", "true", "yes"):
-                    await self._send_message_async(user_phone, "Got it — let me check that for you…")
-            except Exception:
-                pass
             # Check if the stage is "live_agent" before an intent is set by the incoming message
             if self._mongo_session_manager.get_session(session_id).get("live_agent_status") == True:
                 manager = EngagementManager.get_by_session(user_phone)
