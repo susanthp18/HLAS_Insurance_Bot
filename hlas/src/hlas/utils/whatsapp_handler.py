@@ -467,13 +467,6 @@ class WhatsAppMessageHandler:
         """
         Handles the actual processing and sending of the response asynchronously.
         """
-        # Rate limiting check
-        if not self.check_rate_limit(user_phone):
-            rate_limit_msg = "You're sending messages too quickly! 😅 Please wait a moment and try again."
-            await self._send_message_async(user_phone, rate_limit_msg)
-            WA_MESSAGES_PROCESSED_TOTAL.labels(result="rate_limited").inc()
-            return
-
         # Acquire per-session lock to avoid concurrent processing for same user
         session_id = f"whatsapp_{user_phone}"
         with RedisLock(session_lock_key(session_id), ttl_seconds=15.0, wait_timeout=5.0):
