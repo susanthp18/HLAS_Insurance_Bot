@@ -893,6 +893,34 @@ class RecFlowHelper:
                     )
                     return "__done__"
         
+        # --- Pre-check: Explicit Purchase Intent ---
+        # If the user explicitly wants to buy/purchase the detected product and we have sufficient context
+        # (either slots filled or flow completed), serve the link immediately to avoid re-running the flow.
+        msg_lower_purch = (state.message or "").lower()
+        purchase_keywords = {
+            "purchase", "buy", "get this plan", "get this policy", "sign up", 
+            "apply now", "proceed", "buy now", "purchase now", "get this", "want this plan",
+            "would purchase"
+        }
+        has_purchase_kw = any(pk in msg_lower_purch for pk in purchase_keywords)
+        is_refusal = any(n in msg_lower_purch for n in ["don't", "do not", "no ", "not "])
+        
+        if has_purchase_kw and not is_refusal:
+            # Check context: are We ready to sell? (Slots valid)
+            _curr = state.session.get("slots", {}) or {}
+            _req = cls._required_slots_for_product(product)
+            _missing = cls._get_missing_slots(_curr, _req)
+            
+            if not _missing:
+                product_label = (product or "Insurance").title()
+                state.reply = (
+                    f"Excellent choice! You can complete your purchase for {product_label} here:\n"
+                    "https://www.hlas.com.sg/buy-online\n\n"
+                    "Let me know if you need help with anything else!"
+                )
+                logger.info("RecFlow.handle: Purchase intent detected with valid context; returning purchase link.")
+                return "__done__"
+
         # Check if recommendation is already complete for this product
         recommendation_status = state.session.get("recommendation_status")
         logger.info("RecFlow.handle: Current recommendation status=%s", recommendation_status)
