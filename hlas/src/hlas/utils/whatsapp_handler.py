@@ -478,45 +478,52 @@ class WhatsAppMessageHandler:
         session_id = f"whatsapp_{user_phone}"
         with RedisLock(session_lock_key(session_id), ttl_seconds=15.0, wait_timeout=5.0):
             # Check if the stage is "live_agent" before an intent is set by the incoming message
-            if self._mongo_session_manager.get_session(session_id).get("live_agent_status") == True:
-                manager = EngagementManager.get_by_session(user_phone)
-                if not manager:
-                    logger.error(f"Zoom Chat session for contact '{user_phone}' not found.")
-                    await self._send_message_async(user_phone, "Unfortunately the agent has disconnected. Please try again later.")
-
-                if not manager.is_agent_connected:
-                    logger.error("Agent has not connected yet.")
-                    await self._send_message_async(user_phone, "You're in a queue. Please wait while we are trying to connect you to an agent.")
+            try:
+                session_data = self._mongo_session_manager.get_session(session_id)
+                if session_data.get("live_agent_status") == True:
+                    manager = EngagementManager.get_by_session(user_phone)
+                    if not manager:
+                        logger.error(f"Zoom Chat session for contact '{user_phone}' not found.")
+                        await self._send_message_async(user_phone, "Unfortunately the agent has disconnected. Please try again later.")
+    
+                    if not manager.is_agent_connected:
+                        logger.error("Agent has not connected yet.")
+                        await self._send_message_async(user_phone, "You're in a queue. Please wait while we are trying to connect you to an agent.")
+                    else:
+                        await manager.send_message(message)
+    
                 else:
-                    await manager.send_message(message)
-
-            else:
-                # Process message
-                response = await self.handle_message(message, user_phone, metadata)
-                
-                # Send response
-                await self._send_message_async(user_phone, response)
-                WA_MESSAGES_PROCESSED_TOTAL.labels(result="ok").inc()
-
-                #Check if the stage is "live_agent" after the intent is set by the incoming message
-                if self._mongo_session_manager.get_session(session_id).get("live_agent_status") == True:
-                    if user_phone in EngagementManager._active_engagements:
-                        logger.error(f"Chat session '{session_id}' is already active.")
-
-                    logger.info(f"Creating and storing new engagement for session: {user_phone}")
-                    callback_with_session_context = partial(self.handle_agent_response, user_phone)
+                    # Process message
+                    response = await self.handle_message(message, user_phone, metadata)
                     
-                    temp_name = uuid.uuid4().hex[:6]
-                    temp_email = f"{temp_name}@hlastest.com"
-
-                    manager = EngagementManager.create_and_register(
-                        session_id=user_phone,
-                        nick_name=temp_name,
-                        email=temp_email,
-                        base_api_url=BASE_URL,
-                        on_agent_message_callback=callback_with_session_context
-                    )
-                    asyncio.create_task(manager.initiate_engagement())
+                    # Send response
+                    await self._send_message_async(user_phone, response)
+                    WA_MESSAGES_PROCESSED_TOTAL.labels(result="ok").inc()
+    
+                    #Check if the stage is "live_agent" after the intent is set by the incoming message
+                    # Re-fetch session in case handle_message updated it
+                    updated_session = self._mongo_session_manager.get_session(session_id)
+                    if updated_session.get("live_agent_status") == True:
+                        if user_phone in EngagementManager._active_engagements:
+                            logger.error(f"Chat session '{session_id}' is already active.")
+                        else:
+                            logger.info(f"Creating and storing new engagement for session: {user_phone}")
+                            callback_with_session_context = partial(self.handle_agent_response, user_phone)
+                            
+                            temp_name = uuid.uuid4().hex[:6]
+                            temp_email = f"{temp_name}@hlastest.com"
+        
+                            manager = EngagementManager.create_and_register(
+                                session_id=user_phone,
+                                nick_name=temp_name,
+                                email=temp_email,
+                                base_api_url=BASE_URL,
+                                on_agent_message_callback=callback_with_session_context
+                            )
+                            asyncio.create_task(manager.initiate_engagement())
+            except Exception as e:
+                logger.error(f"Error in _process_and_respond: {e}", exc_info=True)
+                await self._send_message_async(user_phone, "I encountered a technical issue. Please try again.")
 
     async def process_webhook(self, request: Request) -> Response:
         """
