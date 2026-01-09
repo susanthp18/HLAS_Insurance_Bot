@@ -193,7 +193,7 @@ class HlasFlow(Flow[HlasState]):
                             product_label = (curr_prod or "Insurance").title()
                             self.state.reply = (
                                 f"Excellent choice! You can complete your purchase for {product_label} here:\n"
-                                "https://www.hlas.com.sg/buy-online\n\n"
+                                "https://bthlas.bigtapp.net/buy-online\n\n"
                                 "Let me know if you need help with anything else!"
                             )
                             # Clear all flow statuses to reset state

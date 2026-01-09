@@ -915,7 +915,7 @@ class RecFlowHelper:
                 product_label = (product or "Insurance").title()
                 state.reply = (
                     f"Excellent choice! You can complete your purchase for {product_label} here:\n"
-                    "https://www.hlas.com.sg/buy-online\n\n"
+                    "https://bthlas.bigtapp.net/buy-online\n\n"
                     "Let me know if you need help with anything else!"
                 )
                 logger.info("RecFlow.handle: Purchase intent detected with valid context; returning purchase link.")
