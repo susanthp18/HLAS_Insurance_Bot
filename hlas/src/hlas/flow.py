@@ -159,10 +159,58 @@ class HlasFlow(Flow[HlasState]):
             if is_live:
                 self.state.reply = "You're now connected to a live agent. I'll pause automated replies until you're done."
                 logger.info("HlasFlow.decide: live_agent_status active - short-circuiting flow.")
-                return "__done__"
         except Exception:
             # If anything goes wrong in detection, continue with normal routing (fail-open)
             pass
+
+        # Global Purchase Intent Interceptor
+        # Captures explicit "buy/purchase" commands to break out of any other flow (like comparison)
+        # and either serve the link (if valid) or force RecFlow (to collect slots).
+        try:
+            msg_lower_purch = (self.state.message or "").lower()
+            purchase_keywords = {
+                "purchase", "buy", "get this plan", "get this policy", "sign up", 
+                "apply now", "proceed", "buy now", "purchase now", "get this", "want this plan",
+                "would purchase"
+            }
+            has_purchase_kw = any(pk in msg_lower_purch for pk in purchase_keywords)
+            # Simple negation check
+            is_refusal = any(n in msg_lower_purch for n in ["don't", "do not", "no ", "not "])
+            
+            if has_purchase_kw and not is_refusal:
+                logger.info("HlasFlow.decide: Global purchase intent detected in '%s'", self.state.message)
+                
+                # Check validation status using RecFlowHelper if available
+                if RECFLOW_AVAILABLE and RecFlowHelper:
+                    curr_prod = self.state.session.get("product") or self.state.product
+                    if curr_prod:
+                        _curr = self.state.session.get("slots", {}) or {}
+                        _req = RecFlowHelper._required_slots_for_product(curr_prod)
+                        _missing = RecFlowHelper._get_missing_slots(_curr, _req)
+                        
+                        if not _missing:
+                            # Context complete - serve link immediately
+                            product_label = (curr_prod or "Insurance").title()
+                            self.state.reply = (
+                                f"Excellent choice! You can complete your purchase for {product_label} here:\n"
+                                "https://www.hlas.com.sg/buy-online\n\n"
+                                "Let me know if you need help with anything else!"
+                            )
+                            # Clear all flow statuses to reset state
+                            self.state.session.pop("recommendation_status", None)
+                            self.state.session.pop("comparison_status", None)
+                            self.state.session.pop("summary_status", None)
+                            return "__done__"
+                        else:
+                            # Missing slots - Force routing to RecFlow to fill them
+                            # This interrupts any other flow (Summary/Compare)
+                            logger.info("HlasFlow.decide: Purchase intent active but slots missing - forcing RecFlow.")
+                            self.state.session.pop("comparison_status", None)
+                            self.state.session.pop("summary_status", None)
+                            # Let RecFlow take over (it sets recommendation_status='in_progress')
+                            return RecFlowHelper.handle(self.state, {"directive": "handle_recommendation"}, self._logger)
+        except Exception as e:
+            logger.error("HlasFlow.decide: Purchase interceptor error - %s", e)
 
         # Debug session state at entry
         recommendation_status = self.state.session.get("recommendation_status")
